@@ -5,18 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Esterification Reactor Dashboard</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Paho MQTT -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- jsPDF for PDF Report Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         @keyframes flash {
@@ -53,9 +50,6 @@
 </head>
 <body class="bg-slate-100 font-sans text-slate-800">
 
-    <!-- ============================================== -->
-    <!-- LOGIN PAGE                                     -->
-    <!-- ============================================== -->
     <div id="login-page" class="fixed inset-0 bg-teal-700 flex items-center justify-center z-[100] transition-opacity duration-500">
         <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all">
             <div class="text-center mb-6">
@@ -93,14 +87,14 @@
                     </div>
                 </div>
                 <div class="pt-2 border-t border-slate-200 mt-4">
-                    <label class="block text-slate-700 text-sm font-bold mb-2" for="phone">
-                        WhatsApp or Phone Number
+                    <label class="block text-slate-700 text-sm font-bold mb-2" for="telegram-id">
+                        Telegram Chat ID
                     </label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fa-solid fa-phone text-slate-400"></i>
+                            <i class="fa-brands fa-telegram text-slate-400"></i>
                         </div>
-                        <input id="phone" type="tel" placeholder="08123456789" required
+                        <input id="telegram-id" type="text" placeholder="123456789" required
                             class="pl-10 w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
                     </div>
                 </div>
@@ -117,11 +111,7 @@
         </div>
     </div>
 
-    <!-- ============================================== -->
-    <!-- MAIN DASHBOARD                                 -->
-    <!-- ============================================== -->
     <div id="dashboard-app" class="hidden opacity-0 transition-opacity duration-500 pb-10">
-        <!-- Top Nav -->
         <nav class="bg-teal-700 text-white p-4 shadow-md flex justify-between items-center flex-wrap gap-4">
             <div class="flex items-center gap-3">
                 <i class="fa-solid fa-flask-vial text-3xl"></i>
@@ -132,7 +122,6 @@
             </div>
             
             <div class="flex items-center gap-3 flex-wrap">
-                <!-- Emergency Stop Button -->
                 <button type="button" onclick="window.emergencyStop()" class="bg-red-600 hover:bg-red-700 border-2 border-red-800 text-white px-5 py-1.5 rounded-md text-sm font-bold transition flex items-center animate-pulse-fast shadow-lg mr-2">
                     <i class="fa-solid fa-power-off mr-2"></i> EMERGENCY STOP
                 </button>
@@ -141,7 +130,7 @@
                     <i class="fa-solid fa-user"></i> <span id="user-email-display">user@email.com</span>
                 </div>
                 <div id="db-status" class="flex items-center gap-2 bg-teal-800 px-3 py-1 rounded-full text-xs">
-                    <i class="fa-solid fa-database"></i> <span id="db-status-text">Preparing DB...</span>
+                    <i class="fa-solid fa-database"></i> <span id="db-status-text">Checking DB...</span>
                 </div>
                 <div id="mqtt-status" class="flex items-center gap-2 bg-teal-800 px-3 py-1 rounded-full text-xs">
                     <div id="status-dot" class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
@@ -165,7 +154,6 @@
 
         <div class="p-6 max-w-7xl mx-auto space-y-6">
 
-            <!-- Error Banner -->
             <div id="error-banner" class="hidden border-l-4 border-red-500 text-red-700 p-4 rounded shadow-md error-flash flex justify-between items-center" role="alert">
                 <div>
                     <p class="font-bold text-lg"><i class="fa-solid fa-triangle-exclamation mr-2"></i> ANOMALY WARNING DETECTED</p>
@@ -173,15 +161,13 @@
                 </div>
                 <div class="flex flex-col items-end gap-2">
                     <div class="text-xs font-bold text-red-800 bg-red-200 px-3 py-1 rounded-full flex items-center">
-                        <i class="fa-solid fa-paper-plane mr-2"></i> Auto-Notification Sent
+                        <i class="fa-brands fa-telegram mr-2"></i> Auto-Notification Sent
                     </div>
                 </div>
             </div>
 
-            <!-- Top Row: Realtime Cards & Machine Status -->
             <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 
-                <!-- Machine Status Card -->
                 <div id="card-machine-status" class="bg-white rounded-xl shadow-md p-4 border-l-4 border-slate-400 flex flex-col items-center justify-center overflow-hidden transition-colors duration-300">
                     <div class="relative flex h-6 w-6 mb-1">
                       <span id="device-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75 hidden"></span>
@@ -192,7 +178,6 @@
                     <span id="last-update-time" class="text-[9px] text-slate-400 mt-1 font-medium">-</span>
                 </div>
 
-                <!-- Temperature Card -->
                 <div class="bg-white rounded-xl shadow-md p-4 border-l-4 border-red-500 flex flex-col items-center justify-center overflow-hidden">
                     <i class="fa-solid fa-temperature-half text-red-500 text-2xl mb-2"></i>
                     <p class="text-[11px] text-slate-500 uppercase font-bold text-center">Temperature</p>
@@ -202,7 +187,6 @@
                     </div>
                 </div>
 
-                <!-- Speed Card -->
                 <div class="bg-white rounded-xl shadow-md p-4 border-l-4 border-blue-500 flex flex-col items-center justify-center overflow-hidden">
                     <i class="fa-solid fa-arrows-rotate text-blue-500 text-2xl mb-2"></i>
                     <p class="text-[11px] text-slate-500 uppercase font-bold text-center">Speed</p>
@@ -212,7 +196,6 @@
                     </div>
                 </div>
 
-                <!-- Volume Card -->
                 <div class="bg-white rounded-xl shadow-md p-4 border-l-4 border-teal-500 flex flex-col items-center justify-center overflow-hidden">
                     <i class="fa-solid fa-flask-vial text-teal-500 text-2xl mb-2"></i>
                     <p class="text-[11px] text-slate-500 uppercase font-bold text-center">Volume</p>
@@ -222,7 +205,6 @@
                     </div>
                 </div>
 
-                <!-- Time Card -->
                 <div class="bg-white rounded-xl shadow-md p-4 border-l-4 border-yellow-500 flex flex-col items-center justify-center overflow-hidden">
                     <i class="fa-solid fa-stopwatch text-yellow-500 text-2xl mb-2"></i>
                     <span id="val-time-total" class="text-lg font-bold text-slate-800 tracking-tight mt-1">00:00:00</span>
@@ -233,9 +215,7 @@
 
             </div>
 
-            <!-- Main Split Layout -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Left Panel: Process Status -->
                 <div class="bg-white p-5 rounded-xl shadow-md lg:col-span-1 h-fit">
                     <h2 class="text-lg font-bold text-slate-700 mb-4 border-b pb-2">Process Status</h2>
                     <div class="bg-teal-50 border border-teal-200 rounded-lg p-4 mb-4 text-center">
@@ -243,13 +223,10 @@
                         <h3 id="current-stage-display" class="text-2xl font-bold text-teal-700 mt-1">Waiting...</h3>
                     </div>
 
-                    <!-- Steps Container -->
                     <div id="steps-container" class="space-y-3 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
-                        <!-- Step items injected here via JS -->
-                    </div>
+                        </div>
                 </div>
 
-                <!-- Right Panel: Charts -->
                 <div class="lg:col-span-2 flex flex-col gap-6">
                     
                     <div class="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 relative">
@@ -300,9 +277,6 @@
         </div>
     </div>
 
-    <!-- ============================================== -->
-    <!-- DETAIL MODAL                                   -->
-    <!-- ============================================== -->
     <div id="modal-detail" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-[110]">
         <div class="bg-white rounded-xl shadow-xl w-[450px] max-w-full p-6 m-4 relative transform transition-all">
             <h2 class="text-xl font-bold text-teal-700 mb-1">Process Parameter Details</h2>
@@ -312,7 +286,6 @@
                 <span id="modal-tol" class="font-bold"></span>
             </div>
 
-            <!-- Comparison Table -->
             <div class="w-full text-sm">
                 <div class="grid grid-cols-3 gap-2 bg-slate-200 text-slate-700 font-bold p-2 rounded-t">
                     <div>Parameter</div>
@@ -351,7 +324,6 @@
         </div>
     </div>
 
-    <!-- Toast Notification -->
     <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 z-[120]">
         <div class="bg-slate-800 text-white px-6 py-3 rounded shadow-lg flex items-center gap-3">
             <i id="toast-icon" class="fa-solid fa-info-circle text-blue-400"></i>
@@ -360,8 +332,19 @@
     </div>
 
     <script type="module">
-        // We use dynamic imports to prevent the whole script from failing if offline or CORS blocked by local Live Server.
-        let fbSignIn, fbSignOut, fbAddDoc, fbServerTimestamp, fbCollection;
+        // ==========================================
+        // 0. SUPABASE CONFIGURATION (GANTI DENGAN KUNCI ANDA)
+        // ==========================================
+        const supabaseUrl = 'https://iretftgjvpljqyfixmow.supabase.co/';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyZXRmdGdqdnBsanF5Zml4bW93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzU0OTQsImV4cCI6MjA5NzExMTQ5NH0.zD4LTLC2aV1J1oni7L7HicTM3x_RK5M73IrhImGZx70';
+
+        // PENTING: Masukkan Token Bot Telegram Anda di sini
+        const TELEGRAM_BOT_TOKEN = '8810149825:AAFEsuOfhVgk8hGvc_C6h_2FO2i3kiPriUs';
+
+        let supabaseClient = null;
+        if (supabaseUrl !== 'KEY_ANON_SUPABASE_ANDA' && supabaseAnonKey !== 'URL_SUPABASE_ANDA') {
+            supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        }
 
         // ==========================================
         // 1. DATA MASTER PARAMETER & ACTUATORS
@@ -375,11 +358,9 @@
             6: { id: 6, name: "Filtration", targetTemp: null, targetRpm: null, targetVol: null, timeStr: "Momentary", checkTolerance: false, act: { motor: 'OFF', heater: 'OFF', valve: 'ON' } }
         };
 
-        // Bangun UI Sidebar Steps dengan Actuator Status
         const stepsContainer = document.getElementById('steps-container');
         for (let i = 1; i <= 6; i++) {
             const p = targetParameters[i];
-            
             stepsContainer.innerHTML += `
                 <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group" id="step-row-${i}">
                     <div class="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-200 text-slate-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2" id="step-icon-${i}">${i}</div>
@@ -393,7 +374,6 @@
                     </div>
                 </div>
             `;
-            // Bangun Opsi Dropdown Grafik
             document.getElementById('filter-temp').innerHTML += `<option value="${i}">Stage ${i}: ${p.name}</option>`;
             document.getElementById('filter-rpm').innerHTML  += `<option value="${i}">Stage ${i}: ${p.name}</option>`;
             document.getElementById('filter-vol').innerHTML  += `<option value="${i}">Stage ${i}: ${p.name}</option>`;
@@ -403,18 +383,20 @@
         // 2. DATA HISTORY & AVERAGE TRACKER
         // ==========================================
         let allSensorData = [];
+        let localDataLog = [];
         const stageAverages = {};
         for(let i=1; i<=6; i++) stageAverages[i] = { sumTemp:0, sumRpm:0, sumVol:0, count:0, durationSec:0 };
 
         let currentStageId = 1;
         let totalSeconds = 0, stageSeconds = 0;
         let isSystemRunning = false, machineTimeout;
-        let userContactPhone = "";
+        let userContactPhone = ""; // Ini sekarang menyimpan Telegram Chat ID
         let currentUserIdentifier = null;
 
         function resetDataIfNewUser(newIdentifier) {
             if (currentUserIdentifier !== null && currentUserIdentifier !== newIdentifier) {
                 allSensorData = [];
+                localDataLog = [];
                 for(let i=1; i<=6; i++) stageAverages[i] = { sumTemp:0, sumRpm:0, sumVol:0, count:0, durationSec:0 };
                 totalSeconds = 0; stageSeconds = 0;
                 currentStageId = 1;
@@ -455,7 +437,15 @@
         function autoNotify(type, message) {
             const now = Date.now();
             if (type === 'ANOMALY' && (now - lastNotifTime < 60000)) return; 
-            console.log(`[SYSTEM WA AUTO-SEND -> ${userContactPhone}]: ${message}`);
+            
+            console.log(`[SYSTEM TELEGRAM AUTO-SEND -> ${userContactPhone}]: ${message}`);
+            
+            // FUNGSI NYATA PENGIRIMAN TELEGRAM
+            if (TELEGRAM_BOT_TOKEN !== 'KODE_TOKEN_BOT_TELEGRAM_ANDA' && userContactPhone && userContactPhone !== '') {
+                const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${userContactPhone}&text=${encodeURIComponent("🚨 *REACTOR ALERT*\n" + message)}`;
+                fetch(url).catch(err => console.error("Telegram send failed:", err));
+            }
+            
             if(type === 'ANOMALY') lastNotifTime = now;
         }
 
@@ -479,7 +469,7 @@
             if (errorTemp || errorRpm || errorVol) {
                 document.getElementById('error-message').innerHTML = errorMsg.join("<br>"); 
                 banner.classList.remove('hidden');
-                autoNotify('ANOMALY', `Machine Warning: ${errorMsg.join(" ")}`);
+                autoNotify('ANOMALY', `Machine Warning:\n${errorMsg.join("\n")}`);
             } else { 
                 banner.classList.add('hidden'); 
             }
@@ -509,7 +499,6 @@
 
             checkTolerance(data.temp, data.rpm, data.vol);
             
-            // Generate actual actuator state based on real-time payload or fallback
             const stageTargetAct = targetParameters[currentStageId].act;
             const actualAct = data.act || { 
                 motor: stageTargetAct.motor === 'ON', 
@@ -525,7 +514,6 @@
                 const icon = document.getElementById(`step-icon-${i}`);
                 const card = document.getElementById(`step-card-${i}`);
                 
-                // Actuator Indicators
                 const mtrDot = document.getElementById(`act-mtr-${i}`);
                 const htrDot = document.getElementById(`act-htr-${i}`);
                 const vlvDot = document.getElementById(`act-vlv-${i}`);
@@ -534,7 +522,6 @@
                     icon.className = "flex items-center justify-center w-10 h-10 rounded-full border border-white bg-teal-500 text-white shadow z-10 relative font-bold";
                     card.classList.replace('bg-white', 'bg-teal-50'); card.classList.replace('border-slate-200', 'border-teal-400');
                     
-                    // Show Actual state for current stage
                     if(actualAct) {
                         mtrDot.className = `h-2.5 w-2.5 rounded-full ${actualAct.motor ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`;
                         htrDot.className = `h-2.5 w-2.5 rounded-full ${actualAct.heater ? 'bg-red-500 animate-pulse' : 'bg-slate-300'}`;
@@ -544,7 +531,6 @@
                     icon.className = "flex items-center justify-center w-10 h-10 rounded-full border border-white bg-green-500 text-white shadow z-10 relative font-bold";
                     card.classList.replace('bg-teal-50', 'bg-slate-50'); card.classList.replace('bg-white', 'bg-slate-50'); card.classList.add('opacity-60');
                     
-                    // Show past Target state statically
                     const pastAct = targetParameters[i].act;
                     mtrDot.className = `h-2.5 w-2.5 rounded-full ${pastAct.motor === 'ON' ? 'bg-green-500' : 'bg-slate-300'}`;
                     htrDot.className = `h-2.5 w-2.5 rounded-full ${pastAct.heater === 'ON' ? 'bg-red-500' : 'bg-slate-300'}`;
@@ -552,7 +538,6 @@
                 } else {
                     icon.className = "flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-200 text-slate-500 shadow z-10 relative font-bold";
                     
-                    // Future stages are gray
                     mtrDot.className = 'h-2.5 w-2.5 rounded-full bg-slate-300';
                     htrDot.className = 'h-2.5 w-2.5 rounded-full bg-slate-300';
                     vlvDot.className = 'h-2.5 w-2.5 rounded-full bg-slate-300';
@@ -560,7 +545,6 @@
             }
         }
 
-        // Initialize UI at start
         updateStepsUI();
 
         function setMachineStatus(isOn) {
@@ -651,79 +635,55 @@
         }
 
         // ==========================================
-        // 5. FIREBASE AUTH & DATABASE
+        // 5. SUPABASE AUTH & DATABASE LOGIC
         // ==========================================
-        const localFirebaseConfig = {};
-        let db, auth, userId, userCollectionRef, isDbReady = false, localDataLog = [];
-
-        const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : localFirebaseConfig;
-        
-        // Form submission works independent of Firebase dynamic import state
-        document.getElementById('login-form').addEventListener('submit', (e) => {
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            if (!auth || !fbSignIn) {
+            if (!supabaseClient) {
                 document.getElementById('login-error').classList.remove('hidden');
-                document.getElementById('login-error-text').innerText = "System offline. Please use 'Enter Without Login'.";
+                document.getElementById('login-error-text').innerText = "Database offline. Please use 'Enter Without Login'.";
                 return;
             }
 
             const email = document.getElementById('email').value;
             const pwd = document.getElementById('password').value;
-            userContactPhone = document.getElementById('phone').value;
+            userContactPhone = document.getElementById('telegram-id').value;
 
             const btnText = document.querySelector('#btn-login span');
             const spinner = document.getElementById('login-spinner');
             btnText.innerText = "Checking..."; spinner.classList.remove('hidden');
             document.getElementById('login-error').classList.add('hidden');
 
-            fbSignIn(auth, email, pwd)
-                .then(() => { btnText.innerText = "Enter"; spinner.classList.add('hidden'); })
-                .catch((error) => {
-                    btnText.innerText = "Enter Dashboard"; spinner.classList.add('hidden');
-                    document.getElementById('login-error').classList.remove('hidden');
-                });
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email: email, password: pwd });
+            
+            if (error) {
+                btnText.innerText = "Enter Dashboard"; spinner.classList.add('hidden');
+                document.getElementById('login-error').classList.remove('hidden');
+                document.getElementById('login-error-text').innerText = error.message;
+            } else {
+                btnText.innerText = "Enter"; spinner.classList.add('hidden');
+            }
         });
 
-        // Use dynamic imports to prevent complete script breakage offline/on local server
-        async function initializeFirebase() {
-            if (Object.keys(config).length === 0) {
-                document.getElementById('db-status-text').innerText = "Local Mode";
-                return;
-            }
-
-            try {
-                const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
-                const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
-                const { getFirestore, collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-                
-                fbSignIn = signInWithEmailAndPassword;
-                fbSignOut = signOut;
-                fbAddDoc = addDoc;
-                fbServerTimestamp = serverTimestamp;
-                fbCollection = collection;
-
-                const app = initializeApp(config); 
-                auth = getAuth(app); 
-                db = getFirestore(app);
-                
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        userId = user.uid; 
-                        resetDataIfNewUser(user.email);
-                        document.getElementById('user-email-display').innerText = user.email;
-                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'reactor-ta';
-                        userCollectionRef = fbCollection(db, 'artifacts', appId, 'users', userId, 'reactor_logs');
-                        isDbReady = true; document.getElementById('db-status-text').innerText = "DB Active";
-                        showDashboard();
-                    } else { isDbReady = false; userId = null; showLogin(); }
-                });
-            } catch (e) { 
-                document.getElementById('db-status-text').innerText = "DB Error"; 
-            }
+        if (supabaseClient) {
+            supabaseClient.auth.onAuthStateChange((event, session) => {
+                if (session) {
+                    resetDataIfNewUser(session.user.email);
+                    document.getElementById('user-email-display').innerText = session.user.email;
+                    document.getElementById('db-status-text').innerText = "DB Active";
+                    document.getElementById('db-status-text').className = "text-green-300";
+                    showDashboard();
+                } else {
+                    document.getElementById('db-status-text').innerText = "Disconnected";
+                    document.getElementById('db-status-text').className = "text-slate-300";
+                    showLogin();
+                }
+            });
+        } else {
+            document.getElementById('db-status-text').innerText = "Local Mode";
+            document.getElementById('db-status-text').className = "text-yellow-300";
         }
-        
-        initializeFirebase();
 
         function showDashboard() {
             const lp = document.getElementById('login-page'); const db = document.getElementById('dashboard-app');
@@ -743,23 +703,39 @@
         }
 
         window.bypassLogin = function() {
-            userContactPhone = document.getElementById('phone').value || "08xxxxxxxxx";
+            userContactPhone = document.getElementById('telegram-id').value;
             resetDataIfNewUser("simulation_bypass");
             document.getElementById('user-email-display').innerText = "Simulation Mode";
             showDashboard();
-            window.showToast(`Notifications set to ${userContactPhone}`, "info");
+            window.showToast(`Notifications set to Telegram ID: ${userContactPhone || 'None'}`, "info");
         };
 
-        window.logoutDashboard = function() {
-            if (auth && auth.currentUser && fbSignOut) { fbSignOut(auth).then(() => { showLogin(); }); } 
-            else { showLogin(); }
+        window.logoutDashboard = async function() {
+            if (supabaseClient) {
+                await supabaseClient.auth.signOut();
+            } else {
+                showLogin();
+            }
         };
 
         async function logData(dataObj) {
-            const logEntry = { ...dataObj, waktu_lokal: new Date().toLocaleTimeString('en-US'), tanggal: new Date().toLocaleDateString('en-US') };
+            const logEntry = { 
+                stage: dataObj.stage,
+                temp: dataObj.temp,
+                rpm: dataObj.rpm,
+                vol: dataObj.vol,
+                waktu_lokal: new Date().toLocaleTimeString('en-US'), 
+                tanggal: new Date().toLocaleDateString('en-US') 
+            };
+            
             localDataLog.push(logEntry);
-            if (isDbReady && userCollectionRef && fbAddDoc && fbServerTimestamp) { 
-                try { await fbAddDoc(userCollectionRef, { ...logEntry, timestamp: fbServerTimestamp() }); } catch (e) {} 
+            
+            if (supabaseClient) { 
+                try { 
+                    await supabaseClient.from('reactor_logs').insert([logEntry]); 
+                } catch (e) {
+                    console.warn("Failed to insert into Supabase");
+                } 
             }
         }
 

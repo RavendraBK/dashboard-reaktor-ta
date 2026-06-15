@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esterification Reactor Dashboard</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Paho MQTT -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- jsPDF for PDF Report Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        @keyframes flash {
+            0% { background-color: #fee2e2; border-color: #ef4444; }
+            50% { background-color: #fca5a5; border-color: #dc2626; }
+            100% { background-color: #fee2e2; border-color: #ef4444; }
+        }
+        .error-flash { animation: flash 1.5s infinite; }
+        
+        @keyframes pulse-fast {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .7; }
+        }
+        .animate-pulse-fast { animation: pulse-fast 1s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        
+        .clickable-step:hover {
+            cursor: pointer;
+            transform: scale(1.02);
+            transition: transform 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Slider Scrollbar Styling */
+        .chart-scroller {
+            overflow-x: auto;
+            overflow-y: hidden;
+            width: 100%;
+        }
+        .chart-scroller::-webkit-scrollbar { height: 8px; }
+        .chart-scroller::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .chart-scroller::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .chart-scroller::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800">
+
+    <!-- ============================================== -->
+    <!-- LOGIN PAGE                                     -->
+    <!-- ============================================== -->
+    <div id="login-page" class="fixed inset-0 bg-teal-700 flex items-center justify-center z-[100] transition-opacity duration-500">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-teal-100 text-teal-600 mb-4">
+                    <i class="fa-solid fa-flask-vial text-3xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-slate-800">Esterification Reactor</h1>
+                <p class="text-xs text-teal-600 font-semibold mt-1 uppercase tracking-wider">Monoester for Transformator Insulating Liquid</p>
+                <p class="text-sm text-slate-500 mt-4">Please sign in to access monitoring</p>
+            </div>
+
+            <div id="login-error" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 text-sm" role="alert">
+                <span class="block sm:inline" id="login-error-text">Invalid email or password!</span>
+            </div>
+
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-slate-700 text-sm font-bold mb-2" for="email">Access Email</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-envelope text-slate-400"></i>
+                        </div>
+                        <input id="email" type="email" placeholder="admin@reactor.com" required
+                            class="pl-10 w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-700 text-sm font-bold mb-2" for="password">Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-lock text-slate-400"></i>
+                        </div>
+                        <input id="password" type="password" placeholder="••••••••" required
+                            class="pl-10 w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
+                    </div>
+                </div>
+                <div class="pt-2 border-t border-slate-200 mt-4">
+                    <label class="block text-slate-700 text-sm font-bold mb-2" for="phone">
+                        WhatsApp or Phone Number
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-phone text-slate-400"></i>
+                        </div>
+                        <input id="phone" type="tel" placeholder="08123456789" required
+                            class="pl-10 w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
+                    </div>
+                </div>
+                <button type="submit" id="btn-login"
+                    class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 mt-4 flex items-center justify-center">
+                    <span>Enter Dashboard</span>
+                    <i id="login-spinner" class="fa-solid fa-circle-notch fa-spin ml-2 hidden"></i>
+                </button>
+            </form>
+            <div class="text-center mt-4 text-xs text-slate-400">
+                <p>For Simulation Mode Only</p>
+                <button type="button" onclick="window.bypassLogin()" class="mt-2 underline hover:text-teal-500">Enter Without Login</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MAIN DASHBOARD                                 -->
+    <!-- ============================================== -->
+    <div id="dashboard-app" class="hidden opacity-0 transition-opacity duration-500 pb-10">
+        <!-- Top Nav -->
+        <nav class="bg-teal-700 text-white p-4 shadow-md flex justify-between items-center flex-wrap gap-4">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-flask-vial text-3xl"></i>
+                <div>
+                    <h1 class="text-xl font-bold leading-tight">Esterification Reactor</h1>
+                    <p class="text-[10px] text-teal-200 uppercase tracking-widest font-bold">Monoester for Transformator Insulating Liquid</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3 flex-wrap">
+                <!-- Emergency Stop Button -->
+                <button type="button" onclick="window.emergencyStop()" class="bg-red-600 hover:bg-red-700 border-2 border-red-800 text-white px-5 py-1.5 rounded-md text-sm font-bold transition flex items-center animate-pulse-fast shadow-lg mr-2">
+                    <i class="fa-solid fa-power-off mr-2"></i> EMERGENCY STOP
+                </button>
+
+                <div class="flex items-center gap-2 bg-teal-800 px-3 py-1 rounded-full text-xs">
+                    <i class="fa-solid fa-user"></i> <span id="user-email-display">user@email.com</span>
+                </div>
+                <div id="db-status" class="flex items-center gap-2 bg-teal-800 px-3 py-1 rounded-full text-xs">
+                    <i class="fa-solid fa-database"></i> <span id="db-status-text">Preparing DB...</span>
+                </div>
+                <div id="mqtt-status" class="flex items-center gap-2 bg-teal-800 px-3 py-1 rounded-full text-xs">
+                    <div id="status-dot" class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+                    <span id="status-text">Disconnected</span>
+                </div>
+                
+                <button type="button" onclick="window.downloadDataPDF()" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded text-xs font-bold transition flex items-center">
+                    <i class="fa-solid fa-file-pdf mr-1"></i> Data PDF
+                </button>
+                <button type="button" onclick="window.downloadDataCSV()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-bold transition flex items-center">
+                    <i class="fa-solid fa-file-csv mr-1"></i> Data CSV
+                </button>
+                <button type="button" onclick="window.toggleSimulation()" id="sim-btn" class="bg-yellow-500 hover:bg-yellow-600 text-slate-900 px-3 py-1.5 rounded text-xs font-bold transition">
+                    Start Simulation
+                </button>
+                <button type="button" onclick="window.logoutDashboard()" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded text-xs font-bold transition" title="Logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </nav>
+
+        <div class="p-6 max-w-7xl mx-auto space-y-6">
+
+            <!-- Error Banner -->
+            <div id="error-banner" class="hidden border-l-4 border-red-500 text-red-700 p-4 rounded shadow-md error-flash flex justify-between items-center" role="alert">
+                <div>
+                    <p class="font-bold text-lg"><i class="fa-solid fa-triangle-exclamation mr-2"></i> ANOMALY WARNING DETECTED</p>
+                    <p id="error-message">Parameters exceed the tolerance limit.</p>
+                </div>
+                <div class="flex flex-col items-end gap-2">
+                    <div class="text-xs font-bold text-red-800 bg-red-200 px-3 py-1 rounded-full flex items-center">
+                        <i class="fa-solid fa-paper-plane mr-2"></i> Auto-Notification Sent
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Row: Realtime Cards & Machine Status -->
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                
+                <!-- Machine Status Card -->
+                <div id="card-machine-status" class="bg-white rounded-xl shadow-md p-4 border-l-4 border-slate-400 flex flex-col items-center justify-center overflow-hidden transition-colors duration-300">
+                    <div class="relative flex h-6 w-6 mb-1">
+                      <span id="device-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75 hidden"></span>
+                      <span id="device-dot" class="relative inline-flex rounded-full h-6 w-6 bg-slate-500"></span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 uppercase font-bold text-center">Machine Status</p>
+                    <span id="device-status-text" class="text-xl font-bold text-slate-500 tracking-tight uppercase">STANDBY</span>
+                    <span id="last-update-time" class="text-[9px] text-slate-400 mt-1 font-medium">-</span>
+                </div>
+
+                <!-- Temperature Card -->
+                <div class="bg-white rounded-xl shadow-md p-4 border-l-4 border-red-500 flex flex-col items-center justify-center overflow-hidden">
+                    <i class="fa-solid fa-temperature-half text-red-500 text-2xl mb-2"></i>
+                    <p class="text-[11px] text-slate-500 uppercase font-bold text-center">Temperature</p>
+                    <div class="flex items-baseline gap-1 mt-1 truncate max-w-full">
+                        <span id="val-temp" class="text-2xl font-bold text-slate-800 tracking-tight">0.0</span>
+                        <span class="text-sm font-medium">°C</span>
+                    </div>
+                </div>
+
+                <!-- Speed Card -->
+                <div class="bg-white rounded-xl shadow-md p-4 border-l-4 border-blue-500 flex flex-col items-center justify-center overflow-hidden">
+                    <i class="fa-solid fa-arrows-rotate text-blue-500 text-2xl mb-2"></i>
+                    <p class="text-[11px] text-slate-500 uppercase font-bold text-center">Speed</p>
+                    <div class="flex items-baseline gap-1 mt-1 truncate max-w-full">
+                        <span id="val-rpm" class="text-2xl font-bold text-slate-800 tracking-tight">0</span>
+                        <span class="text-sm font-medium">RPM</span>
+                    </div>
+                </div>
+
+                <!-- Volume Card -->
+                <div class="bg-white rounded-xl shadow-md p-4 border-l-4 border-teal-500 flex flex-col items-center justify-center overflow-hidden">
+                    <i class="fa-solid fa-flask-vial text-teal-500 text-2xl mb-2"></i>
+                    <p class="text-[11px] text-slate-500 uppercase font-bold text-center">Volume</p>
+                    <div class="flex items-baseline gap-1 mt-1 truncate max-w-full">
+                        <span id="val-vol" class="text-2xl font-bold text-slate-800 tracking-tight">0.0</span>
+                        <span class="text-sm font-medium">ml</span>
+                    </div>
+                </div>
+
+                <!-- Time Card -->
+                <div class="bg-white rounded-xl shadow-md p-4 border-l-4 border-yellow-500 flex flex-col items-center justify-center overflow-hidden">
+                    <i class="fa-solid fa-stopwatch text-yellow-500 text-2xl mb-2"></i>
+                    <span id="val-time-total" class="text-lg font-bold text-slate-800 tracking-tight mt-1">00:00:00</span>
+                    <div class="mt-1 text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded w-full text-center truncate">
+                        Stage: <span id="val-time-stage">00:00:00</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Main Split Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Panel: Process Status -->
+                <div class="bg-white p-5 rounded-xl shadow-md lg:col-span-1 h-fit">
+                    <h2 class="text-lg font-bold text-slate-700 mb-4 border-b pb-2">Process Status</h2>
+                    <div class="bg-teal-50 border border-teal-200 rounded-lg p-4 mb-4 text-center">
+                        <p class="text-sm text-slate-500">Current Stage</p>
+                        <h3 id="current-stage-display" class="text-2xl font-bold text-teal-700 mt-1">Waiting...</h3>
+                    </div>
+
+                    <!-- Steps Container -->
+                    <div id="steps-container" class="space-y-3 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
+                        <!-- Step items injected here via JS -->
+                    </div>
+                </div>
+
+                <!-- Right Panel: Charts -->
+                <div class="lg:col-span-2 flex flex-col gap-6">
+                    
+                    <div class="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 relative">
+                        <div class="flex justify-between items-center z-10">
+                            <h3 class="text-sm font-bold text-slate-700"><i class="fa-solid fa-temperature-half text-red-500 mr-1"></i> Temperature Chart</h3>
+                            <select id="filter-temp" class="text-xs border rounded p-1 bg-slate-50 outline-none" onchange="window.renderCharts()">
+                                <option value="all">All Stages</option>
+                            </select>
+                        </div>
+                        <div id="wrapper-temp" class="chart-scroller bg-slate-50 rounded">
+                            <div id="container-temp" style="min-width: 100%; height: 220px; position: relative;">
+                                <canvas id="tempChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 relative">
+                        <div class="flex justify-between items-center z-10">
+                            <h3 class="text-sm font-bold text-slate-700"><i class="fa-solid fa-arrows-rotate text-blue-500 mr-1"></i> RPM Chart</h3>
+                            <select id="filter-rpm" class="text-xs border rounded p-1 bg-slate-50 outline-none" onchange="window.renderCharts()">
+                                <option value="all">All Stages</option>
+                            </select>
+                        </div>
+                        <div id="wrapper-rpm" class="chart-scroller bg-slate-50 rounded">
+                            <div id="container-rpm" style="min-width: 100%; height: 220px; position: relative;">
+                                <canvas id="rpmChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 relative">
+                        <div class="flex justify-between items-center z-10">
+                            <h3 class="text-sm font-bold text-slate-700"><i class="fa-solid fa-flask-vial text-teal-500 mr-1"></i> Volume Chart</h3>
+                            <select id="filter-vol" class="text-xs border rounded p-1 bg-slate-50 outline-none" onchange="window.renderCharts()">
+                                <option value="all">All Stages</option>
+                            </select>
+                        </div>
+                        <div id="wrapper-vol" class="chart-scroller bg-slate-50 rounded">
+                            <div id="container-vol" style="min-width: 100%; height: 220px; position: relative;">
+                                <canvas id="volChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- DETAIL MODAL                                   -->
+    <!-- ============================================== -->
+    <div id="modal-detail" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-[110]">
+        <div class="bg-white rounded-xl shadow-xl w-[450px] max-w-full p-6 m-4 relative transform transition-all">
+            <h2 class="text-xl font-bold text-teal-700 mb-1">Process Parameter Details</h2>
+            <p id="modal-title" class="text-sm font-medium text-slate-500 mb-4 pb-2 border-b">Stage: Process Name</p>
+            
+            <div class="bg-slate-50 rounded p-3 mb-4 text-sm text-center">
+                <span id="modal-tol" class="font-bold"></span>
+            </div>
+
+            <!-- Comparison Table -->
+            <div class="w-full text-sm">
+                <div class="grid grid-cols-3 gap-2 bg-slate-200 text-slate-700 font-bold p-2 rounded-t">
+                    <div>Parameter</div>
+                    <div class="text-center">Target</div>
+                    <div class="text-right text-teal-700">Actual (Avg/Total)</div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-2 border-b p-2 items-center">
+                    <div class="font-medium text-slate-600"><i class="fa-solid fa-temperature-half text-red-500 w-5"></i> Temperature</div>
+                    <div class="font-bold text-slate-800 text-center" id="modal-tgt-temp">-</div>
+                    <div class="font-bold text-teal-600 text-right" id="modal-avg-temp">0.0 °C</div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-2 border-b p-2 items-center">
+                    <div class="font-medium text-slate-600"><i class="fa-solid fa-arrows-rotate text-blue-500 w-5"></i> RPM</div>
+                    <div class="font-bold text-slate-800 text-center" id="modal-tgt-rpm">-</div>
+                    <div class="font-bold text-teal-600 text-right" id="modal-avg-rpm">0 RPM</div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 border-b p-2 items-center">
+                    <div class="font-medium text-slate-600"><i class="fa-solid fa-flask-vial text-teal-500 w-5"></i> Volume</div>
+                    <div class="font-bold text-slate-800 text-center" id="modal-tgt-vol">-</div>
+                    <div class="font-bold text-teal-600 text-right" id="modal-avg-vol">0.0 ml</div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-2 border-b p-2 items-center">
+                    <div class="font-medium text-slate-600"><i class="fa-solid fa-stopwatch text-yellow-500 w-5"></i> Duration</div>
+                    <div class="font-bold text-slate-800 text-center" id="modal-tgt-time">-</div>
+                    <div class="font-bold text-teal-600 text-right" id="modal-avg-time">00:00:00</div>
+                </div>
+            </div>
+
+            <button type="button" onclick="window.closeModal()" class="mt-6 w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 rounded transition">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 z-[120]">
+        <div class="bg-slate-800 text-white px-6 py-3 rounded shadow-lg flex items-center gap-3">
+            <i id="toast-icon" class="fa-solid fa-info-circle text-blue-400"></i>
+            <span id="toast-message">Notification message...</span>
+        </div>
+    </div>
+
+    <script type="module">
+        // We use dynamic imports to prevent the whole script from failing if offline or CORS blocked by local Live Server.
+        let fbSignIn, fbSignOut, fbAddDoc, fbServerTimestamp, fbCollection;
+
+        // ==========================================
+        // 1. DATA MASTER PARAMETER & ACTUATORS
+        // ==========================================
+        const targetParameters = {
+            1: { id: 1, name: "Mixing", targetTemp: 60, targetRpm: 250, targetVol: 500, timeStr: "30 Mins", checkTolerance: true, act: { motor: 'ON', heater: 'ON', valve: 'OFF' } },
+            2: { id: 2, name: "Add Catalyst", targetTemp: null, targetRpm: null, targetVol: null, timeStr: "Momentary", checkTolerance: false, act: { motor: 'ON', heater: 'OFF', valve: 'ON' } },
+            3: { id: 3, name: "Reflux", targetTemp: 100, targetRpm: 250, targetVol: 500, timeStr: "5 Hours", checkTolerance: true, act: { motor: 'ON', heater: 'ON', valve: 'OFF' } },
+            4: { id: 4, name: "Separation", targetTemp: 0, targetRpm: 0, targetVol: 500, timeStr: "1 Hour", checkTolerance: true, act: { motor: 'OFF', heater: 'OFF', valve: 'OFF' } },
+            5: { id: 5, name: "Oil Treatment", targetTemp: 120, targetRpm: 250, targetVol: 500, timeStr: "1 Hour", checkTolerance: true, act: { motor: 'ON', heater: 'ON', valve: 'OFF' } },
+            6: { id: 6, name: "Filtration", targetTemp: null, targetRpm: null, targetVol: null, timeStr: "Momentary", checkTolerance: false, act: { motor: 'OFF', heater: 'OFF', valve: 'ON' } }
+        };
+
+        // Bangun UI Sidebar Steps dengan Actuator Status
+        const stepsContainer = document.getElementById('steps-container');
+        for (let i = 1; i <= 6; i++) {
+            const p = targetParameters[i];
+            
+            stepsContainer.innerHTML += `
+                <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group" id="step-row-${i}">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-200 text-slate-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2" id="step-icon-${i}">${i}</div>
+                    <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-3 rounded border border-slate-200 shadow-sm bg-white clickable-step" id="step-card-${i}" onclick="window.showStageDetail(${i})">
+                        <h4 class="font-bold text-sm text-slate-800">${p.name}</h4>
+                        <div class="flex items-center justify-center gap-3 mt-2 text-[10px] bg-slate-50 rounded p-1 border">
+                            <div class="flex items-center gap-1" title="Motor Status"><span id="act-mtr-${i}" class="h-2.5 w-2.5 rounded-full bg-slate-300"></span><span class="font-medium text-slate-500">MTR</span></div>
+                            <div class="flex items-center gap-1" title="Heater Status"><span id="act-htr-${i}" class="h-2.5 w-2.5 rounded-full bg-slate-300"></span><span class="font-medium text-slate-500">HTR</span></div>
+                            <div class="flex items-center gap-1" title="Valve Status"><span id="act-vlv-${i}" class="h-2.5 w-2.5 rounded-full bg-slate-300"></span><span class="font-medium text-slate-500">VLV</span></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            // Bangun Opsi Dropdown Grafik
+            document.getElementById('filter-temp').innerHTML += `<option value="${i}">Stage ${i}: ${p.name}</option>`;
+            document.getElementById('filter-rpm').innerHTML  += `<option value="${i}">Stage ${i}: ${p.name}</option>`;
+            document.getElementById('filter-vol').innerHTML  += `<option value="${i}">Stage ${i}: ${p.name}</option>`;
+        }
+
+        // ==========================================
+        // 2. DATA HISTORY & AVERAGE TRACKER
+        // ==========================================
+        let allSensorData = [];
+        const stageAverages = {};
+        for(let i=1; i<=6; i++) stageAverages[i] = { sumTemp:0, sumRpm:0, sumVol:0, count:0, durationSec:0 };
+
+        let currentStageId = 1;
+        let totalSeconds = 0, stageSeconds = 0;
+        let isSystemRunning = false, machineTimeout;
+        let userContactPhone = "";
+        let currentUserIdentifier = null;
+
+        function resetDataIfNewUser(newIdentifier) {
+            if (currentUserIdentifier !== null && currentUserIdentifier !== newIdentifier) {
+                allSensorData = [];
+                for(let i=1; i<=6; i++) stageAverages[i] = { sumTemp:0, sumRpm:0, sumVol:0, count:0, durationSec:0 };
+                totalSeconds = 0; stageSeconds = 0;
+                currentStageId = 1;
+                document.getElementById('val-temp').innerText = "0.0";
+                document.getElementById('val-rpm').innerText = "0";
+                document.getElementById('val-vol').innerText = "0.0";
+                document.getElementById('val-time-total').innerText = "00:00:00";
+                document.getElementById('val-time-stage').innerText = "00:00:00";
+                setMachineStatus(false);
+                updateStepsUI();
+                window.renderCharts();
+            }
+            currentUserIdentifier = newIdentifier;
+        }
+
+        // ==========================================
+        // 3. FUNGSI LOGIKA SISTEM
+        // ==========================================
+        function formatTime(totalSec) {
+            const h = Math.floor(totalSec / 3600).toString().padStart(2, '0');
+            const m = Math.floor((totalSec % 3600) / 60).toString().padStart(2, '0');
+            const s = (totalSec % 60).toString().padStart(2, '0');
+            return `${h}:${m}:${s}`;
+        }
+
+        setInterval(() => {
+            if (isSystemRunning) {
+                totalSeconds++; stageSeconds++;
+                document.getElementById('val-time-total').innerText = formatTime(totalSeconds);
+                document.getElementById('val-time-stage').innerText = formatTime(stageSeconds);
+                if(currentStageId >= 1 && currentStageId <= 6) {
+                    stageAverages[currentStageId].durationSec++;
+                }
+            }
+        }, 1000);
+
+        let lastNotifTime = 0;
+        function autoNotify(type, message) {
+            const now = Date.now();
+            if (type === 'ANOMALY' && (now - lastNotifTime < 60000)) return; 
+            console.log(`[SYSTEM WA AUTO-SEND -> ${userContactPhone}]: ${message}`);
+            if(type === 'ANOMALY') lastNotifTime = now;
+        }
+
+        function checkTolerance(currentTemp, currentRpm, currentVol) {
+            const stage = targetParameters[currentStageId];
+            if (!stage.checkTolerance) { document.getElementById('error-banner').classList.add('hidden'); return; }
+
+            let errorTemp = false; let errorRpm = false; let errorVol = false; let errorMsg = [];
+
+            if (stage.targetTemp > 0 && (currentTemp < stage.targetTemp * 0.9 || currentTemp > stage.targetTemp * 1.1)) {
+                errorTemp = true; errorMsg.push(`Temperature ${currentTemp}°C exceeds limit.`);
+            }
+            if (stage.targetRpm > 0 && (currentRpm < stage.targetRpm * 0.9 || currentRpm > stage.targetRpm * 1.1)) {
+                errorRpm = true; errorMsg.push(`RPM ${currentRpm} exceeds limit.`);
+            }
+            if (stage.targetVol > 0 && (currentVol < stage.targetVol * 0.9 || currentVol > stage.targetVol * 1.1)) {
+                errorVol = true; errorMsg.push(`Volume ${parseFloat(currentVol).toFixed(1)} ml exceeds limit.`);
+            }
+
+            const banner = document.getElementById('error-banner');
+            if (errorTemp || errorRpm || errorVol) {
+                document.getElementById('error-message').innerHTML = errorMsg.join("<br>"); 
+                banner.classList.remove('hidden');
+                autoNotify('ANOMALY', `Machine Warning: ${errorMsg.join(" ")}`);
+            } else { 
+                banner.classList.add('hidden'); 
+            }
+        }
+
+        function updateUI(data) {
+            document.getElementById('val-temp').innerText = parseFloat(data.temp).toFixed(1);
+            document.getElementById('val-rpm').innerText = data.rpm;
+            document.getElementById('val-vol').innerText = parseFloat(data.vol).toFixed(1);
+            
+            isSystemRunning = true; 
+            setMachineStatus(true);
+
+            if (data.stage !== currentStageId) {
+                const oldStage = currentStageId;
+                currentStageId = data.stage; stageSeconds = 0;
+                autoNotify('STAGE_COMPLETE', `Stage [${targetParameters[oldStage].name}] complete.`);
+                document.getElementById('current-stage-display').innerText = targetParameters[currentStageId].name;
+            }
+
+            if(data.stage >= 1 && data.stage <= 6) {
+                stageAverages[data.stage].sumTemp += parseFloat(data.temp);
+                stageAverages[data.stage].sumRpm += parseInt(data.rpm);
+                stageAverages[data.stage].sumVol += parseFloat(data.vol);
+                stageAverages[data.stage].count += 1;
+            }
+
+            checkTolerance(data.temp, data.rpm, data.vol);
+            
+            // Generate actual actuator state based on real-time payload or fallback
+            const stageTargetAct = targetParameters[currentStageId].act;
+            const actualAct = data.act || { 
+                motor: stageTargetAct.motor === 'ON', 
+                heater: stageTargetAct.heater === 'ON', 
+                valve: stageTargetAct.valve === 'ON' 
+            };
+            
+            updateStepsUI(actualAct);
+        }
+
+        function updateStepsUI(actualAct = null) {
+            for (let i = 1; i <= 6; i++) {
+                const icon = document.getElementById(`step-icon-${i}`);
+                const card = document.getElementById(`step-card-${i}`);
+                
+                // Actuator Indicators
+                const mtrDot = document.getElementById(`act-mtr-${i}`);
+                const htrDot = document.getElementById(`act-htr-${i}`);
+                const vlvDot = document.getElementById(`act-vlv-${i}`);
+                
+                if (i === currentStageId) {
+                    icon.className = "flex items-center justify-center w-10 h-10 rounded-full border border-white bg-teal-500 text-white shadow z-10 relative font-bold";
+                    card.classList.replace('bg-white', 'bg-teal-50'); card.classList.replace('border-slate-200', 'border-teal-400');
+                    
+                    // Show Actual state for current stage
+                    if(actualAct) {
+                        mtrDot.className = `h-2.5 w-2.5 rounded-full ${actualAct.motor ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`;
+                        htrDot.className = `h-2.5 w-2.5 rounded-full ${actualAct.heater ? 'bg-red-500 animate-pulse' : 'bg-slate-300'}`;
+                        vlvDot.className = `h-2.5 w-2.5 rounded-full ${actualAct.valve ? 'bg-blue-500 animate-pulse' : 'bg-slate-300'}`;
+                    }
+                } else if (i < currentStageId) {
+                    icon.className = "flex items-center justify-center w-10 h-10 rounded-full border border-white bg-green-500 text-white shadow z-10 relative font-bold";
+                    card.classList.replace('bg-teal-50', 'bg-slate-50'); card.classList.replace('bg-white', 'bg-slate-50'); card.classList.add('opacity-60');
+                    
+                    // Show past Target state statically
+                    const pastAct = targetParameters[i].act;
+                    mtrDot.className = `h-2.5 w-2.5 rounded-full ${pastAct.motor === 'ON' ? 'bg-green-500' : 'bg-slate-300'}`;
+                    htrDot.className = `h-2.5 w-2.5 rounded-full ${pastAct.heater === 'ON' ? 'bg-red-500' : 'bg-slate-300'}`;
+                    vlvDot.className = `h-2.5 w-2.5 rounded-full ${pastAct.valve === 'ON' ? 'bg-blue-500' : 'bg-slate-300'}`;
+                } else {
+                    icon.className = "flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-200 text-slate-500 shadow z-10 relative font-bold";
+                    
+                    // Future stages are gray
+                    mtrDot.className = 'h-2.5 w-2.5 rounded-full bg-slate-300';
+                    htrDot.className = 'h-2.5 w-2.5 rounded-full bg-slate-300';
+                    vlvDot.className = 'h-2.5 w-2.5 rounded-full bg-slate-300';
+                }
+            }
+        }
+
+        // Initialize UI at start
+        updateStepsUI();
+
+        function setMachineStatus(isOn) {
+            const card = document.getElementById('card-machine-status');
+            const ping = document.getElementById('device-ping');
+            const dot = document.getElementById('device-dot');
+            const text = document.getElementById('device-status-text');
+            const lastUpdate = document.getElementById('last-update-time');
+
+            if (isOn) {
+                card.classList.replace('border-slate-400', 'border-green-500');
+                ping.classList.remove('hidden'); dot.classList.replace('bg-slate-500', 'bg-green-500');
+                text.innerText = "RUNNING"; text.className = "text-xl font-bold text-green-600 tracking-tight uppercase";
+                lastUpdate.innerText = "Last Update: " + new Date().toLocaleTimeString('en-US');
+
+                clearTimeout(machineTimeout);
+                machineTimeout = setTimeout(() => { setMachineStatus(false); }, 10000);
+            } else {
+                isSystemRunning = false;
+                card.classList.replace('border-green-500', 'border-slate-400');
+                ping.classList.add('hidden'); dot.classList.replace('bg-green-500', 'bg-slate-500');
+                text.innerText = "STANDBY"; text.className = "text-xl font-bold text-slate-500 tracking-tight uppercase";
+                clearTimeout(machineTimeout);
+            }
+        }
+
+        // ==========================================
+        // 4. SISTEM GRAFIK DENGAN FILTER & SCROLL
+        // ==========================================
+        const chartOptions = { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            animation: false, 
+            scales: { x: { ticks: { maxTicksLimit: 20 } } },
+            plugins: { legend: { display: false } }
+        };
+
+        let tempChart, rpmChart, volChart;
+
+        try {
+            const ctxTemp = document.getElementById('tempChart').getContext('2d');
+            tempChart = new Chart(ctxTemp, { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: 'rgb(239, 68, 68)', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 2, fill: true, tension: 0.1, pointRadius: 1 }] }, options: chartOptions });
+
+            const ctxRpm = document.getElementById('rpmChart').getContext('2d');
+            rpmChart = new Chart(ctxRpm, { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: 'rgb(59, 130, 246)', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderWidth: 2, fill: true, tension: 0.1, pointRadius: 1 }] }, options: chartOptions });
+
+            const ctxVol = document.getElementById('volChart').getContext('2d');
+            volChart = new Chart(ctxVol, { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: 'rgb(20, 184, 166)', backgroundColor: 'rgba(20, 184, 166, 0.1)', borderWidth: 2, fill: true, tension: 0.1, pointRadius: 1 }] }, options: chartOptions });
+        } catch(e) {
+            console.warn("Chart.js failed to initialize:", e);
+        }
+
+        window.renderCharts = function() {
+            if(!tempChart || !rpmChart || !volChart) return;
+            ['temp', 'rpm', 'vol'].forEach(type => {
+                const filterValue = document.getElementById(`filter-${type}`).value;
+                const container = document.getElementById(`container-${type}`);
+                const wrapper = document.getElementById(`wrapper-${type}`);
+                
+                let filteredData = allSensorData;
+                if(filterValue !== 'all') {
+                    filteredData = allSensorData.filter(d => d.stage == parseInt(filterValue));
+                }
+
+                const labels = filteredData.map(d => d.timeStr);
+                const dataPoints = filteredData.map(d => d[type]);
+
+                const chartObj = type === 'temp' ? tempChart : type === 'rpm' ? rpmChart : volChart;
+                chartObj.data.labels = labels;
+                chartObj.data.datasets[0].data = dataPoints;
+
+                if(labels.length === 0) {
+                    wrapper.classList.replace('bg-slate-50', 'bg-slate-200');
+                    container.style.width = '100%';
+                } else {
+                    wrapper.classList.replace('bg-slate-200', 'bg-slate-50');
+                    const dynamicWidth = Math.max(wrapper.clientWidth, labels.length * 25);
+                    container.style.width = dynamicWidth + 'px';
+                }
+
+                chartObj.update();
+            });
+        };
+
+        function addChartData(timeStr, temp, rpm, vol, stage) {
+            allSensorData.push({ timeStr, temp, rpm, vol, stage });
+            window.renderCharts();
+        }
+
+        // ==========================================
+        // 5. FIREBASE AUTH & DATABASE
+        // ==========================================
+        const localFirebaseConfig = {};
+        let db, auth, userId, userCollectionRef, isDbReady = false, localDataLog = [];
+
+        const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : localFirebaseConfig;
+        
+        // Form submission works independent of Firebase dynamic import state
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            if (!auth || !fbSignIn) {
+                document.getElementById('login-error').classList.remove('hidden');
+                document.getElementById('login-error-text').innerText = "System offline. Please use 'Enter Without Login'.";
+                return;
+            }
+
+            const email = document.getElementById('email').value;
+            const pwd = document.getElementById('password').value;
+            userContactPhone = document.getElementById('phone').value;
+
+            const btnText = document.querySelector('#btn-login span');
+            const spinner = document.getElementById('login-spinner');
+            btnText.innerText = "Checking..."; spinner.classList.remove('hidden');
+            document.getElementById('login-error').classList.add('hidden');
+
+            fbSignIn(auth, email, pwd)
+                .then(() => { btnText.innerText = "Enter"; spinner.classList.add('hidden'); })
+                .catch((error) => {
+                    btnText.innerText = "Enter Dashboard"; spinner.classList.add('hidden');
+                    document.getElementById('login-error').classList.remove('hidden');
+                });
+        });
+
+        // Use dynamic imports to prevent complete script breakage offline/on local server
+        async function initializeFirebase() {
+            if (Object.keys(config).length === 0) {
+                document.getElementById('db-status-text').innerText = "Local Mode";
+                return;
+            }
+
+            try {
+                const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
+                const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
+                const { getFirestore, collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+                
+                fbSignIn = signInWithEmailAndPassword;
+                fbSignOut = signOut;
+                fbAddDoc = addDoc;
+                fbServerTimestamp = serverTimestamp;
+                fbCollection = collection;
+
+                const app = initializeApp(config); 
+                auth = getAuth(app); 
+                db = getFirestore(app);
+                
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid; 
+                        resetDataIfNewUser(user.email);
+                        document.getElementById('user-email-display').innerText = user.email;
+                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'reactor-ta';
+                        userCollectionRef = fbCollection(db, 'artifacts', appId, 'users', userId, 'reactor_logs');
+                        isDbReady = true; document.getElementById('db-status-text').innerText = "DB Active";
+                        showDashboard();
+                    } else { isDbReady = false; userId = null; showLogin(); }
+                });
+            } catch (e) { 
+                document.getElementById('db-status-text').innerText = "DB Error"; 
+            }
+        }
+        
+        initializeFirebase();
+
+        function showDashboard() {
+            const lp = document.getElementById('login-page'); const db = document.getElementById('dashboard-app');
+            lp.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                lp.classList.add('hidden'); db.classList.remove('hidden'); updateStepsUI();
+                setTimeout(() => { db.classList.remove('opacity-0'); connectMQTT(); }, 50);
+            }, 500);
+        }
+        function showLogin() {
+            const lp = document.getElementById('login-page'); const db = document.getElementById('dashboard-app');
+            isSystemRunning = false; db.classList.add('opacity-0');
+            setTimeout(() => {
+                db.classList.add('hidden'); lp.classList.remove('hidden');
+                setTimeout(() => { lp.classList.remove('opacity-0', 'pointer-events-none'); }, 50);
+            }, 500);
+        }
+
+        window.bypassLogin = function() {
+            userContactPhone = document.getElementById('phone').value || "08xxxxxxxxx";
+            resetDataIfNewUser("simulation_bypass");
+            document.getElementById('user-email-display').innerText = "Simulation Mode";
+            showDashboard();
+            window.showToast(`Notifications set to ${userContactPhone}`, "info");
+        };
+
+        window.logoutDashboard = function() {
+            if (auth && auth.currentUser && fbSignOut) { fbSignOut(auth).then(() => { showLogin(); }); } 
+            else { showLogin(); }
+        };
+
+        async function logData(dataObj) {
+            const logEntry = { ...dataObj, waktu_lokal: new Date().toLocaleTimeString('en-US'), tanggal: new Date().toLocaleDateString('en-US') };
+            localDataLog.push(logEntry);
+            if (isDbReady && userCollectionRef && fbAddDoc && fbServerTimestamp) { 
+                try { await fbAddDoc(userCollectionRef, { ...logEntry, timestamp: fbServerTimestamp() }); } catch (e) {} 
+            }
+        }
+
+        // ==========================================
+        // 6. KONEKSI MQTT & EMERGENCY STOP
+        // ==========================================
+        let mqttClient = null;
+        try {
+            mqttClient = new Paho.MQTT.Client("broker.hivemq.com", 8000, "WebClient_" + Math.random().toString(16).substr(2, 8));
+            mqttClient.onConnectionLost = (resp) => {
+                if (resp.errorCode !== 0) {
+                    document.getElementById('status-text').innerText = "Disconnected";
+                    document.getElementById('status-dot').classList.replace('bg-green-400', 'bg-red-400');
+                    if(!document.getElementById('dashboard-app').classList.contains('hidden')) setTimeout(connectMQTT, 5000);
+                }
+            };
+            mqttClient.onMessageArrived = (msg) => {
+                try {
+                    const payload = JSON.parse(msg.payloadString);
+                    updateUI(payload);
+                    addChartData(new Date().toLocaleTimeString('en-US'), payload.temp, payload.rpm, payload.vol, payload.stage);
+                    logData(payload);
+                } catch (e) { }
+            };
+        } catch(e) {
+            console.warn("MQTT Client initialization failed:", e);
+        }
+
+        function connectMQTT() {
+            if (!mqttClient) return;
+            document.getElementById('status-text').innerText = "Connecting...";
+            try {
+                mqttClient.connect({
+                    onSuccess: () => {
+                        document.getElementById('status-text').innerText = "Connected";
+                        document.getElementById('status-dot').classList.replace('bg-red-400', 'bg-green-400');
+                        mqttClient.subscribe("ta/reaktor/data_sensor");
+                    },
+                    onFailure: (err) => {
+                        document.getElementById('status-text').innerText = "Conn Failed";
+                        if (!err.errorMessage || !err.errorMessage.includes("SecurityError")) setTimeout(connectMQTT, 5000);
+                    }, useSSL: true
+                });
+            } catch (e) { }
+        }
+
+        window.emergencyStop = function() {
+            if(!mqttClient) {
+                window.showToast("Cannot send E-STOP: MQTT client not initialized", "error");
+                return;
+            }
+            if(confirm("DANGER: Are you sure you want to trigger EMERGENCY STOP? This will shut down all actuators remotely.")) {
+                try {
+                    const message = new Paho.MQTT.Message(JSON.stringify({ command: "ESTOP", value: 1 }));
+                    message.destinationName = "ta/reaktor/command";
+                    mqttClient.send(message);
+                    window.showToast("Emergency Stop signal broadcasted to ESP32!", "success");
+                    setMachineStatus(false);
+                } catch(e) {
+                    window.showToast("Failed to send E-STOP: Disconnected from broker", "error");
+                }
+            }
+        };
+
+        // ==========================================
+        // 7. WINDOW EXPORTS (Modals, CSV, PDF)
+        // ==========================================
+        window.showStageDetail = function(stageId) {
+            const data = targetParameters[stageId];
+            const avgData = stageAverages[stageId];
+            
+            document.getElementById('modal-title').innerText = `Stage ${stageId}: ${data.name}`;
+            
+            const tolEl = document.getElementById('modal-tol');
+            if(data.checkTolerance) { tolEl.innerHTML = '<span class="text-green-600"><i class="fa-solid fa-check"></i> Tolerance Check Active</span>'; } 
+            else { tolEl.innerHTML = '<span class="text-slate-400"><i class="fa-solid fa-ban"></i> Tolerance Check Inactive</span>'; }
+
+            document.getElementById('modal-tgt-temp').innerText = data.targetTemp ? `${data.targetTemp} °C` : "-";
+            document.getElementById('modal-tgt-rpm').innerText = data.targetRpm ? `${data.targetRpm} RPM` : "-";
+            document.getElementById('modal-tgt-vol').innerText = data.targetVol ? `${data.targetVol} ml` : "-";
+            document.getElementById('modal-tgt-time').innerText = data.timeStr || "-";
+
+            if(avgData.count > 0) {
+                document.getElementById('modal-avg-temp').innerText = (avgData.sumTemp / avgData.count).toFixed(1) + " °C";
+                document.getElementById('modal-avg-rpm').innerText = Math.round(avgData.sumRpm / avgData.count) + " RPM";
+                document.getElementById('modal-avg-vol').innerText = (avgData.sumVol / avgData.count).toFixed(1) + " ml";
+            } else {
+                document.getElementById('modal-avg-temp').innerText = `No data`;
+                document.getElementById('modal-avg-rpm').innerText = `No data`;
+                document.getElementById('modal-avg-vol').innerText = `No data`;
+            }
+            
+            document.getElementById('modal-avg-time').innerText = formatTime(avgData.durationSec || 0);
+
+            document.getElementById('modal-detail').classList.remove('hidden');
+        };
+
+        window.closeModal = function() { document.getElementById('modal-detail').classList.add('hidden'); };
+
+        window.showToast = function(msg, type = "info") {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = msg;
+            const icon = document.getElementById('toast-icon');
+            if(type === 'success') { icon.className = "fa-solid fa-check-circle text-green-400"; } 
+            else if(type === 'error') { icon.className = "fa-solid fa-triangle-exclamation text-red-500"; }
+            else { icon.className = "fa-solid fa-info-circle text-blue-400"; }
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
+        };
+
+        window.downloadDataCSV = async function() {
+            let dataToDownload = localDataLog; 
+            if (dataToDownload.length === 0) { window.showToast("No sensor data yet!", "info"); return; }
+            const headers = ["Date", "Time", "Stage", "Temperature", "RPM", "Volume"];
+            const csvRows = [headers.join(",")];
+            dataToDownload.forEach(r => csvRows.push([r.tanggal||"-", r.waktu_lokal||"-", r.stage||"-", r.temp||"0", r.rpm||"0", parseFloat(r.vol||"0").toFixed(1)].join(",")));
+            
+            const a = document.createElement('a');
+            a.href = window.URL.createObjectURL(new Blob([csvRows.join("\n")], { type: 'text/csv' }));
+            a.download = `Reactor_Data_TA_${new Date().getTime()}.csv`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            window.showToast(`Successfully downloaded ${dataToDownload.length} rows of data!`, "success");
+        };
+
+        window.downloadDataPDF = function() {
+            if (!window.jspdf) {
+                window.showToast("PDF Library is still loading. Please try again.", "error");
+                return;
+            }
+            
+            const batchNum = prompt("Enter Batch / Experiment Number:", "BATCH-" + new Date().toISOString().slice(0,10).replace(/-/g,""));
+            if(!batchNum) return; 
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Header - Make it slightly more compact
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16);
+            doc.setTextColor(15, 118, 110); 
+            doc.text("ESTERIFICATION REACTOR REPORT", 14, 20);
+            
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.setTextColor(100, 100, 100);
+            doc.text("MONOESTER FOR TRANSFORMATOR INSULATING LIQUID", 14, 26);
+            
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "bold");
+            doc.text("Batch Number:", 14, 36);
+            doc.setFont("helvetica", "normal");
+            doc.text(batchNum, 42, 36);
+            
+            doc.setFont("helvetica", "bold");
+            doc.text("Date of Report:", 14, 42);
+            doc.setFont("helvetica", "normal");
+            doc.text(new Date().toLocaleDateString('en-US') + " " + new Date().toLocaleTimeString('en-US'), 42, 42);
+
+            const tableData = [];
+            for(let i=1; i<=6; i++) {
+                const p = targetParameters[i];
+                const avg = stageAverages[i];
+                let aT = "-", aR = "-", aV = "-", aTime = "00:00:00";
+                
+                if(avg.count > 0) {
+                    aT = (avg.sumTemp / avg.count).toFixed(1) + " °C";
+                    aR = Math.round(avg.sumRpm / avg.count) + " RPM";
+                    aV = (avg.sumVol / avg.count).toFixed(1) + " ml";
+                }
+                aTime = formatTime(avg.durationSec || 0);
+                
+                // Actuators full text
+                const actStr = `Motor: ${p.act.motor}\nHeater: ${p.act.heater}\nValve: ${p.act.valve}`;
+                const rowSpanCount = p.targetVol ? 4 : 3;
+
+                tableData.push([
+                    {rowSpan: rowSpanCount, content: `STAGE ${i}\n${p.name.toUpperCase()}`, styles: {valign: 'middle', fontStyle: 'bold', halign: 'center'}}, 
+                    "Temperature", p.targetTemp ? p.targetTemp + " °C" : "-", aT,
+                    {rowSpan: rowSpanCount, content: actStr, styles: {valign: 'middle', halign: 'left'}}
+                ]);
+                tableData.push(["RPM", p.targetRpm ? p.targetRpm + " RPM" : "-", aR]);
+                if(p.targetVol) tableData.push(["Volume", p.targetVol + " ml", aV]);
+                tableData.push(["Duration", p.timeStr, aTime]);
+            }
+
+            doc.autoTable({
+                startY: 48,
+                head: [['STAGE / PROCESS', 'PARAMETER', 'TARGET VALUE', 'ACTUAL (AVG/TOTAL)', 'ACTUATORS']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { fillColor: [15, 118, 110], halign: 'center', fontStyle: 'bold', fontSize: 9 }, 
+                styles: { fontSize: 8, cellPadding: 1.5, textColor: [40, 40, 40] },
+                columnStyles: {
+                    1: { fontStyle: 'bold' },
+                    2: { halign: 'center' },
+                    3: { halign: 'center', textColor: [15, 118, 110], fontStyle: 'bold' },
+                    4: { fontSize: 8 }
+                }
+            });
+
+            // Notes Section
+            let finalY = doc.lastAutoTable.finalY + 8;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.setTextColor(0, 0, 0);
+            doc.text("Notes:", 14, finalY);
+            
+            // Box directly down to the bottom margin (297mm page height - 14mm bottom margin)
+            doc.setDrawColor(150);
+            const boxHeight = 297 - 14 - (finalY + 3); 
+            doc.rect(14, finalY + 3, 182, boxHeight); 
+
+            doc.save(`Reactor_Report_${batchNum}.pdf`);
+            window.showToast("PDF Report generated successfully!", "success");
+        };
+
+        let simInterval, isSimulating = false, simStage = 1, simTime = 0;
+        window.toggleSimulation = function() {
+            const btn = document.getElementById('sim-btn');
+            if (isSimulating) {
+                clearInterval(simInterval); btn.innerText = "Start Simulation"; btn.classList.replace('bg-red-500', 'bg-yellow-500');
+                isSimulating = false; isSystemRunning = false; setMachineStatus(false);
+            } else {
+                btn.innerText = "Stop Simulation"; btn.classList.replace('bg-yellow-500', 'bg-red-500');
+                isSimulating = true; isSystemRunning = true;
+                
+                simInterval = setInterval(() => {
+                    simTime++;
+                    if(simTime % 10 === 0 && simStage < 6) simStage++;
+                    
+                    const target = targetParameters[simStage];
+                    let sTemp = target.targetTemp ? (target.targetTemp + (Math.random() * 4 - 2)) : 30;
+                    let sRpm = target.targetRpm ? (target.targetRpm + (Math.random() * 10 - 5)) : 0; 
+                    let sVol = target.targetVol ? (target.targetVol + (Math.random() * 10 - 5)) : 500;
+                    
+                    if(Math.random() > 0.8 && target.checkTolerance) { 
+                        sTemp += 20; 
+                        sVol += 60; 
+                    }
+
+                    const fakeData = { 
+                        temp: sTemp, 
+                        rpm: Math.round(sRpm), 
+                        vol: sVol, 
+                        stage: simStage,
+                        act: {
+                            motor: target.act.motor === 'ON',
+                            heater: target.act.heater === 'ON',
+                            valve: target.act.valve === 'ON'
+                        }
+                    };
+                    updateUI(fakeData);
+                    addChartData(new Date().toLocaleTimeString('en-US'), fakeData.temp, fakeData.rpm, fakeData.vol, fakeData.stage);
+                    logData(fakeData); 
+                }, 1000);
+            }
+        }
+    </script>
+</body>
+</html>

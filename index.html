@@ -760,7 +760,7 @@
         // ==========================================
         let mqttClient = null;
         try {
-            mqttClient = new Paho.MQTT.Client("broker.hivemq.com", 8000, "WebClient_" + Math.random().toString(16).substr(2, 8));
+            mqttClient = new Paho.MQTT.Client("broker.hivemq.com", 8884, "WebClient_" + Math.random().toString(16).substr(2, 8));
             mqttClient.onConnectionLost = (resp) => {
                 if (resp.errorCode !== 0) {
                     document.getElementById('status-text').innerText = "Disconnected";

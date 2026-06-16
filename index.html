@@ -433,10 +433,11 @@
             }
         }, 1000);
 
-        let lastNotifTime = 0;
+       let lastNotifTime = 0;
         function autoNotify(type, message) {
-            const now = Date.now();
-            if (type === 'ANOMALY' && (now - lastNotifTime < 60000)) return; 
+            // FUNGSI INI SEKARANG DIAMBIL ALIH OLEH BACKEND NODE.JS
+            console.log(`[Notif Backend]: ${message}`);
+        }
             
             console.log(`[SYSTEM TELEGRAM AUTO-SEND -> ${userContactPhone}]: ${message}`);
             
@@ -447,7 +448,6 @@
             }
             
             if(type === 'ANOMALY') lastNotifTime = now;
-        }
 
         function checkTolerance(currentTemp, currentRpm, currentVol) {
             const stage = targetParameters[currentStageId];
@@ -720,12 +720,10 @@
 
         async function logData(dataObj) {
             const logEntry = { 
-                stage: dataObj.stage,
-                temp: dataObj.temp,
-                rpm: dataObj.rpm,
-                vol: dataObj.vol,
-                waktu_lokal: new Date().toLocaleTimeString('en-US'), 
-                tanggal: new Date().toLocaleDateString('en-US') 
+                stage: dataObj.stage, temp: dataObj.temp, rpm: dataObj.rpm, vol: dataObj.vol,
+                waktu_lokal: new Date().toLocaleTimeString('en-US'), tanggal: new Date().toLocaleDateString('en-US')
+  };
+            localDataLog.push(logEntry); // Tetap simpan di memori lokal agar bisa di-download CSV
             };
             
             localDataLog.push(logEntry);
@@ -737,7 +735,6 @@
                     console.warn("Failed to insert into Supabase");
                 } 
             }
-        }
 
         // ==========================================
         // 6. KONEKSI MQTT & EMERGENCY STOP

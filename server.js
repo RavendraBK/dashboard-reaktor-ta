@@ -104,7 +104,7 @@ client.on('message', async (topic, message) => {
             tanggal: new Date().toLocaleDateString('en-US') 
         };
         
-        const { error } = await supabase.from('reactorlogs').insert([logEntry]);
+        const { error } = await supabase.from('reactor_logs').insert([logEntry]);
         if (error) {
             console.error("Error simpan ke DB:", error.message);
         }

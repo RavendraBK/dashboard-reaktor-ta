@@ -336,13 +336,13 @@
         // 0. SUPABASE CONFIGURATION (GANTI DENGAN KUNCI ANDA)
         // ==========================================
         const supabaseUrl = 'https://iretftgjvpljqyfixmow.supabase.co/';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyZXRmdGdqdnBsanF5Zml4bW93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzU0OTQsImV4cCI6MjA5NzExMTQ5NH0.zD4LTLC2aV1J1oni7L7HicTM3x_RK5M73IrhImGZx70';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyZXRmdGdqdnBsanF5Zml4bW93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzU0OTQsImV4cCI6MjA5NzExMTQ5NH0.zD4LTLC2aV1J1oni7L7HicTM3x_RK5M73IrhImGZx70A';
 
         // PENTING: Masukkan Token Bot Telegram Anda di sini
         const TELEGRAM_BOT_TOKEN = '8810149825:AAFEsuOfhVgk8hGvc_C6h_2FO2i3kiPriUs';
 
         let supabaseClient = null;
-        if (supabaseUrl !== 'KEY_ANON_SUPABASE_ANDA' && supabaseAnonKey !== 'URL_SUPABASE_ANDA') {
+        if (supabaseUrl !== 'URL_SUPABASE_ANDA' && supabaseAnonKey !== 'KEY_ANON_SUPABASE_ANDA') {
             supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         }
 
@@ -433,11 +433,10 @@
             }
         }, 1000);
 
-       let lastNotifTime = 0;
+        let lastNotifTime = 0;
         function autoNotify(type, message) {
-            // FUNGSI INI SEKARANG DIAMBIL ALIH OLEH BACKEND NODE.JS
-            console.log(`[Notif Backend]: ${message}`);
-        }
+            const now = Date.now();
+            if (type === 'ANOMALY' && (now - lastNotifTime < 60000)) return; 
             
             console.log(`[SYSTEM TELEGRAM AUTO-SEND -> ${userContactPhone}]: ${message}`);
             
@@ -448,6 +447,7 @@
             }
             
             if(type === 'ANOMALY') lastNotifTime = now;
+        }
 
         function checkTolerance(currentTemp, currentRpm, currentVol) {
             const stage = targetParameters[currentStageId];
@@ -637,12 +637,20 @@
         // ==========================================
         // 5. SUPABASE AUTH & DATABASE LOGIC
         // ==========================================
+        window.isBypassMode = false; // Penanda Jalur VIP
+
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            // JIKA TIDAK ADA SUPABASE, TETAP BISA MASUK (BYPASS OTOMATIS)
             if (!supabaseClient) {
-                document.getElementById('login-error').classList.remove('hidden');
-                document.getElementById('login-error-text').innerText = "Database offline. Please use 'Enter Without Login'.";
+                userContactPhone = document.getElementById('telegram-id').value;
+                resetDataIfNewUser("simulation_bypass");
+                document.getElementById('user-email-display').innerText = document.getElementById('email').value;
+                document.getElementById('db-status-text').innerText = "Local Mode";
+                document.getElementById('db-status-text').className = "text-yellow-300";
+                showDashboard();
+                window.showToast(`Login Local! Telegram ID: ${userContactPhone}`, "success");
                 return;
             }
 
@@ -655,6 +663,7 @@
             btnText.innerText = "Checking..."; spinner.classList.remove('hidden');
             document.getElementById('login-error').classList.add('hidden');
 
+            // Coba Login ke Supabase
             const { data, error } = await supabaseClient.auth.signInWithPassword({ email: email, password: pwd });
             
             if (error) {
@@ -663,11 +672,14 @@
                 document.getElementById('login-error-text').innerText = error.message;
             } else {
                 btnText.innerText = "Enter"; spinner.classList.add('hidden');
+                // Proses login berhasil akan ditangani oleh onAuthStateChange di bawah
             }
         });
 
         if (supabaseClient) {
             supabaseClient.auth.onAuthStateChange((event, session) => {
+                if (window.isBypassMode) return; // Cegah Supabase menendang user saat lewat tombol Bypass
+
                 if (session) {
                     resetDataIfNewUser(session.user.email);
                     document.getElementById('user-email-display').innerText = session.user.email;
@@ -703,14 +715,18 @@
         }
 
         window.bypassLogin = function() {
+            window.isBypassMode = true; // Aktifkan Jalur VIP
             userContactPhone = document.getElementById('telegram-id').value;
             resetDataIfNewUser("simulation_bypass");
             document.getElementById('user-email-display').innerText = "Simulation Mode";
+            document.getElementById('db-status-text').innerText = "Local Mode";
+            document.getElementById('db-status-text').className = "text-yellow-300";
             showDashboard();
             window.showToast(`Notifications set to Telegram ID: ${userContactPhone || 'None'}`, "info");
         };
 
         window.logoutDashboard = async function() {
+            window.isBypassMode = false; // Matikan Jalur VIP saat logout
             if (supabaseClient) {
                 await supabaseClient.auth.signOut();
             } else {
@@ -720,10 +736,12 @@
 
         async function logData(dataObj) {
             const logEntry = { 
-                stage: dataObj.stage, temp: dataObj.temp, rpm: dataObj.rpm, vol: dataObj.vol,
-                waktu_lokal: new Date().toLocaleTimeString('en-US'), tanggal: new Date().toLocaleDateString('en-US')
-  };
-            localDataLog.push(logEntry); // Tetap simpan di memori lokal agar bisa di-download CSV
+                stage: dataObj.stage,
+                temp: dataObj.temp,
+                rpm: dataObj.rpm,
+                vol: dataObj.vol,
+                waktu_lokal: new Date().toLocaleTimeString('en-US'), 
+                tanggal: new Date().toLocaleDateString('en-US') 
             };
             
             localDataLog.push(logEntry);
@@ -735,6 +753,7 @@
                     console.warn("Failed to insert into Supabase");
                 } 
             }
+        }
 
         // ==========================================
         // 6. KONEKSI MQTT & EMERGENCY STOP

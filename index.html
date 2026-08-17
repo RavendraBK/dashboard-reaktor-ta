@@ -106,7 +106,7 @@
             </form>
             <div class="text-center mt-4 text-xs text-slate-400">
                 <p>For Simulation Mode Only</p>
-                <button type="button" onclick="window.bypassLogin()" class="mt-2 underline hover:text-teal-500">Enter Without Login</button>
+                <button id="local-bypass-login" type="button" onclick="window.bypassLogin()" class="mt-2 underline hover:text-teal-500">Enter Without Login</button>
             </div>
         </div>
     </div>
@@ -161,7 +161,7 @@
                 </div>
                 <div class="flex flex-col items-end gap-2">
                     <div class="text-xs font-bold text-red-800 bg-red-200 px-3 py-1 rounded-full flex items-center">
-                        <i class="fa-brands fa-telegram mr-2"></i> Auto-Notification Sent
+                        <i class="fa-brands fa-telegram mr-2"></i> Telegram Notification Managed by Server
                     </div>
                 </div>
             </div>
@@ -203,6 +203,7 @@
                         <span id="val-vol" class="text-2xl font-bold text-slate-800 tracking-tight">0.0</span>
                         <span class="text-sm font-medium">ml</span>
                     </div>
+                    <span id="level-sensor-status" class="mt-1 text-[9px] font-bold text-slate-500 text-center">Final level: waiting (limit 375 ml)</span>
                 </div>
 
                 <div class="bg-white rounded-xl shadow-md p-4 border-l-4 border-yellow-500 flex flex-col items-center justify-center overflow-hidden">
@@ -338,8 +339,9 @@
         const supabaseUrl = 'https://iretftgjvpljqyfixmow.supabase.co/';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyZXRmdGdqdnBsanF5Zml4bW93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzU0OTQsImV4cCI6MjA5NzExMTQ5NH0.zD4LTLC2aV1J1oni7L7HicTM3x_RK5M73IrhImGZx70';
 
-        // PENTING: Masukkan Token Bot Telegram Anda di sini
-        const TELEGRAM_BOT_TOKEN = '8810149825:AAFEsuOfhVgk8hGvc_C6h_2FO2i3kiPriUs';
+        // Token Telegram dan pengiriman notifikasi hanya ditangani oleh server.js.
+        const ALLOW_LOCAL_BYPASS = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        if (!ALLOW_LOCAL_BYPASS) document.getElementById('local-bypass-login').classList.add('hidden');
 
         let supabaseClient = null;
         if (supabaseUrl !== 'URL_SUPABASE_ANDA' && supabaseAnonKey !== 'KEY_ANON_SUPABASE_ANDA') {
@@ -350,13 +352,51 @@
         // 1. DATA MASTER PARAMETER & ACTUATORS
         // ==========================================
         const targetParameters = {
-            1: { id: 1, name: "Mixing", targetTemp: 60, targetRpm: 250, targetVol: 500, timeStr: "30 Mins", checkTolerance: true, act: { motor: 'ON', heater: 'ON', valve: 'OFF' } },
-            2: { id: 2, name: "Add Catalyst", targetTemp: null, targetRpm: null, targetVol: null, timeStr: "Momentary", checkTolerance: false, act: { motor: 'ON', heater: 'OFF', valve: 'ON' } },
-            3: { id: 3, name: "Reflux", targetTemp: 100, targetRpm: 250, targetVol: 500, timeStr: "5 Hours", checkTolerance: true, act: { motor: 'ON', heater: 'ON', valve: 'OFF' } },
-            4: { id: 4, name: "Separation", targetTemp: 0, targetRpm: 0, targetVol: 500, timeStr: "1 Hour", checkTolerance: true, act: { motor: 'OFF', heater: 'OFF', valve: 'OFF' } },
-            5: { id: 5, name: "Oil Treatment", targetTemp: 120, targetRpm: 250, targetVol: 500, timeStr: "1 Hour", checkTolerance: true, act: { motor: 'ON', heater: 'ON', valve: 'OFF' } },
-            6: { id: 6, name: "Filtration", targetTemp: null, targetRpm: null, targetVol: null, timeStr: "Momentary", checkTolerance: false, act: { motor: 'OFF', heater: 'OFF', valve: 'ON' } }
+            1: {
+                id: 1, name: "Mixing", targetTemp: 60, targetRpm: 250,
+                timeStr: "30 minutes", durationSec: 30 * 60,
+                tolerance: { temp: 0.10, rpm: 0.10 },
+                act: { motor: 'ON', heater: 'ON', valve: 'OFF' }
+            },
+            2: {
+                id: 2, name: "Add Catalyst", targetTemp: 0, targetRpm: 0,
+                timeStr: "Momentary (timer continues)", durationSec: null,
+                // 0 °C berarti set point heater OFF, bukan suhu cairan harus 0 °C.
+                tolerance: { temp: null, rpm: { min: 0, max: 0 } },
+                act: { motor: 'OFF', heater: 'OFF', valve: 'ON' }
+            },
+            3: {
+                id: 3, name: "Reflux", targetTemp: 100, targetRpm: 0,
+                timeStr: "5 hours", durationSec: 5 * 60 * 60,
+                tolerance: { temp: 0.10, rpm: { min: 0, max: 0 } },
+                act: { motor: 'OFF', heater: 'ON', valve: 'OFF' }
+            },
+            4: {
+                id: 4, name: "Separation", targetTemp: 0, targetRpm: 0,
+                timeStr: "12 hours", durationSec: 12 * 60 * 60,
+                tolerance: { temp: null, rpm: { min: 0, max: 0 } },
+                act: { motor: 'OFF', heater: 'OFF', valve: 'OFF' }
+            },
+            5: {
+                id: 5, name: "Oil Treatment", targetTemp: 120, targetRpm: 250,
+                timeStr: "1 hour", durationSec: 60 * 60,
+                tolerance: { temp: 0.10, rpm: 0.10 },
+                act: { motor: 'ON', heater: 'ON', valve: 'OFF' }
+            },
+            6: {
+                id: 6, name: "Filtration", targetTemp: 0, targetRpm: 0,
+                timeStr: "Estimated 2 hours (timer continues)", durationSec: 2 * 60 * 60,
+                tolerance: { temp: null, rpm: { min: 0, max: 0 } },
+                levelThresholdVol: 375,
+                act: { motor: 'OFF', heater: 'OFF', valve: 'ON' }
+            }
         };
+
+        const hasValue = (value) => value !== null && value !== undefined && value !== '';
+        const formatTarget = (value, unit) => hasValue(value) ? `${value} ${unit}` : '-';
+        const getVolumeTargetLabel = (stage) => hasValue(stage.levelThresholdVol)
+            ? `Level ≥ ${stage.levelThresholdVol} ml`
+            : 'Monitor only';
 
         const stepsContainer = document.getElementById('steps-container');
         for (let i = 1; i <= 6; i++) {
@@ -387,7 +427,7 @@
         const stageAverages = {};
         for(let i=1; i<=6; i++) stageAverages[i] = { sumTemp:0, sumRpm:0, sumVol:0, count:0, durationSec:0 };
 
-        let currentStageId = 1;
+        let currentStageId = null;
         let totalSeconds = 0, stageSeconds = 0;
         let isSystemRunning = false, machineTimeout;
         let userContactPhone = ""; // Ini sekarang menyimpan Telegram Chat ID
@@ -399,12 +439,14 @@
                 localDataLog = [];
                 for(let i=1; i<=6; i++) stageAverages[i] = { sumTemp:0, sumRpm:0, sumVol:0, count:0, durationSec:0 };
                 totalSeconds = 0; stageSeconds = 0;
-                currentStageId = 1;
+                currentStageId = null;
                 document.getElementById('val-temp').innerText = "0.0";
                 document.getElementById('val-rpm').innerText = "0";
                 document.getElementById('val-vol').innerText = "0.0";
                 document.getElementById('val-time-total').innerText = "00:00:00";
                 document.getElementById('val-time-stage').innerText = "00:00:00";
+                document.getElementById('current-stage-display').innerText = "Waiting...";
+                document.getElementById('level-sensor-status').innerText = "Final level: waiting (limit 375 ml)";
                 setMachineStatus(false);
                 updateStepsUI();
                 window.renderCharts();
@@ -437,76 +479,128 @@
         function autoNotify(type, message) {
             const now = Date.now();
             if (type === 'ANOMALY' && (now - lastNotifTime < 60000)) return; 
-            
-            console.log(`[SYSTEM TELEGRAM AUTO-SEND -> ${userContactPhone}]: ${message}`);
-            
-            // FUNGSI NYATA PENGIRIMAN TELEGRAM
-            if (TELEGRAM_BOT_TOKEN !== 'KODE_TOKEN_BOT_TELEGRAM_ANDA' && userContactPhone && userContactPhone !== '') {
-                const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${userContactPhone}&text=${encodeURIComponent("🚨 *REACTOR ALERT*\n" + message)}`;
-                fetch(url).catch(err => console.error("Telegram send failed:", err));
-            }
+
+            // Telegram dikirim satu kali oleh service backend yang berlangganan MQTT.
+            // Dashboard hanya menampilkan status visual agar tidak ada notifikasi duplikat.
+            console.info(`[DASHBOARD ${type}] ${message}`);
             
             if(type === 'ANOMALY') lastNotifTime = now;
         }
 
-        function checkTolerance(currentTemp, currentRpm, currentVol) {
+        function getStageId(value) {
+            const numericStage = Number(value);
+            if (Number.isInteger(numericStage) && targetParameters[numericStage]) return numericStage;
+
+            const stageName = String(value ?? '').trim().toLowerCase();
+            const matchingStage = Object.values(targetParameters)
+                .find(stage => stage.name.toLowerCase() === stageName);
+            return matchingStage ? matchingStage.id : null;
+        }
+
+        function outsideTolerance(value, target, rule) {
+            if (!Number.isFinite(value) || !hasValue(target) || !rule) return false;
+            if (typeof rule === 'number') {
+                return value < target * (1 - rule) || value > target * (1 + rule);
+            }
+            return value < rule.min || value > rule.max;
+        }
+
+        function checkTolerance(currentTemp, currentRpm) {
             const stage = targetParameters[currentStageId];
-            if (!stage.checkTolerance) { document.getElementById('error-banner').classList.add('hidden'); return; }
+            if (!stage) return;
 
-            let errorTemp = false; let errorRpm = false; let errorVol = false; let errorMsg = [];
-
-            if (stage.targetTemp > 0 && (currentTemp < stage.targetTemp * 0.9 || currentTemp > stage.targetTemp * 1.1)) {
-                errorTemp = true; errorMsg.push(`Temperature ${currentTemp}°C exceeds limit.`);
+            const errorMsg = [];
+            if (outsideTolerance(currentTemp, stage.targetTemp, stage.tolerance.temp)) {
+                errorMsg.push(`Temperature ${currentTemp.toFixed(1)} °C is outside its permitted range.`);
             }
-            if (stage.targetRpm > 0 && (currentRpm < stage.targetRpm * 0.9 || currentRpm > stage.targetRpm * 1.1)) {
-                errorRpm = true; errorMsg.push(`RPM ${currentRpm} exceeds limit.`);
-            }
-            if (stage.targetVol > 0 && (currentVol < stage.targetVol * 0.9 || currentVol > stage.targetVol * 1.1)) {
-                errorVol = true; errorMsg.push(`Volume ${parseFloat(currentVol).toFixed(1)} ml exceeds limit.`);
+            if (outsideTolerance(currentRpm, stage.targetRpm, stage.tolerance.rpm)) {
+                errorMsg.push(`RPM ${Math.round(currentRpm)} is outside its permitted range.`);
             }
 
             const banner = document.getElementById('error-banner');
-            if (errorTemp || errorRpm || errorVol) {
-                document.getElementById('error-message').innerHTML = errorMsg.join("<br>"); 
+            if (errorMsg.length > 0) {
+                document.getElementById('error-message').textContent = errorMsg.join(' ');
                 banner.classList.remove('hidden');
-                autoNotify('ANOMALY', `Machine Warning:\n${errorMsg.join("\n")}`);
-            } else { 
-                banner.classList.add('hidden'); 
+                autoNotify('ANOMALY', `Machine warning:\n${errorMsg.join('\n')}`);
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
+        function isActiveSignal(value) {
+            return value === true || value === 1 || ['true', '1', 'on', 'active'].includes(String(value).toLowerCase());
+        }
+
+        function updateLevelSensor(data) {
+            const levelStatus = document.getElementById('level-sensor-status');
+            const threshold = targetParameters[6].levelThresholdVol;
+            const detected = isActiveSignal(data.levelDetected ?? data.level_detected);
+
+            if (currentStageId !== 6) {
+                levelStatus.className = 'mt-1 text-[9px] font-bold text-slate-500 text-center';
+                levelStatus.innerText = `Final level: not monitored (limit ${threshold} ml)`;
+            } else if (detected) {
+                levelStatus.className = 'mt-1 text-[9px] font-bold text-green-600 text-center';
+                levelStatus.innerText = `Final level detected (≥ ${threshold} ml)`;
+            } else {
+                levelStatus.className = 'mt-1 text-[9px] font-bold text-amber-600 text-center';
+                levelStatus.innerText = `Final level not reached (limit ${threshold} ml)`;
             }
         }
 
         function updateUI(data) {
-            document.getElementById('val-temp').innerText = parseFloat(data.temp).toFixed(1);
-            document.getElementById('val-rpm').innerText = data.rpm;
-            document.getElementById('val-vol').innerText = parseFloat(data.vol).toFixed(1);
-            
-            isSystemRunning = true; 
+            const stageId = getStageId(data.stage ?? data.process);
+            const temp = Number(data.temp ?? data.temperature);
+            const rpm = Number(data.rpm);
+            const vol = Number(data.vol ?? data.volume);
+
+            if (!stageId || !Number.isFinite(temp) || !Number.isFinite(rpm) || !Number.isFinite(vol)) {
+                console.warn('Ignored invalid sensor payload:', data);
+                return null;
+            }
+
+            document.getElementById('val-temp').innerText = temp.toFixed(1);
+            document.getElementById('val-rpm').innerText = Math.round(rpm);
+            document.getElementById('val-vol').innerText = vol.toFixed(1);
+            isSystemRunning = true;
             setMachineStatus(true);
 
-            if (data.stage !== currentStageId) {
+            if (stageId !== currentStageId) {
                 const oldStage = currentStageId;
-                currentStageId = data.stage; stageSeconds = 0;
-                autoNotify('STAGE_COMPLETE', `Stage [${targetParameters[oldStage].name}] complete.`);
+                currentStageId = stageId;
+                stageSeconds = 0;
+                if (targetParameters[oldStage]) {
+                    autoNotify('STAGE_COMPLETE', `Stage [${targetParameters[oldStage].name}] complete.`);
+                }
                 document.getElementById('current-stage-display').innerText = targetParameters[currentStageId].name;
             }
 
-            if(data.stage >= 1 && data.stage <= 6) {
-                stageAverages[data.stage].sumTemp += parseFloat(data.temp);
-                stageAverages[data.stage].sumRpm += parseInt(data.rpm);
-                stageAverages[data.stage].sumVol += parseFloat(data.vol);
-                stageAverages[data.stage].count += 1;
-            }
+            stageAverages[stageId].sumTemp += temp;
+            stageAverages[stageId].sumRpm += rpm;
+            stageAverages[stageId].sumVol += vol;
+            stageAverages[stageId].count += 1;
 
-            checkTolerance(data.temp, data.rpm, data.vol);
-            
+            checkTolerance(temp, rpm);
+            updateLevelSensor(data);
+
             const stageTargetAct = targetParameters[currentStageId].act;
-            const actualAct = data.act || { 
-                motor: stageTargetAct.motor === 'ON', 
-                heater: stageTargetAct.heater === 'ON', 
-                valve: stageTargetAct.valve === 'ON' 
+            const actualAct = data.act ? {
+                motor: isActiveSignal(data.act.motor),
+                heater: isActiveSignal(data.act.heater),
+                valve: isActiveSignal(data.act.valve)
+            } : {
+                motor: stageTargetAct.motor === 'ON',
+                heater: stageTargetAct.heater === 'ON',
+                valve: stageTargetAct.valve === 'ON'
             };
-            
             updateStepsUI(actualAct);
+            return {
+                stage: stageId,
+                temp,
+                rpm,
+                vol,
+                level_detected: isActiveSignal(data.levelDetected ?? data.level_detected)
+            };
         }
 
         function updateStepsUI(actualAct = null) {
@@ -520,7 +614,8 @@
                 
                 if (i === currentStageId) {
                     icon.className = "flex items-center justify-center w-10 h-10 rounded-full border border-white bg-teal-500 text-white shadow z-10 relative font-bold";
-                    card.classList.replace('bg-white', 'bg-teal-50'); card.classList.replace('border-slate-200', 'border-teal-400');
+                    card.classList.remove('bg-white', 'bg-slate-50', 'opacity-60', 'border-slate-200');
+                    card.classList.add('bg-teal-50', 'border-teal-400');
                     
                     if(actualAct) {
                         mtrDot.className = `h-2.5 w-2.5 rounded-full ${actualAct.motor ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`;
@@ -529,7 +624,8 @@
                     }
                 } else if (i < currentStageId) {
                     icon.className = "flex items-center justify-center w-10 h-10 rounded-full border border-white bg-green-500 text-white shadow z-10 relative font-bold";
-                    card.classList.replace('bg-teal-50', 'bg-slate-50'); card.classList.replace('bg-white', 'bg-slate-50'); card.classList.add('opacity-60');
+                    card.classList.remove('bg-white', 'bg-teal-50', 'border-teal-400');
+                    card.classList.add('bg-slate-50', 'border-slate-200', 'opacity-60');
                     
                     const pastAct = targetParameters[i].act;
                     mtrDot.className = `h-2.5 w-2.5 rounded-full ${pastAct.motor === 'ON' ? 'bg-green-500' : 'bg-slate-300'}`;
@@ -537,6 +633,8 @@
                     vlvDot.className = `h-2.5 w-2.5 rounded-full ${pastAct.valve === 'ON' ? 'bg-blue-500' : 'bg-slate-300'}`;
                 } else {
                     icon.className = "flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-200 text-slate-500 shadow z-10 relative font-bold";
+                    card.classList.remove('bg-teal-50', 'bg-slate-50', 'border-teal-400', 'opacity-60');
+                    card.classList.add('bg-white', 'border-slate-200');
                     
                     mtrDot.className = 'h-2.5 w-2.5 rounded-full bg-slate-300';
                     htrDot.className = 'h-2.5 w-2.5 rounded-full bg-slate-300';
@@ -583,6 +681,7 @@
         };
 
         let tempChart, rpmChart, volChart;
+        const MAX_RENDERED_CHART_POINTS = 1200;
 
         try {
             const ctxTemp = document.getElementById('tempChart').getContext('2d');
@@ -607,6 +706,16 @@
                 let filteredData = allSensorData;
                 if(filterValue !== 'all') {
                     filteredData = allSensorData.filter(d => d.stage == parseInt(filterValue));
+                }
+
+                // Semua data tetap disimpan untuk CSV/PDF. Grafik diringkas saat sangat panjang
+                // agar dashboard tetap lancar pada tahap Separation yang berlangsung 12 jam.
+                if (filteredData.length > MAX_RENDERED_CHART_POINTS) {
+                    const interval = filteredData.length / MAX_RENDERED_CHART_POINTS;
+                    filteredData = Array.from(
+                        { length: MAX_RENDERED_CHART_POINTS },
+                        (_, index) => filteredData[Math.floor(index * interval)]
+                    );
                 }
 
                 const labels = filteredData.map(d => d.timeStr);
@@ -642,8 +751,13 @@
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // JIKA TIDAK ADA SUPABASE, TETAP BISA MASUK (BYPASS OTOMATIS)
+            // Bypass hanya boleh untuk pengujian lokal, bukan pada deployment produksi.
             if (!supabaseClient) {
+                if (!ALLOW_LOCAL_BYPASS) {
+                    document.getElementById('login-error').classList.remove('hidden');
+                    document.getElementById('login-error-text').innerText = 'Authentication service is not configured.';
+                    return;
+                }
                 userContactPhone = document.getElementById('telegram-id').value;
                 resetDataIfNewUser("simulation_bypass");
                 document.getElementById('user-email-display').innerText = document.getElementById('email').value;
@@ -715,6 +829,10 @@
         }
 
         window.bypassLogin = function() {
+            if (!ALLOW_LOCAL_BYPASS) {
+                console.warn('Login bypass is disabled outside local development.');
+                return;
+            }
             window.isBypassMode = true; // Aktifkan Jalur VIP
             userContactPhone = document.getElementById('telegram-id').value;
             resetDataIfNewUser("simulation_bypass");
@@ -726,7 +844,10 @@
         };
 
         window.logoutDashboard = async function() {
-            window.isBypassMode = false; // Matikan Jalur VIP saat logout
+            window.isBypassMode = false;
+            if (isSimulating) window.toggleSimulation();
+            if (mqttClient && mqttClient.isConnected && mqttClient.isConnected()) mqttClient.disconnect();
+            setMachineStatus(false);
             if (supabaseClient) {
                 await supabaseClient.auth.signOut();
             } else {
@@ -740,18 +861,16 @@
                 temp: dataObj.temp,
                 rpm: dataObj.rpm,
                 vol: dataObj.vol,
+                level_detected: dataObj.levelDetected === true || dataObj.level_detected === true,
                 waktu_lokal: new Date().toLocaleTimeString('en-US'), 
                 tanggal: new Date().toLocaleDateString('en-US') 
             };
             
             localDataLog.push(logEntry);
             
-            if (supabaseClient) { 
-                try { 
-                    await supabaseClient.from('reactor_logs').insert([logEntry]); 
-                } catch (e) {
-                    console.warn("Failed to insert into Supabase");
-                } 
+            if (supabaseClient) {
+                const { error } = await supabaseClient.from('reactor_logs').insert([logEntry]);
+                if (error) console.warn('Failed to insert into Supabase:', error.message);
             }
         }
 
@@ -771,10 +890,14 @@
             mqttClient.onMessageArrived = (msg) => {
                 try {
                     const payload = JSON.parse(msg.payloadString);
-                    updateUI(payload);
-                    addChartData(new Date().toLocaleTimeString('en-US'), payload.temp, payload.rpm, payload.vol, payload.stage);
-                    logData(payload);
-                } catch (e) { }
+                    const normalizedPayload = updateUI(payload);
+                    if (normalizedPayload) {
+                        addChartData(new Date().toLocaleTimeString('en-US'), normalizedPayload.temp, normalizedPayload.rpm, normalizedPayload.vol, normalizedPayload.stage);
+                        logData(normalizedPayload);
+                    }
+                } catch (e) {
+                    console.warn('Invalid MQTT message ignored:', e);
+                }
             };
         } catch(e) {
             console.warn("MQTT Client initialization failed:", e);
@@ -782,6 +905,7 @@
 
         function connectMQTT() {
             if (!mqttClient) return;
+            if (mqttClient.isConnected && mqttClient.isConnected()) return;
             document.getElementById('status-text').innerText = "Connecting...";
             try {
                 mqttClient.connect({
@@ -799,14 +923,15 @@
         }
 
         window.emergencyStop = function() {
-            if(!mqttClient) {
-                window.showToast("Cannot send E-STOP: MQTT client not initialized", "error");
+            if(!mqttClient || !mqttClient.isConnected || !mqttClient.isConnected()) {
+                window.showToast("Emergency stop cannot be sent because MQTT is disconnected", "error");
                 return;
             }
             if(confirm("DANGER: Are you sure you want to trigger EMERGENCY STOP? This will shut down all actuators remotely.")) {
                 try {
                     const message = new Paho.MQTT.Message(JSON.stringify({ command: "ESTOP", value: 1 }));
                     message.destinationName = "ta/reaktor/command";
+                    message.qos = 1;
                     mqttClient.send(message);
                     window.showToast("Emergency Stop signal broadcasted to ESP32!", "success");
                     setMachineStatus(false);
@@ -826,12 +951,15 @@
             document.getElementById('modal-title').innerText = `Stage ${stageId}: ${data.name}`;
             
             const tolEl = document.getElementById('modal-tol');
-            if(data.checkTolerance) { tolEl.innerHTML = '<span class="text-green-600"><i class="fa-solid fa-check"></i> Tolerance Check Active</span>'; } 
-            else { tolEl.innerHTML = '<span class="text-slate-400"><i class="fa-solid fa-ban"></i> Tolerance Check Inactive</span>'; }
+            if(data.tolerance && (data.tolerance.temp || data.tolerance.rpm)) {
+                tolEl.innerHTML = '<span class="text-green-600"><i class="fa-solid fa-check"></i> Tolerance monitoring is active</span>';
+            } else {
+                tolEl.innerHTML = '<span class="text-slate-400"><i class="fa-solid fa-ban"></i> Tolerance monitoring is inactive</span>';
+            }
 
-            document.getElementById('modal-tgt-temp').innerText = data.targetTemp ? `${data.targetTemp} °C` : "-";
-            document.getElementById('modal-tgt-rpm').innerText = data.targetRpm ? `${data.targetRpm} RPM` : "-";
-            document.getElementById('modal-tgt-vol').innerText = data.targetVol ? `${data.targetVol} ml` : "-";
+            document.getElementById('modal-tgt-temp').innerText = formatTarget(data.targetTemp, '°C');
+            document.getElementById('modal-tgt-rpm').innerText = formatTarget(data.targetRpm, 'RPM');
+            document.getElementById('modal-tgt-vol').innerText = getVolumeTargetLabel(data);
             document.getElementById('modal-tgt-time').innerText = data.timeStr || "-";
 
             if(avgData.count > 0) {
@@ -862,12 +990,15 @@
             setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
         };
 
-        window.downloadDataCSV = async function() {
+        window.downloadDataCSV = function() {
             let dataToDownload = localDataLog; 
             if (dataToDownload.length === 0) { window.showToast("No sensor data yet!", "info"); return; }
-            const headers = ["Date", "Time", "Stage", "Temperature", "RPM", "Volume"];
+            const headers = ["Date", "Time", "Stage", "Temperature_C", "RPM", "Volume_ml", "Level_Detected"];
             const csvRows = [headers.join(",")];
-            dataToDownload.forEach(r => csvRows.push([r.tanggal||"-", r.waktu_lokal||"-", r.stage||"-", r.temp||"0", r.rpm||"0", parseFloat(r.vol||"0").toFixed(1)].join(",")));
+            dataToDownload.forEach(r => csvRows.push([
+                r.tanggal || "-", r.waktu_lokal || "-", r.stage || "-", r.temp || "0", r.rpm || "0",
+                Number(r.vol || 0).toFixed(1), r.level_detected ? 'true' : 'false'
+            ].join(",")));
             
             const a = document.createElement('a');
             a.href = window.URL.createObjectURL(new Blob([csvRows.join("\n")], { type: 'text/csv' }));
@@ -926,15 +1057,15 @@
                 
                 // Actuators full text
                 const actStr = `Motor: ${p.act.motor}\nHeater: ${p.act.heater}\nValve: ${p.act.valve}`;
-                const rowSpanCount = p.targetVol ? 4 : 3;
+                const rowSpanCount = 4;
 
                 tableData.push([
                     {rowSpan: rowSpanCount, content: `STAGE ${i}\n${p.name.toUpperCase()}`, styles: {valign: 'middle', fontStyle: 'bold', halign: 'center'}}, 
-                    "Temperature", p.targetTemp ? p.targetTemp + " °C" : "-", aT,
+                    "Temperature", formatTarget(p.targetTemp, '°C'), aT,
                     {rowSpan: rowSpanCount, content: actStr, styles: {valign: 'middle', halign: 'left'}}
                 ]);
-                tableData.push(["RPM", p.targetRpm ? p.targetRpm + " RPM" : "-", aR]);
-                if(p.targetVol) tableData.push(["Volume", p.targetVol + " ml", aV]);
+                tableData.push(["RPM", formatTarget(p.targetRpm, 'RPM'), aR]);
+                tableData.push(["Volume / level", getVolumeTargetLabel(p), aV]);
                 tableData.push(["Duration", p.timeStr, aTime]);
             }
 
@@ -977,20 +1108,23 @@
                 isSimulating = false; isSystemRunning = false; setMachineStatus(false);
             } else {
                 btn.innerText = "Stop Simulation"; btn.classList.replace('bg-yellow-500', 'bg-red-500');
-                isSimulating = true; isSystemRunning = true;
+                isSimulating = true; isSystemRunning = true; simStage = 1; simTime = 0;
                 
                 simInterval = setInterval(() => {
                     simTime++;
                     if(simTime % 10 === 0 && simStage < 6) simStage++;
                     
                     const target = targetParameters[simStage];
-                    let sTemp = target.targetTemp ? (target.targetTemp + (Math.random() * 4 - 2)) : 30;
-                    let sRpm = target.targetRpm ? (target.targetRpm + (Math.random() * 10 - 5)) : 0; 
-                    let sVol = target.targetVol ? (target.targetVol + (Math.random() * 10 - 5)) : 500;
+                    // Set point 0 °C merepresentasikan heater OFF; suhu aktual mengikuti suhu sekitar.
+                    let sTemp = target.targetTemp > 0 ? target.targetTemp + (Math.random() * 4 - 2) : 28 + (Math.random() * 2 - 1);
+                    let sRpm = target.targetRpm > 0 ? target.targetRpm + (Math.random() * 10 - 5) : 0;
+                    let sVol = simStage === 6
+                        ? Math.min(500, 300 + Math.max(0, simTime - 50) * 8) + (Math.random() * 4 - 2)
+                        : 500 + (Math.random() * 10 - 5);
                     
-                    if(Math.random() > 0.8 && target.checkTolerance) { 
-                        sTemp += 20; 
-                        sVol += 60; 
+                    if(Math.random() > 0.8) {
+                        if (target.tolerance.temp) sTemp += target.targetTemp * 0.25;
+                        else if (target.tolerance.rpm) sRpm = 25;
                     }
 
                     const fakeData = { 
@@ -998,6 +1132,7 @@
                         rpm: Math.round(sRpm), 
                         vol: sVol, 
                         stage: simStage,
+                        levelDetected: simStage === 6 && sVol >= target.levelThresholdVol,
                         act: {
                             motor: target.act.motor === 'ON',
                             heater: target.act.heater === 'ON',

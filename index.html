@@ -2290,6 +2290,135 @@
           ['Agitation Unit', 'DC Motor & Magnetic Bar', '12V DC 280 RPM (Rated 0.3A · Stall 1.8A)', 'Operating at 250 RPM (~0.35A)'],
           ['Thermal Heating', 'Dual Heating Elements', '12V DC 2x40W in Parallel (Total 80W Max)', 'PID / PWM Duty Cycle (60–120°C)'],
           ['Valve Actuation', 'DC Servo Motor', '4.8V – 7.2V DC (Nominal 6.0V · 0.70A Running)', 'Catalyst & Separator Valve Control'],
+      });
+    }
+
+    function renderLogs(logs) {
+      const rows = logs.slice(-20).reverse();
+      const body = document.getElementById('log-table');
+      body.innerHTML = rows.length ? rows.map(row => `
+        <tr class="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800">
+          <td class="p-2.5">${text(row.tanggal || '')} ${text(row.waktu_lokal || '')}</td>
+          <td class="p-2.5 font-semibold">${text(row.stage)} — ${text(stageMeta[row.stage]?.name || '-')}</td>
+          <td class="p-2.5 font-bold text-red-600">${number(row.temp)} °C</td>
+          <td class="p-2.5 font-bold text-blue-600">${Math.round(Number(row.rpm) || 0)}</td>
+          <td class="p-2.5 font-bold text-emerald-600">${number(row.vol)} ml</td>
+          <td class="p-2.5 font-bold text-amber-600">${number(row.current, 2)} A</td>
+          <td class="p-2.5">${row.level_detected ? '<span class="text-emerald-600 font-bold">✓ Reached</span>' : '-'}</td>
+        </tr>
+      `).join('') : '<tr><td class="p-3 text-slate-500" colspan="7">No telemetry data recorded yet.</td></tr>';
+    }
+
+    async function loadLogs(batchId = '') {
+      if (isDemoMode) return currentLogs;
+      currentLogs = await api(`/api/logs?limit=2000${batchId ? `&batchId=${encodeURIComponent(batchId)}` : ''}`);
+      renderLogs(currentLogs);
+      updateCharts();
+      renderTimeline();
+      return currentLogs;
+    }
+
+    async function loadBatches() {
+      if (isDemoMode) {
+        document.getElementById('batch-select').innerHTML = '<option value="DEMO-EXHIBITION">DEMO-EXHIBITION-BATCH</option>';
+        return;
+      }
+      const batches = await api('/api/batches');
+      const select = document.getElementById('batch-select');
+      const selected = select.value;
+      select.innerHTML = '<option value="">Active Batch</option>' + batches.map(item => `<option value="${text(item.batchId)}">${text(item.batchCode || item.batchId)} — ${new Date(item.latestAt).toLocaleString()}</option>`).join('');
+      select.value = selected;
+    }
+
+    async function deleteSelectedBatch() {
+      const select = document.getElementById('batch-select');
+      const selectedBatchId = select.value;
+      if (!selectedBatchId) {
+        showToast('Please select a specific completed/test batch to delete.', 'error');
+        return;
+      }
+      if (!confirm(`Are you sure you want to permanently delete all data logs for batch "${selectedBatchId}"? This action cannot be undone.`)) return;
+
+      if (isDemoMode) {
+        currentLogs = [];
+        renderLogs(currentLogs);
+        showToast('Demo batch data cleared.', 'success');
+        return;
+      }
+
+      try {
+        const result = await api(`/api/batches/${encodeURIComponent(selectedBatchId)}`, { method: 'DELETE' });
+        showToast(result.message || 'Batch logs deleted successfully.', 'success');
+        await loadBatches();
+        await loadLogs('');
+      } catch (err) {
+        showToast('Failed to delete batch: ' + err.message, 'error');
+      }
+    }
+
+    async function sendControl(action, extras = {}) {
+      if (action === 'emergency_stop' && !confirm('Are you sure you want to trigger an EMERGENCY STOP? All actuators will be powered off.')) return;
+      const code = document.getElementById('batch-code-input').value.trim();
+
+      if ((action === 'start' || action === 'restart') && !code && !isDemoMode) {
+        showToast('Please enter a Batch Code before starting or restarting!', 'error');
+        document.getElementById('batch-code-input').focus();
+        return;
+      }
+
+      const startStage = Number(document.getElementById('start-stage-select').value) || 1;
+
+      if (isDemoMode) {
+        handleDemoControl(action, { start_stage: startStage, ...extras });
+        return;
+      }
+
+      const payload = { action, start_stage: startStage, ...extras };
+      if (code) { payload.batch_id = code; payload.batch_code = code; }
+      document.getElementById('control-message').textContent = 'Dispatching command...';
+      try {
+        const result = await api('/api/control', { method: 'POST', body: JSON.stringify(payload) });
+        applyState(result.state);
+        document.getElementById('control-message').textContent = `Command ${action} dispatched successfully.`;
+        showToast(`Command ${action} sent.`, 'success');
+      } catch (error) {
+        document.getElementById('control-message').textContent = error.message;
+        showToast(error.message, 'error');
+      }
+    }
+
+    function downloadFile(content, name, type) { const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([content], { type })); link.download = name; link.click(); URL.revokeObjectURL(link.href); }
+    function csvEscape(value) { const valueText = String(value ?? ''); return /[",\n]/.test(valueText) ? `"${valueText.replaceAll('"', '""')}"` : valueText; }
+    
+    function downloadCsv() {
+      const rows = [['Batch ID', 'Batch Code', 'Date', 'Local Time', 'Stage', 'Process Name', 'Temperature °C', 'Agitation RPM', 'Volume ml', 'Current A', 'Level Detected', 'Actuators Payload'], ...currentLogs.map(row => [row.batch_id, row.batch_code, row.tanggal, row.waktu_lokal, row.stage, stageMeta[row.stage]?.name || '', row.temp, row.rpm, row.vol, row.current, row.level_detected, JSON.stringify(row.sensor_payload || {})])];
+      downloadFile(rows.map(row => row.map(csvEscape).join(',')).join('\n'), 'Reactor_Data.csv', 'text/csv;charset=utf-8');
+    }
+
+    // DOWNLOAD APPARATUS SPECIFICATIONS & USER MANUAL PDF
+    function downloadApparatusSpecsPdf() {
+      if (!window.jspdf) return showToast('PDF library failed to load. Please check internet connection.', 'error');
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      doc.setFontSize(16);
+      doc.setTextColor(15, 118, 110);
+      doc.text('Esterification Reactor — Apparatus Specifications & SOP Manual', 14, 18);
+      
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.text('Laboratory-Scale Biodiesel/Monoester Esterification Synthesis Unit', 14, 25);
+      doc.text(`Document Version: 2.4 · Generated on: ${new Date().toLocaleString()}`, 14, 30);
+
+      // Section 1: Apparatus Hardware & Electrical Specs Table
+      doc.autoTable({
+        startY: 36,
+        head: [['System Subsystem', 'Component / Part', 'Technical Specification', 'Operational Parameter']],
+        body: [
+          ['Reaction Vessel', 'Round-Bottom Flask', '500 ml 3-Neck Borosilicate Glass 3.3', 'Working limit ≤ 375 ml (75%)'],
+          ['Agitation Unit', 'DC Motor & Magnetic Bar', '12V DC 280 RPM (Rated 0.3A · Stall 1.8A)', 'Operating at 250 RPM (~0.35A)'],
+          ['Thermal Heating', 'Dual Heating Elements', '12V DC 2x40W in Parallel (Total 80W Max)', 'PID / PWM Duty Cycle (60–120°C)'],
+          ['Valve Actuation', 'DC Servo Motor', '4.8V – 7.2V DC (Nominal 6.0V · 0.70A Running)', 'Catalyst & Separator Valve Control'],
           ['Power Supply', 'Switching DC PSU', '12V DC 10A (120W Rated Capacity)', 'Powers Motor, Heaters & Step-down Servo'],
           ['Sensors & I/O', 'Temp, RPM & Load Cell', 'DS18B20 Temp Probe, Optical RPM, Load Cell', 'Flask load cell + Beaker level sensor']
         ],
@@ -2303,17 +2432,11 @@
         startY: doc.lastAutoTable.finalY + 6,
         head: [['Stage #', 'Process Name', 'Target Temp & RPM', 'Target Duration', 'Active Actuators & SOP Actions']],
         body: [
-          [
           ['1', 'Mixing', '60 °C (±10%) · 250 RPM', '30 Minutes', 'Motor ON, Heater ON (~50%). Katup 1 umpan katalis 4% H2SO4.'],
           ['2', 'Reflux', '100 °C (±10%) · 0 RPM', '5 Hours', 'Heater ON (~82%), Motor OFF. Kondensasi refluks.'],
           ['3', 'Separation', 'Ambient · 0 RPM', '12 Hours', 'Semua OFF. Air cuci 10%. Pemisahan gravitasi.'],
           ['4', 'Oil Treatment', '120 °C (±10%) · 250 RPM', '1 Hour', 'Motor ON, Heater 100%. Adsorben bentonit 0.2g.'],
           ['5', 'Filtration', 'Ambient · 0 RPM', 'Level ≥375 ml', 'Katup 2 Servo ON ke corong Whatman. Berhenti otomatis.']
-        ],
-        theme: 'grid',
-        headStyles: { fillColor: [30, 41, 59] },
-        styles: { fontSize: 8 }
-      });
 
       // Section 3: Safety & Emergency Instructions
       doc.autoTable({

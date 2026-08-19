@@ -432,11 +432,11 @@
                 <option value="all">🌐 All Stages (Full Process)</option>
                 <option value="current">📍 Current Active Stage Only</option>
                 <option value="1">Stage 1: Mixing</option>
-                <option value="2">Stage 2: Add Catalyst</option>
-                <option value="3">Stage 3: Reflux</option>
-                <option value="4">Stage 4: Separation</option>
-                <option value="5">Stage 5: Oil Treatment</option>
-                <option value="6">Stage 6: Filtration</option>
+                <option value="2">Stage 2: Reflux (100°C)</option>
+                <option value="3">Stage 3: Separation (12h)</option>
+                <option value="4">Stage 4: Oil Treatment (120°C)</option>
+                <option value="5">Stage 5: Filtration (Level ≥375ml)</option>
+                
               </select>
             </div>
             <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
@@ -463,11 +463,11 @@
                 <option value="all">🌐 All Stages (Full Process)</option>
                 <option value="current">📍 Current Active Stage Only</option>
                 <option value="1">Stage 1: Mixing</option>
-                <option value="2">Stage 2: Add Catalyst</option>
-                <option value="3">Stage 3: Reflux</option>
-                <option value="4">Stage 4: Separation</option>
-                <option value="5">Stage 5: Oil Treatment</option>
-                <option value="6">Stage 6: Filtration</option>
+                <option value="2">Stage 2: Reflux (100°C)</option>
+                <option value="3">Stage 3: Separation (12h)</option>
+                <option value="4">Stage 4: Oil Treatment (120°C)</option>
+                <option value="5">Stage 5: Filtration (Level ≥375ml)</option>
+                
               </select>
             </div>
             <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
@@ -494,11 +494,11 @@
                 <option value="all">🌐 All Stages (Full Process)</option>
                 <option value="current">📍 Current Active Stage Only</option>
                 <option value="1">Stage 1: Mixing</option>
-                <option value="2">Stage 2: Add Catalyst</option>
-                <option value="3">Stage 3: Reflux</option>
-                <option value="4">Stage 4: Separation</option>
-                <option value="5">Stage 5: Oil Treatment</option>
-                <option value="6">Stage 6: Filtration</option>
+                <option value="2">Stage 2: Reflux (100°C)</option>
+                <option value="3">Stage 3: Separation (12h)</option>
+                <option value="4">Stage 4: Oil Treatment (120°C)</option>
+                <option value="5">Stage 5: Filtration (Level ≥375ml)</option>
+                
               </select>
             </div>
             <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
@@ -525,11 +525,11 @@
                 <option value="all">🌐 All Stages (Full Process)</option>
                 <option value="current">📍 Current Active Stage Only</option>
                 <option value="1">Stage 1: Mixing</option>
-                <option value="2">Stage 2: Add Catalyst</option>
-                <option value="3">Stage 3: Reflux</option>
-                <option value="4">Stage 4: Separation</option>
-                <option value="5">Stage 5: Oil Treatment</option>
-                <option value="6">Stage 6: Filtration</option>
+                <option value="2">Stage 2: Reflux (100°C)</option>
+                <option value="3">Stage 3: Separation (12h)</option>
+                <option value="4">Stage 4: Oil Treatment (120°C)</option>
+                <option value="5">Stage 5: Filtration (Level ≥375ml)</option>
+                
               </select>
             </div>
             <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
@@ -561,11 +561,11 @@
                 <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Start / Jump From Stage</label>
                 <select id="start-stage-select" class="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold outline-none focus:border-teal-600">
                   <option value="1">Stage 1: Mixing (Initial)</option>
-                  <option value="2">Stage 2: Add Catalyst</option>
-                  <option value="3">Stage 3: Reflux</option>
-                  <option value="4">Stage 4: Separation</option>
-                  <option value="5">Stage 5: Oil Treatment</option>
-                  <option value="6">Stage 6: Filtration</option>
+                  <option value="2">Stage 2: Reflux (100°C)</option>
+                <option value="3">Stage 3: Separation (12h)</option>
+                <option value="4">Stage 4: Oil Treatment (120°C)</option>
+                <option value="5">Stage 5: Filtration (Level ≥375ml)</option>
+                  
                 </select>
               </div>
             </div>
@@ -1338,9 +1338,9 @@
       const elapsed = currentState?.latestData?.elapsedSeconds || 0;
 
       let html = '';
-      for (let i = 1; i <= 6; i++) {
+      for (let i = 1; i <= 5; i++) {
         const s = stageMeta[i];
-        const isPast = activeStage > i || (activeStage === 6 && currentState?.latestData?.levelDetected);
+        const isPast = activeStage > i || (activeStage === 5 && currentState?.latestData?.levelDetected);
         const isCurrent = activeStage === i;
 
         let cardStyle = 'border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 text-slate-500 opacity-75';
@@ -1390,12 +1390,12 @@
       }
       container.innerHTML = html;
 
-      if (activeStage >= 1 && activeStage <= 6) {
+      if (activeStage >= 1 && activeStage <= 5) {
         const currentMeta = stageMeta[activeStage];
         const targetSec = currentMeta.targetSeconds;
         const progressPct = Math.min(100, Math.round((elapsed / targetSec) * 100));
 
-        document.getElementById('active-stage-countdown-title').textContent = `Stage ${activeStage}/6: ${currentMeta.name} Progress`;
+        document.getElementById('active-stage-countdown-title').textContent = `Stage ${activeStage}/5: ${currentMeta.name} Progress`;
         document.getElementById('active-stage-countdown-time').textContent = `${formatElapsed(elapsed)} / ${formatElapsed(targetSec)} (${progressPct}%)`;
         document.getElementById('active-stage-progress-bar').style.width = `${progressPct}%`;
 
@@ -1474,24 +1474,24 @@
       }
 
       const flaskLiquid = document.getElementById('svg-flask-liquid');
-      const isFlaskLiquidActive = (stageId === 1 || stageId === 3 || stageId === 5);
+      const isFlaskLiquidActive = (stageId === 1 || stageId === 2 || stageId === 4);
       flaskLiquid.setAttribute('opacity', isFlaskLiquidActive ? '0.75' : '0.15');
 
       const sepLiquid = document.getElementById('svg-sep-liquid');
-      sepLiquid.setAttribute('opacity', (stageId === 4) ? '0.8' : (stageId === 6 ? '0.2' : '0'));
+      sepLiquid.setAttribute('opacity', (stageId === 3) ? '0.8' : (stageId === 5 ? '0.2' : '0'));
 
-      document.getElementById('svg-catalyst-drip').className.baseVal = (isCat || stageId === 2 || stageId === 3) ? '' : 'hidden';
-      document.getElementById('svg-condenser-vapor').className.baseVal = (stageId === 3 || isHeater) ? '' : 'hidden';
-      document.getElementById('svg-sep-drip').className.baseVal = (isSep || stageId === 6) ? '' : 'hidden';
+      document.getElementById('svg-catalyst-drip').className.baseVal = (isCat || stageId === 1) ? '' : 'hidden';
+      document.getElementById('svg-condenser-vapor').className.baseVal = (stageId === 2 || isHeater) ? '' : 'hidden';
+      document.getElementById('svg-sep-drip').className.baseVal = (isSep || stageId === 5) ? '' : 'hidden';
 
-      const isFiltration = stageId === 6;
+      const isFiltration = stageId === 5;
       const beakerH = Math.min(32, Math.max(4, (Number(data.vol || 0) / 500) * 32));
       const beakerY = 507 - beakerH;
       document.getElementById('svg-beaker-level').setAttribute('y', String(beakerY));
       document.getElementById('svg-beaker-level').setAttribute('height', String(beakerH));
       document.getElementById('svg-beaker-level').setAttribute('opacity', isFiltration ? '0.85' : '0.2');
 
-      if (stageId === 6) {
+      if (stageId === 5) {
         document.getElementById('dt-sensor-mode').textContent = 'Beaker Level Sensor (≥75%)';
         document.getElementById('vol-sensor-info').textContent = 'Beaker Level Sensor: Active (Filtration Level ≥375 ml)';
         document.getElementById('level-text').textContent = data.levelDetected ? '✓ Level Reached (≥375 ml / 75%)' : 'Filtration in progress...';
@@ -2534,16 +2534,16 @@
       demoSimState.elapsedSeconds += 2;
 
       if (demoSimState.sampleCount % 10 === 0) {
-        demoSimState.stageId = demoSimState.stageId >= 6 ? 1 : demoSimState.stageId + 1;
+        demoSimState.stageId = demoSimState.stageId >= 5 ? 1 : demoSimState.stageId + 1;
       }
 
       const stageId = demoSimState.stageId;
       const meta = stageMeta[stageId];
 
-      const isMotorOn = stageId === 1 || stageId === 5;
-      const isHeaterOn = stageId === 1 || stageId === 3 || stageId === 5;
-      const isCatalyst = stageId === 2;
-      const isSeparator = stageId === 6;
+      const isMotorOn = stageId === 1 || stageId === 4;
+      const isHeaterOn = stageId === 1 || stageId === 2 || stageId === 4;
+      const isCatalyst = false;
+      const isSeparator = stageId === 5;
       const isServo = isCatalyst || isSeparator;
 
       demoSimState.actuators = {
@@ -2558,9 +2558,9 @@
       let temp = Math.max(20, targetTemp + (Math.random() * 3 - 1.5));
       let rpm = isMotorOn ? Math.round(250 + (Math.random() * 6 - 3)) : 0;
       let current = isMotorOn ? Number((0.35 + (Math.random() * 0.04 - 0.02)).toFixed(2)) : 0.0;
-      let volume = stageId === 6 ? Math.min(500, 320 + (demoSimState.sampleCount % 10) * 18) : (500 + (Math.random() * 4 - 2));
+      let volume = stageId === 5 ? Math.min(500, 320 + (demoSimState.sampleCount % 10) * 18) : (500 + (Math.random() * 4 - 2));
 
-      const levelDetected = stageId === 6 && volume >= 375;
+      const levelDetected = stageId === 5 && volume >= 375;
 
       const demoPayload = {
         stageId: stageId,

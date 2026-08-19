@@ -12,9 +12,9 @@ function cleanSupabaseUrl(url) {
 
 const config = {
     port: Number(process.env.PORT) || 3000,
-    mqttUrl: process.env.MQTT_URL || 'mqtt://broker.emqx.io:1883',
-    sensorTopic: process.env.MQTT_SENSOR_TOPIC || 'reactor/telemetry',
-    controlTopic: process.env.MQTT_CONTROL_TOPIC || 'reactor/control',
+    mqttUrl: process.env.MQTT_URL || 'mqtt://broker.hivemq.com:1883',
+    sensorTopic: process.env.MQTT_SENSOR_TOPIC || 'ta/reaktor/data_sensor',
+    controlTopic: process.env.MQTT_CONTROL_TOPIC || 'ta/reaktor/perintah',
     frontendOrigin: process.env.FRONTEND_ORIGIN || '*',
     telegramToken: process.env.TELEGRAM_BOT_TOKEN || '',
     supabaseUrl: cleanSupabaseUrl(process.env.SUPABASE_URL),
@@ -36,12 +36,11 @@ function createUserClient(accessToken) {
 }
 
 const stages = {
-    1: { id: 1, name: 'Mixing', durationLabel: '30 menit', targetSeconds: 1800, temp: { target: 60, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON (12V 280RPM) | Heater ON (12V 2x40W)' },
-    2: { id: 2, name: 'Add Catalyst', durationLabel: 'Momentary', targetSeconds: 60, temp: null, rpm: null, current: null, actuators: 'Valve Katalis ON (Servo 6V 0.7A)' },
-    3: { id: 3, name: 'Reflux', durationLabel: '5 jam', targetSeconds: 18000, temp: { target: 100, tolerance: 0.10 }, rpm: { target: 0, min: 0, max: 10 }, current: null, actuators: 'Heater ON (12V 2x40W, Motor OFF)' },
-    4: { id: 4, name: 'Separation', durationLabel: '12 jam', targetSeconds: 43200, temp: null, rpm: null, current: null, actuators: 'Semua Aktuator OFF' },
-    5: { id: 5, name: 'Oil Treatment', durationLabel: '1 jam', targetSeconds: 3600, temp: { target: 120, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON | Heater ON | Bentonit 0.2g' },
-    6: { id: 6, name: 'Filtration', durationLabel: 'Level ≥375 ml', targetSeconds: 7200, temp: null, rpm: null, current: null, actuators: 'Valve Pemisah ON (Servo 6V 0.7A)' }
+    1: { id: 1, name: 'Mixing', durationLabel: '30 menit', targetSeconds: 1800, temp: { target: 60, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON (12V 280RPM) | Heater ON (12V 2x40W) | Katup 1 Umpan Katalis' },
+    2: { id: 2, name: 'Reflux', durationLabel: '5 jam', targetSeconds: 18000, temp: { target: 100, tolerance: 0.10 }, rpm: { target: 0, min: 0, max: 10 }, current: null, actuators: 'Heater ON (12V 2x40W, Motor OFF)' },
+    3: { id: 3, name: 'Separation', durationLabel: '12 jam', targetSeconds: 43200, temp: null, rpm: null, current: null, actuators: 'Semua Aktuator OFF (Pemisahan Gravitasi & Air Cuci 10%)' },
+    4: { id: 4, name: 'Oil Treatment', durationLabel: '1 jam', targetSeconds: 3600, temp: { target: 120, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON | Heater ON | Adsorben Bentonit 0.2g' },
+    5: { id: 5, name: 'Filtration', durationLabel: 'Level ≥375 ml / 2 jam', targetSeconds: 7200, temp: null, rpm: null, current: null, actuators: 'Katup 2 Pengurasan Separator ke Corong Whatman' }
 };
 
 const processState = {
@@ -111,17 +110,16 @@ function toFiniteNumber(value) {
 }
 
 function getStageId(rawStage) {
-    if (typeof rawStage === 'number' && Number.isInteger(rawStage) && rawStage >= 1 && rawStage <= 6) {
+    if (typeof rawStage === 'number' && Number.isInteger(rawStage) && rawStage >= 1 && rawStage <= 5) {
         return rawStage;
     }
     const text = String(rawStage ?? '').toLowerCase().trim();
-    if (/^[1-6]$/.test(text)) return Number(text);
+    if (/^[1-5]$/.test(text)) return Number(text);
     if (text.includes('mix')) return 1;
-    if (text.includes('catalyst') || text.includes('katalis')) return 2;
-    if (text.includes('reflux')) return 3;
-    if (text.includes('separat') || text.includes('pisah')) return 4;
-    if (text.includes('oil') || text.includes('treatment') || text.includes('minyak')) return 5;
-    if (text.includes('filtr') || text.includes('saring')) return 6;
+    if (text.includes('reflux')) return 2;
+    if (text.includes('separat') || text.includes('pisah')) return 3;
+    if (text.includes('oil') || text.includes('treatment') || text.includes('minyak')) return 4;
+    if (text.includes('filtr') || text.includes('saring') || text.includes('done')) return 5;
     return null;
 }
 
@@ -539,8 +537,36 @@ async function requireUser(request, response, next) {
 
 function publishControl(command) {
     if (!client?.connected) throw new Error('MQTT belum terhubung; perintah tidak dikirim.');
-    client.publish(config.controlTopic, JSON.stringify(command), { qos: 1, retain: false });
-    console.log(`[MQTT] Control dikirim: ${command.action}`);
+    
+    let espCmd = {};
+    const stageMap = { 1: 'mixing', 2: 'reflux', 3: 'separation', 4: 'oil_treatment', 5: 'filtration' };
+
+    if (command.action === 'start') {
+        if (command.start_stage && Number(command.start_stage) > 1) {
+            espCmd = { cmd: 'goto', stage: stageMap[command.start_stage] || 'mixing' };
+        } else {
+            espCmd = { cmd: 'start' };
+        }
+    } else if (command.action === 'pause') {
+        espCmd = { cmd: 'pause' };
+    } else if (command.action === 'resume') {
+        espCmd = { cmd: 'resume' };
+    } else if (command.action === 'restart') {
+        espCmd = { cmd: 'stop' };
+    } else if (command.action === 'emergency_stop') {
+        espCmd = { cmd: 'stop' };
+    } else if (command.action === 'reset_emergency') {
+        espCmd = { cmd: 'reset' };
+    } else if (command.action === 'tare') {
+        espCmd = { cmd: 'tare' };
+    } else if (command.action === 'next') {
+        espCmd = { cmd: 'next' };
+    } else {
+        espCmd = { cmd: command.action, ...command };
+    }
+
+    client.publish(config.controlTopic, JSON.stringify(espCmd), { qos: 1, retain: false });
+    console.log(`[MQTT] Control dikirim ke ESP32 (${config.controlTopic}):`, espCmd);
 }
 
 function applyLocalControl(command) {
@@ -817,9 +843,11 @@ client = mqtt.connect(config.mqttUrl, {
 });
 
 client.on('connect', () => {
-    console.log(`[MQTT] Terhubung. Subscribe ${config.sensorTopic}`);
-    client.subscribe(config.sensorTopic, { qos: 1 }, (error) => {
+    console.log(`[MQTT] Terhubung ke ${config.mqttUrl}`);
+    const topics = [config.sensorTopic, 'ta/reaktor/detail', 'ta/reaktor/log', 'ta/reaktor/status'];
+    client.subscribe(topics, { qos: 1 }, (error) => {
         if (error) console.error('[MQTT] Subscribe gagal:', error.message);
+        else console.log('[MQTT] Berhasil subscribe ke topik telemetri ESP32:', topics);
     });
 });
 client.on('reconnect', () => console.warn('[MQTT] Menghubungkan ulang...'));

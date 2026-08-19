@@ -1,14 +1,21 @@
 {
-"name": "reaktor-backend",
-"version": "1.0.0",
-"description": "Backend service for IoT Esterification Reactor",
-"main": "server.js",
-"scripts": {
-"start": "node server.js"
-},
-"dependencies": {
-"@supabase/supabase-js": "^2.43.4",
-"axios": "^1.7.2",
-"mqtt": "^5.7.0"
-}
+  "name": "reaktor-esterifikasi-iot",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Backend MQTT, Supabase, Telegram, dan dashboard untuk reaktor esterifikasi.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "check": "node --check server.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.4",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mqtt": "^5.7.0"
+  }
 }

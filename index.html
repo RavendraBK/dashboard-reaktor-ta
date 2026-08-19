@@ -1,1150 +1,224 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Esterification Reactor Dashboard</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <style>
-        @keyframes flash {
-            0% { background-color: #fee2e2; border-color: #ef4444; }
-            50% { background-color: #fca5a5; border-color: #dc2626; }
-            100% { background-color: #fee2e2; border-color: #ef4444; }
-        }
-        .error-flash { animation: flash 1.5s infinite; }
-        
-        @keyframes pulse-fast {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .7; }
-        }
-        .animate-pulse-fast { animation: pulse-fast 1s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        
-        .clickable-step:hover {
-            cursor: pointer;
-            transform: scale(1.02);
-            transition: transform 0.2s;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-
-        /* Slider Scrollbar Styling */
-        .chart-scroller {
-            overflow-x: auto;
-            overflow-y: hidden;
-            width: 100%;
-        }
-        .chart-scroller::-webkit-scrollbar { height: 8px; }
-        .chart-scroller::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
-        .chart-scroller::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .chart-scroller::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard Reaktor Esterifikasi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    @keyframes warningFlash { 0%,100%{opacity:.92} 50%{opacity:.55} }
+    .warning-flash { animation: warningFlash .8s infinite; }
+    .stage-active { border-color:#0f766e!important; box-shadow:0 0 0 3px rgba(13,148,136,.2); }
+    .switch:checked + .switch-track { background:#0f766e; }
+    .switch:checked + .switch-track:after { transform:translateX(1.25rem); }
+  </style>
 </head>
-<body class="bg-slate-100 font-sans text-slate-800">
+<body class="min-h-screen bg-slate-100 font-sans text-slate-800">
+  <!-- Login -->
+  <main id="login-page" class="min-h-screen bg-gradient-to-br from-teal-800 to-cyan-700 flex items-center justify-center p-5">
+    <section class="w-full max-w-md rounded-2xl bg-white p-7 shadow-2xl">
+      <div class="mb-7 text-center">
+        <div class="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-teal-100 text-3xl text-teal-700"><i class="fa-solid fa-flask-vial"></i></div>
+        <h1 class="text-2xl font-bold">Esterification Reactor</h1>
+        <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-teal-700">Monitoring monoester secara real-time</p>
+      </div>
+      <form id="login-form" class="space-y-4">
+        <label class="block text-sm font-semibold">Email akun Supabase Auth
+          <input id="email" required type="email" autocomplete="email" placeholder="nama@email.com" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
+        </label>
+        <label class="block text-sm font-semibold">Password
+          <input id="password" required type="password" autocomplete="current-password" placeholder="••••••••" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
+        </label>
+        <label class="block text-sm font-semibold">Telegram Chat ID
+          <input id="telegram-id" required type="text" inputmode="numeric" placeholder="Contoh: 123456789" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
+        </label>
+        <p id="login-error" class="hidden rounded-lg bg-red-50 p-3 text-sm text-red-700"></p>
+        <button id="login-button" class="w-full rounded-lg bg-teal-700 py-3 font-bold text-white transition hover:bg-teal-800 disabled:opacity-60">
+          Masuk ke Dashboard
+        </button>
+      </form>
+      <p class="mt-5 text-center text-xs text-slate-500">Email dan password dibuat di menu Authentication Supabase. Chat ID harus sesuai profil akun.</p>
+    </section>
+  </main>
 
-    <div id="login-page" class="fixed inset-0 bg-teal-700 flex items-center justify-center z-[100] transition-opacity duration-500">
-        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all">
-            <div class="text-center mb-6">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-teal-100 text-teal-600 mb-4">
-                    <i class="fa-solid fa-flask-vial text-3xl"></i>
-                </div>
-                <h1 class="text-2xl font-bold text-slate-800">Esterification Reactor</h1>
-                <p class="text-xs text-teal-600 font-semibold mt-1 uppercase tracking-wider">Monoester for Transformator Insulating Liquid</p>
-                <p class="text-sm text-slate-500 mt-4">Please sign in to access monitoring</p>
-            </div>
-
-            <div id="login-error" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 text-sm" role="alert">
-                <span class="block sm:inline" id="login-error-text">Invalid email or password!</span>
-            </div>
-
-            <form id="login-form" class="space-y-4">
-                <div>
-                    <label class="block text-slate-700 text-sm font-bold mb-2" for="email">Access Email</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fa-solid fa-envelope text-slate-400"></i>
-                        </div>
-                        <input id="email" type="email" placeholder="admin@reactor.com" required
-                            class="pl-10 w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-slate-700 text-sm font-bold mb-2" for="password">Password</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fa-solid fa-lock text-slate-400"></i>
-                        </div>
-                        <input id="password" type="password" placeholder="••••••••" required
-                            class="pl-10 w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
-                    </div>
-                </div>
-                <div class="pt-2 border-t border-slate-200 mt-4">
-                    <label class="block text-slate-700 text-sm font-bold mb-2" for="telegram-id">
-                        Telegram Chat ID
-                    </label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fa-brands fa-telegram text-slate-400"></i>
-                        </div>
-                        <input id="telegram-id" type="text" placeholder="123456789" required
-                            class="pl-10 w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
-                    </div>
-                </div>
-                <button type="submit" id="btn-login"
-                    class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 mt-4 flex items-center justify-center">
-                    <span>Enter Dashboard</span>
-                    <i id="login-spinner" class="fa-solid fa-circle-notch fa-spin ml-2 hidden"></i>
-                </button>
-            </form>
-            <div class="text-center mt-4 text-xs text-slate-400">
-                <p>For Simulation Mode Only</p>
-                <button id="local-bypass-login" type="button" onclick="window.bypassLogin()" class="mt-2 underline hover:text-teal-500">Enter Without Login</button>
-            </div>
+  <!-- Dashboard -->
+  <div id="dashboard" class="hidden">
+    <header class="sticky top-0 z-30 bg-teal-800 text-white shadow-lg">
+      <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-flask-vial text-3xl"></i>
+          <div><h1 class="font-bold">Esterification Reactor</h1><p class="text-xs text-teal-100">IoT monitoring — Monoester</p></div>
         </div>
-    </div>
-
-    <div id="dashboard-app" class="hidden opacity-0 transition-opacity duration-500 pb-10">
-        <nav class="bg-teal-700 text-white p-4 shadow-md flex justify-between items-center flex-wrap gap-4">
-            <div class="flex items-center gap-3">
-                <i class="fa-solid fa-flask-vial text-3xl"></i>
-                <div>
-                    <h1 class="text-xl font-bold leading-tight">Esterification Reactor</h1>
-                    <p class="text-[10px] text-teal-200 uppercase tracking-widest font-bold">Monoester for Transformator Insulating Liquid</p>
-                </div>
-            </div>
-            
-            <div class="flex items-center gap-3 flex-wrap">
-                <button type="button" onclick="window.emergencyStop()" class="bg-red-600 hover:bg-red-700 border-2 border-red-800 text-white px-5 py-1.5 rounded-md text-sm font-bold transition flex items-center animate-pulse-fast shadow-lg mr-2">
-                    <i class="fa-solid fa-power-off mr-2"></i> EMERGENCY STOP
-                </button>
-
-                <div class="flex items-center gap-2 bg-teal-800 px-3 py-1 rounded-full text-xs">
-                    <i class="fa-solid fa-user"></i> <span id="user-email-display">user@email.com</span>
-                </div>
-                <div id="db-status" class="flex items-center gap-2 bg-teal-800 px-3 py-1 rounded-full text-xs">
-                    <i class="fa-solid fa-database"></i> <span id="db-status-text">Checking DB...</span>
-                </div>
-                <div id="mqtt-status" class="flex items-center gap-2 bg-teal-800 px-3 py-1 rounded-full text-xs">
-                    <div id="status-dot" class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
-                    <span id="status-text">Disconnected</span>
-                </div>
-                
-                <button type="button" onclick="window.downloadDataPDF()" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded text-xs font-bold transition flex items-center">
-                    <i class="fa-solid fa-file-pdf mr-1"></i> Data PDF
-                </button>
-                <button type="button" onclick="window.downloadDataCSV()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-bold transition flex items-center">
-                    <i class="fa-solid fa-file-csv mr-1"></i> Data CSV
-                </button>
-                <button type="button" onclick="window.toggleSimulation()" id="sim-btn" class="bg-yellow-500 hover:bg-yellow-600 text-slate-900 px-3 py-1.5 rounded text-xs font-bold transition">
-                    Start Simulation
-                </button>
-                <button type="button" onclick="window.logoutDashboard()" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded text-xs font-bold transition" title="Logout">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                </button>
-            </div>
-        </nav>
-
-        <div class="p-6 max-w-7xl mx-auto space-y-6">
-
-            <div id="error-banner" class="hidden border-l-4 border-red-500 text-red-700 p-4 rounded shadow-md error-flash flex justify-between items-center" role="alert">
-                <div>
-                    <p class="font-bold text-lg"><i class="fa-solid fa-triangle-exclamation mr-2"></i> ANOMALY WARNING DETECTED</p>
-                    <p id="error-message">Parameters exceed the tolerance limit.</p>
-                </div>
-                <div class="flex flex-col items-end gap-2">
-                    <div class="text-xs font-bold text-red-800 bg-red-200 px-3 py-1 rounded-full flex items-center">
-                        <i class="fa-brands fa-telegram mr-2"></i> Telegram Notification Managed by Server
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                
-                <div id="card-machine-status" class="bg-white rounded-xl shadow-md p-4 border-l-4 border-slate-400 flex flex-col items-center justify-center overflow-hidden transition-colors duration-300">
-                    <div class="relative flex h-6 w-6 mb-1">
-                      <span id="device-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75 hidden"></span>
-                      <span id="device-dot" class="relative inline-flex rounded-full h-6 w-6 bg-slate-500"></span>
-                    </div>
-                    <p class="text-[11px] text-slate-500 uppercase font-bold text-center">Machine Status</p>
-                    <span id="device-status-text" class="text-xl font-bold text-slate-500 tracking-tight uppercase">STANDBY</span>
-                    <span id="last-update-time" class="text-[9px] text-slate-400 mt-1 font-medium">-</span>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md p-4 border-l-4 border-red-500 flex flex-col items-center justify-center overflow-hidden">
-                    <i class="fa-solid fa-temperature-half text-red-500 text-2xl mb-2"></i>
-                    <p class="text-[11px] text-slate-500 uppercase font-bold text-center">Temperature</p>
-                    <div class="flex items-baseline gap-1 mt-1 truncate max-w-full">
-                        <span id="val-temp" class="text-2xl font-bold text-slate-800 tracking-tight">0.0</span>
-                        <span class="text-sm font-medium">°C</span>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md p-4 border-l-4 border-blue-500 flex flex-col items-center justify-center overflow-hidden">
-                    <i class="fa-solid fa-arrows-rotate text-blue-500 text-2xl mb-2"></i>
-                    <p class="text-[11px] text-slate-500 uppercase font-bold text-center">Speed</p>
-                    <div class="flex items-baseline gap-1 mt-1 truncate max-w-full">
-                        <span id="val-rpm" class="text-2xl font-bold text-slate-800 tracking-tight">0</span>
-                        <span class="text-sm font-medium">RPM</span>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md p-4 border-l-4 border-teal-500 flex flex-col items-center justify-center overflow-hidden">
-                    <i class="fa-solid fa-flask-vial text-teal-500 text-2xl mb-2"></i>
-                    <p class="text-[11px] text-slate-500 uppercase font-bold text-center">Volume</p>
-                    <div class="flex items-baseline gap-1 mt-1 truncate max-w-full">
-                        <span id="val-vol" class="text-2xl font-bold text-slate-800 tracking-tight">0.0</span>
-                        <span class="text-sm font-medium">ml</span>
-                    </div>
-                    <span id="level-sensor-status" class="mt-1 text-[9px] font-bold text-slate-500 text-center">Final level: waiting (limit 375 ml)</span>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md p-4 border-l-4 border-yellow-500 flex flex-col items-center justify-center overflow-hidden">
-                    <i class="fa-solid fa-stopwatch text-yellow-500 text-2xl mb-2"></i>
-                    <span id="val-time-total" class="text-lg font-bold text-slate-800 tracking-tight mt-1">00:00:00</span>
-                    <div class="mt-1 text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded w-full text-center truncate">
-                        Stage: <span id="val-time-stage">00:00:00</span>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="bg-white p-5 rounded-xl shadow-md lg:col-span-1 h-fit">
-                    <h2 class="text-lg font-bold text-slate-700 mb-4 border-b pb-2">Process Status</h2>
-                    <div class="bg-teal-50 border border-teal-200 rounded-lg p-4 mb-4 text-center">
-                        <p class="text-sm text-slate-500">Current Stage</p>
-                        <h3 id="current-stage-display" class="text-2xl font-bold text-teal-700 mt-1">Waiting...</h3>
-                    </div>
-
-                    <div id="steps-container" class="space-y-3 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
-                        </div>
-                </div>
-
-                <div class="lg:col-span-2 flex flex-col gap-6">
-                    
-                    <div class="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 relative">
-                        <div class="flex justify-between items-center z-10">
-                            <h3 class="text-sm font-bold text-slate-700"><i class="fa-solid fa-temperature-half text-red-500 mr-1"></i> Temperature Chart</h3>
-                            <select id="filter-temp" class="text-xs border rounded p-1 bg-slate-50 outline-none" onchange="window.renderCharts()">
-                                <option value="all">All Stages</option>
-                            </select>
-                        </div>
-                        <div id="wrapper-temp" class="chart-scroller bg-slate-50 rounded">
-                            <div id="container-temp" style="min-width: 100%; height: 220px; position: relative;">
-                                <canvas id="tempChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 relative">
-                        <div class="flex justify-between items-center z-10">
-                            <h3 class="text-sm font-bold text-slate-700"><i class="fa-solid fa-arrows-rotate text-blue-500 mr-1"></i> RPM Chart</h3>
-                            <select id="filter-rpm" class="text-xs border rounded p-1 bg-slate-50 outline-none" onchange="window.renderCharts()">
-                                <option value="all">All Stages</option>
-                            </select>
-                        </div>
-                        <div id="wrapper-rpm" class="chart-scroller bg-slate-50 rounded">
-                            <div id="container-rpm" style="min-width: 100%; height: 220px; position: relative;">
-                                <canvas id="rpmChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-md p-4 flex flex-col gap-2 relative">
-                        <div class="flex justify-between items-center z-10">
-                            <h3 class="text-sm font-bold text-slate-700"><i class="fa-solid fa-flask-vial text-teal-500 mr-1"></i> Volume Chart</h3>
-                            <select id="filter-vol" class="text-xs border rounded p-1 bg-slate-50 outline-none" onchange="window.renderCharts()">
-                                <option value="all">All Stages</option>
-                            </select>
-                        </div>
-                        <div id="wrapper-vol" class="chart-scroller bg-slate-50 rounded">
-                            <div id="container-vol" style="min-width: 100%; height: 220px; position: relative;">
-                                <canvas id="volChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <span id="mqtt-badge" class="rounded-full bg-slate-700 px-3 py-1.5"><i class="fa-solid fa-circle mr-1 text-slate-400"></i> MQTT: checking</span>
+          <span id="run-badge" class="rounded-full bg-slate-700 px-3 py-1.5">STANDBY</span>
+          <span id="user-display" class="rounded-full bg-teal-950 px-3 py-1.5"></span>
+          <button id="logout-button" class="rounded-md bg-slate-900 px-3 py-1.5 hover:bg-slate-950"><i class="fa-solid fa-right-from-bracket"></i> Keluar</button>
         </div>
-    </div>
+      </div>
+    </header>
 
-    <div id="modal-detail" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-[110]">
-        <div class="bg-white rounded-xl shadow-xl w-[450px] max-w-full p-6 m-4 relative transform transition-all">
-            <h2 class="text-xl font-bold text-teal-700 mb-1">Process Parameter Details</h2>
-            <p id="modal-title" class="text-sm font-medium text-slate-500 mb-4 pb-2 border-b">Stage: Process Name</p>
-            
-            <div class="bg-slate-50 rounded p-3 mb-4 text-sm text-center">
-                <span id="modal-tol" class="font-bold"></span>
-            </div>
-
-            <div class="w-full text-sm">
-                <div class="grid grid-cols-3 gap-2 bg-slate-200 text-slate-700 font-bold p-2 rounded-t">
-                    <div>Parameter</div>
-                    <div class="text-center">Target</div>
-                    <div class="text-right text-teal-700">Actual (Avg/Total)</div>
-                </div>
-                
-                <div class="grid grid-cols-3 gap-2 border-b p-2 items-center">
-                    <div class="font-medium text-slate-600"><i class="fa-solid fa-temperature-half text-red-500 w-5"></i> Temperature</div>
-                    <div class="font-bold text-slate-800 text-center" id="modal-tgt-temp">-</div>
-                    <div class="font-bold text-teal-600 text-right" id="modal-avg-temp">0.0 °C</div>
-                </div>
-                
-                <div class="grid grid-cols-3 gap-2 border-b p-2 items-center">
-                    <div class="font-medium text-slate-600"><i class="fa-solid fa-arrows-rotate text-blue-500 w-5"></i> RPM</div>
-                    <div class="font-bold text-slate-800 text-center" id="modal-tgt-rpm">-</div>
-                    <div class="font-bold text-teal-600 text-right" id="modal-avg-rpm">0 RPM</div>
-                </div>
-
-                <div class="grid grid-cols-3 gap-2 border-b p-2 items-center">
-                    <div class="font-medium text-slate-600"><i class="fa-solid fa-flask-vial text-teal-500 w-5"></i> Volume</div>
-                    <div class="font-bold text-slate-800 text-center" id="modal-tgt-vol">-</div>
-                    <div class="font-bold text-teal-600 text-right" id="modal-avg-vol">0.0 ml</div>
-                </div>
-                
-                <div class="grid grid-cols-3 gap-2 border-b p-2 items-center">
-                    <div class="font-medium text-slate-600"><i class="fa-solid fa-stopwatch text-yellow-500 w-5"></i> Duration</div>
-                    <div class="font-bold text-slate-800 text-center" id="modal-tgt-time">-</div>
-                    <div class="font-bold text-teal-600 text-right" id="modal-avg-time">00:00:00</div>
-                </div>
-            </div>
-
-            <button type="button" onclick="window.closeModal()" class="mt-6 w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 rounded transition">
-                Close
-            </button>
+    <main class="mx-auto max-w-7xl space-y-6 p-4 md:p-6">
+      <section id="anomaly-banner" class="hidden rounded-xl border-2 border-red-600 bg-red-100 p-4 text-red-900 shadow-lg warning-flash">
+        <div class="flex items-start justify-between gap-3">
+          <div><h2 class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>ANOMALI TERDETEKSI</h2><p id="anomaly-text" class="mt-1 text-sm"></p></div>
+          <button id="hide-anomaly" class="rounded bg-red-700 px-3 py-1 text-xs font-bold text-white">Tutup</button>
         </div>
-    </div>
+      </section>
 
-    <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 z-[120]">
-        <div class="bg-slate-800 text-white px-6 py-3 rounded shadow-lg flex items-center gap-3">
-            <i id="toast-icon" class="fa-solid fa-info-circle text-blue-400"></i>
-            <span id="toast-message">Notification message...</span>
+      <section class="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <article class="rounded-xl border-l-4 border-red-500 bg-white p-4 shadow-sm"><i class="fa-solid fa-temperature-half text-red-500"></i><p class="mt-2 text-xs font-bold uppercase text-slate-500">Suhu</p><p><span id="temp-value" class="text-3xl font-bold">0.0</span> °C</p><p class="text-[11px] text-slate-500">Aktif: 60 / 100 / 120 °C ±10%</p></article>
+        <article class="rounded-xl border-l-4 border-blue-500 bg-white p-4 shadow-sm"><i class="fa-solid fa-arrows-rotate text-blue-500"></i><p class="mt-2 text-xs font-bold uppercase text-slate-500">Kecepatan</p><p><span id="rpm-value" class="text-3xl font-bold">0</span> RPM</p><p class="text-[11px] text-slate-500">Mixing & oil treatment: 250 ±10%</p></article>
+        <article class="rounded-xl border-l-4 border-emerald-500 bg-white p-4 shadow-sm"><i class="fa-solid fa-flask text-emerald-500"></i><p class="mt-2 text-xs font-bold uppercase text-slate-500">Volume</p><p><span id="vol-value" class="text-3xl font-bold">0.0</span> ml</p><p id="level-text" class="text-[11px] text-slate-500">Level akhir: menunggu (≥375 ml)</p></article>
+        <article class="rounded-xl border-l-4 border-amber-500 bg-white p-4 shadow-sm"><i class="fa-solid fa-bolt text-amber-500"></i><p class="mt-2 text-xs font-bold uppercase text-slate-500">Arus motor</p><p><span id="current-value" class="text-3xl font-bold">0.00</span> A</p><p class="text-[11px] text-slate-500">Set point 2 A · batas 0–3,2 A</p></article>
+        <article class="col-span-2 rounded-xl border-l-4 border-teal-600 bg-white p-4 shadow-sm lg:col-span-1"><i class="fa-solid fa-stopwatch text-teal-600"></i><p class="mt-2 text-xs font-bold uppercase text-slate-500">Waktu proses</p><p id="elapsed-value" class="text-2xl font-bold">00:00:00</p><p id="last-update" class="text-[11px] text-slate-500">Belum ada data</p></article>
+      </section>
+
+      <section class="rounded-xl bg-white p-4 shadow-sm">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h2 class="font-bold">Tahap Produksi</h2><p id="stage-status" class="text-sm text-slate-500">Menunggu data sensor</p></div><span id="batch-label" class="rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-800">Batch: -</span></div>
+        <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" id="stage-list">
+          <article data-stage="1" class="stage-card rounded-lg border-2 border-slate-200 p-3"><b>1. Mixing</b><p>60 °C · 250 RPM · 30 menit</p></article>
+          <article data-stage="2" class="stage-card rounded-lg border-2 border-slate-200 p-3"><b>2. Add Catalyst</b><p>Valve katalis · momentary</p></article>
+          <article data-stage="3" class="stage-card rounded-lg border-2 border-slate-200 p-3"><b>3. Reflux</b><p>100 °C · 0 RPM · 5 jam</p></article>
+          <article data-stage="4" class="stage-card rounded-lg border-2 border-slate-200 p-3"><b>4. Separation</b><p>Aktuator OFF · 12 jam</p></article>
+          <article data-stage="5" class="stage-card rounded-lg border-2 border-slate-200 p-3"><b>5. Oil Treatment</b><p>120 °C · 250 RPM · 1 jam</p></article>
+          <article data-stage="6" class="stage-card rounded-lg border-2 border-slate-200 p-3"><b>6. Filtration</b><p>Valve pemisah · level ≥375 ml</p></article>
         </div>
-    </div>
-
-    <script type="module">
-        // ==========================================
-        // 0. SUPABASE CONFIGURATION (GANTI DENGAN KUNCI ANDA)
-        // ==========================================
-        const supabaseUrl = 'https://iretftgjvpljqyfixmow.supabase.co/';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyZXRmdGdqdnBsanF5Zml4bW93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzU0OTQsImV4cCI6MjA5NzExMTQ5NH0.zD4LTLC2aV1J1oni7L7HicTM3x_RK5M73IrhImGZx70';
-
-        // Token Telegram dan pengiriman notifikasi hanya ditangani oleh server.js.
-        const ALLOW_LOCAL_BYPASS = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-        if (!ALLOW_LOCAL_BYPASS) document.getElementById('local-bypass-login').classList.add('hidden');
-
-        let supabaseClient = null;
-        if (supabaseUrl !== 'URL_SUPABASE_ANDA' && supabaseAnonKey !== 'KEY_ANON_SUPABASE_ANDA') {
-            supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        }
-
-        // ==========================================
-        // 1. DATA MASTER PARAMETER & ACTUATORS
-        // ==========================================
-        const targetParameters = {
-            1: {
-                id: 1, name: "Mixing", targetTemp: 60, targetRpm: 250,
-                timeStr: "30 minutes", durationSec: 30 * 60,
-                tolerance: { temp: 0.10, rpm: 0.10 },
-                act: { motor: 'ON', heater: 'ON', valve: 'OFF' }
-            },
-            2: {
-                id: 2, name: "Add Catalyst", targetTemp: 0, targetRpm: 0,
-                timeStr: "Momentary (timer continues)", durationSec: null,
-                // 0 °C berarti set point heater OFF, bukan suhu cairan harus 0 °C.
-                tolerance: { temp: null, rpm: { min: 0, max: 0 } },
-                act: { motor: 'OFF', heater: 'OFF', valve: 'ON' }
-            },
-            3: {
-                id: 3, name: "Reflux", targetTemp: 100, targetRpm: 0,
-                timeStr: "5 hours", durationSec: 5 * 60 * 60,
-                tolerance: { temp: 0.10, rpm: { min: 0, max: 0 } },
-                act: { motor: 'OFF', heater: 'ON', valve: 'OFF' }
-            },
-            4: {
-                id: 4, name: "Separation", targetTemp: 0, targetRpm: 0,
-                timeStr: "12 hours", durationSec: 12 * 60 * 60,
-                tolerance: { temp: null, rpm: { min: 0, max: 0 } },
-                act: { motor: 'OFF', heater: 'OFF', valve: 'OFF' }
-            },
-            5: {
-                id: 5, name: "Oil Treatment", targetTemp: 120, targetRpm: 250,
-                timeStr: "1 hour", durationSec: 60 * 60,
-                tolerance: { temp: 0.10, rpm: 0.10 },
-                act: { motor: 'ON', heater: 'ON', valve: 'OFF' }
-            },
-            6: {
-                id: 6, name: "Filtration", targetTemp: 0, targetRpm: 0,
-                timeStr: "Estimated 2 hours (timer continues)", durationSec: 2 * 60 * 60,
-                tolerance: { temp: null, rpm: { min: 0, max: 0 } },
-                levelThresholdVol: 375,
-                act: { motor: 'OFF', heater: 'OFF', valve: 'ON' }
-            }
-        };
-
-        const hasValue = (value) => value !== null && value !== undefined && value !== '';
-        const formatTarget = (value, unit) => hasValue(value) ? `${value} ${unit}` : '-';
-        const getVolumeTargetLabel = (stage) => hasValue(stage.levelThresholdVol)
-            ? `Level ≥ ${stage.levelThresholdVol} ml`
-            : 'Monitor only';
-
-        const stepsContainer = document.getElementById('steps-container');
-        for (let i = 1; i <= 6; i++) {
-            const p = targetParameters[i];
-            stepsContainer.innerHTML += `
-                <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group" id="step-row-${i}">
-                    <div class="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-200 text-slate-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2" id="step-icon-${i}">${i}</div>
-                    <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-3 rounded border border-slate-200 shadow-sm bg-white clickable-step" id="step-card-${i}" onclick="window.showStageDetail(${i})">
-                        <h4 class="font-bold text-sm text-slate-800">${p.name}</h4>
-                        <div class="flex items-center justify-center gap-3 mt-2 text-[10px] bg-slate-50 rounded p-1 border">
-                            <div class="flex items-center gap-1" title="Motor Status"><span id="act-mtr-${i}" class="h-2.5 w-2.5 rounded-full bg-slate-300"></span><span class="font-medium text-slate-500">MTR</span></div>
-                            <div class="flex items-center gap-1" title="Heater Status"><span id="act-htr-${i}" class="h-2.5 w-2.5 rounded-full bg-slate-300"></span><span class="font-medium text-slate-500">HTR</span></div>
-                            <div class="flex items-center gap-1" title="Valve Status"><span id="act-vlv-${i}" class="h-2.5 w-2.5 rounded-full bg-slate-300"></span><span class="font-medium text-slate-500">VLV</span></div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.getElementById('filter-temp').innerHTML += `<option value="${i}">Stage ${i}: ${p.name}</option>`;
-            document.getElementById('filter-rpm').innerHTML  += `<option value="${i}">Stage ${i}: ${p.name}</option>`;
-            document.getElementById('filter-vol').innerHTML  += `<option value="${i}">Stage ${i}: ${p.name}</option>`;
-        }
-
-        // ==========================================
-        // 2. DATA HISTORY & AVERAGE TRACKER
-        // ==========================================
-        let allSensorData = [];
-        let localDataLog = [];
-        const stageAverages = {};
-        for(let i=1; i<=6; i++) stageAverages[i] = { sumTemp:0, sumRpm:0, sumVol:0, count:0, durationSec:0 };
-
-        let currentStageId = null;
-        let totalSeconds = 0, stageSeconds = 0;
-        let isSystemRunning = false, machineTimeout;
-        let userContactPhone = ""; // Ini sekarang menyimpan Telegram Chat ID
-        let currentUserIdentifier = null;
-
-        function resetDataIfNewUser(newIdentifier) {
-            if (currentUserIdentifier !== null && currentUserIdentifier !== newIdentifier) {
-                allSensorData = [];
-                localDataLog = [];
-                for(let i=1; i<=6; i++) stageAverages[i] = { sumTemp:0, sumRpm:0, sumVol:0, count:0, durationSec:0 };
-                totalSeconds = 0; stageSeconds = 0;
-                currentStageId = null;
-                document.getElementById('val-temp').innerText = "0.0";
-                document.getElementById('val-rpm').innerText = "0";
-                document.getElementById('val-vol').innerText = "0.0";
-                document.getElementById('val-time-total').innerText = "00:00:00";
-                document.getElementById('val-time-stage').innerText = "00:00:00";
-                document.getElementById('current-stage-display').innerText = "Waiting...";
-                document.getElementById('level-sensor-status').innerText = "Final level: waiting (limit 375 ml)";
-                setMachineStatus(false);
-                updateStepsUI();
-                window.renderCharts();
-            }
-            currentUserIdentifier = newIdentifier;
-        }
-
-        // ==========================================
-        // 3. FUNGSI LOGIKA SISTEM
-        // ==========================================
-        function formatTime(totalSec) {
-            const h = Math.floor(totalSec / 3600).toString().padStart(2, '0');
-            const m = Math.floor((totalSec % 3600) / 60).toString().padStart(2, '0');
-            const s = (totalSec % 60).toString().padStart(2, '0');
-            return `${h}:${m}:${s}`;
-        }
-
-        setInterval(() => {
-            if (isSystemRunning) {
-                totalSeconds++; stageSeconds++;
-                document.getElementById('val-time-total').innerText = formatTime(totalSeconds);
-                document.getElementById('val-time-stage').innerText = formatTime(stageSeconds);
-                if(currentStageId >= 1 && currentStageId <= 6) {
-                    stageAverages[currentStageId].durationSec++;
-                }
-            }
-        }, 1000);
-
-        let lastNotifTime = 0;
-        function autoNotify(type, message) {
-            const now = Date.now();
-            if (type === 'ANOMALY' && (now - lastNotifTime < 60000)) return; 
-
-            // Telegram dikirim satu kali oleh service backend yang berlangganan MQTT.
-            // Dashboard hanya menampilkan status visual agar tidak ada notifikasi duplikat.
-            console.info(`[DASHBOARD ${type}] ${message}`);
-            
-            if(type === 'ANOMALY') lastNotifTime = now;
-        }
-
-        function getStageId(value) {
-            const numericStage = Number(value);
-            if (Number.isInteger(numericStage) && targetParameters[numericStage]) return numericStage;
-
-            const stageName = String(value ?? '').trim().toLowerCase();
-            const matchingStage = Object.values(targetParameters)
-                .find(stage => stage.name.toLowerCase() === stageName);
-            return matchingStage ? matchingStage.id : null;
-        }
-
-        function outsideTolerance(value, target, rule) {
-            if (!Number.isFinite(value) || !hasValue(target) || !rule) return false;
-            if (typeof rule === 'number') {
-                return value < target * (1 - rule) || value > target * (1 + rule);
-            }
-            return value < rule.min || value > rule.max;
-        }
-
-        function checkTolerance(currentTemp, currentRpm) {
-            const stage = targetParameters[currentStageId];
-            if (!stage) return;
-
-            const errorMsg = [];
-            if (outsideTolerance(currentTemp, stage.targetTemp, stage.tolerance.temp)) {
-                errorMsg.push(`Temperature ${currentTemp.toFixed(1)} °C is outside its permitted range.`);
-            }
-            if (outsideTolerance(currentRpm, stage.targetRpm, stage.tolerance.rpm)) {
-                errorMsg.push(`RPM ${Math.round(currentRpm)} is outside its permitted range.`);
-            }
-
-            const banner = document.getElementById('error-banner');
-            if (errorMsg.length > 0) {
-                document.getElementById('error-message').textContent = errorMsg.join(' ');
-                banner.classList.remove('hidden');
-                autoNotify('ANOMALY', `Machine warning:\n${errorMsg.join('\n')}`);
-            } else {
-                banner.classList.add('hidden');
-            }
-        }
-
-        function isActiveSignal(value) {
-            return value === true || value === 1 || ['true', '1', 'on', 'active'].includes(String(value).toLowerCase());
-        }
-
-        function updateLevelSensor(data) {
-            const levelStatus = document.getElementById('level-sensor-status');
-            const threshold = targetParameters[6].levelThresholdVol;
-            const detected = isActiveSignal(data.levelDetected ?? data.level_detected);
-
-            if (currentStageId !== 6) {
-                levelStatus.className = 'mt-1 text-[9px] font-bold text-slate-500 text-center';
-                levelStatus.innerText = `Final level: not monitored (limit ${threshold} ml)`;
-            } else if (detected) {
-                levelStatus.className = 'mt-1 text-[9px] font-bold text-green-600 text-center';
-                levelStatus.innerText = `Final level detected (≥ ${threshold} ml)`;
-            } else {
-                levelStatus.className = 'mt-1 text-[9px] font-bold text-amber-600 text-center';
-                levelStatus.innerText = `Final level not reached (limit ${threshold} ml)`;
-            }
-        }
-
-        function updateUI(data) {
-            const stageId = getStageId(data.stage ?? data.process);
-            const temp = Number(data.temp ?? data.temperature);
-            const rpm = Number(data.rpm);
-            const vol = Number(data.vol ?? data.volume);
-
-            if (!stageId || !Number.isFinite(temp) || !Number.isFinite(rpm) || !Number.isFinite(vol)) {
-                console.warn('Ignored invalid sensor payload:', data);
-                return null;
-            }
-
-            document.getElementById('val-temp').innerText = temp.toFixed(1);
-            document.getElementById('val-rpm').innerText = Math.round(rpm);
-            document.getElementById('val-vol').innerText = vol.toFixed(1);
-            isSystemRunning = true;
-            setMachineStatus(true);
-
-            if (stageId !== currentStageId) {
-                const oldStage = currentStageId;
-                currentStageId = stageId;
-                stageSeconds = 0;
-                if (targetParameters[oldStage]) {
-                    autoNotify('STAGE_COMPLETE', `Stage [${targetParameters[oldStage].name}] complete.`);
-                }
-                document.getElementById('current-stage-display').innerText = targetParameters[currentStageId].name;
-            }
-
-            stageAverages[stageId].sumTemp += temp;
-            stageAverages[stageId].sumRpm += rpm;
-            stageAverages[stageId].sumVol += vol;
-            stageAverages[stageId].count += 1;
-
-            checkTolerance(temp, rpm);
-            updateLevelSensor(data);
-
-            const stageTargetAct = targetParameters[currentStageId].act;
-            const actualAct = data.act ? {
-                motor: isActiveSignal(data.act.motor),
-                heater: isActiveSignal(data.act.heater),
-                valve: isActiveSignal(data.act.valve)
-            } : {
-                motor: stageTargetAct.motor === 'ON',
-                heater: stageTargetAct.heater === 'ON',
-                valve: stageTargetAct.valve === 'ON'
-            };
-            updateStepsUI(actualAct);
-            return {
-                stage: stageId,
-                temp,
-                rpm,
-                vol,
-                level_detected: isActiveSignal(data.levelDetected ?? data.level_detected)
-            };
-        }
-
-        function updateStepsUI(actualAct = null) {
-            for (let i = 1; i <= 6; i++) {
-                const icon = document.getElementById(`step-icon-${i}`);
-                const card = document.getElementById(`step-card-${i}`);
-                
-                const mtrDot = document.getElementById(`act-mtr-${i}`);
-                const htrDot = document.getElementById(`act-htr-${i}`);
-                const vlvDot = document.getElementById(`act-vlv-${i}`);
-                
-                if (i === currentStageId) {
-                    icon.className = "flex items-center justify-center w-10 h-10 rounded-full border border-white bg-teal-500 text-white shadow z-10 relative font-bold";
-                    card.classList.remove('bg-white', 'bg-slate-50', 'opacity-60', 'border-slate-200');
-                    card.classList.add('bg-teal-50', 'border-teal-400');
-                    
-                    if(actualAct) {
-                        mtrDot.className = `h-2.5 w-2.5 rounded-full ${actualAct.motor ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`;
-                        htrDot.className = `h-2.5 w-2.5 rounded-full ${actualAct.heater ? 'bg-red-500 animate-pulse' : 'bg-slate-300'}`;
-                        vlvDot.className = `h-2.5 w-2.5 rounded-full ${actualAct.valve ? 'bg-blue-500 animate-pulse' : 'bg-slate-300'}`;
-                    }
-                } else if (i < currentStageId) {
-                    icon.className = "flex items-center justify-center w-10 h-10 rounded-full border border-white bg-green-500 text-white shadow z-10 relative font-bold";
-                    card.classList.remove('bg-white', 'bg-teal-50', 'border-teal-400');
-                    card.classList.add('bg-slate-50', 'border-slate-200', 'opacity-60');
-                    
-                    const pastAct = targetParameters[i].act;
-                    mtrDot.className = `h-2.5 w-2.5 rounded-full ${pastAct.motor === 'ON' ? 'bg-green-500' : 'bg-slate-300'}`;
-                    htrDot.className = `h-2.5 w-2.5 rounded-full ${pastAct.heater === 'ON' ? 'bg-red-500' : 'bg-slate-300'}`;
-                    vlvDot.className = `h-2.5 w-2.5 rounded-full ${pastAct.valve === 'ON' ? 'bg-blue-500' : 'bg-slate-300'}`;
-                } else {
-                    icon.className = "flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-200 text-slate-500 shadow z-10 relative font-bold";
-                    card.classList.remove('bg-teal-50', 'bg-slate-50', 'border-teal-400', 'opacity-60');
-                    card.classList.add('bg-white', 'border-slate-200');
-                    
-                    mtrDot.className = 'h-2.5 w-2.5 rounded-full bg-slate-300';
-                    htrDot.className = 'h-2.5 w-2.5 rounded-full bg-slate-300';
-                    vlvDot.className = 'h-2.5 w-2.5 rounded-full bg-slate-300';
-                }
-            }
-        }
-
-        updateStepsUI();
-
-        function setMachineStatus(isOn) {
-            const card = document.getElementById('card-machine-status');
-            const ping = document.getElementById('device-ping');
-            const dot = document.getElementById('device-dot');
-            const text = document.getElementById('device-status-text');
-            const lastUpdate = document.getElementById('last-update-time');
-
-            if (isOn) {
-                card.classList.replace('border-slate-400', 'border-green-500');
-                ping.classList.remove('hidden'); dot.classList.replace('bg-slate-500', 'bg-green-500');
-                text.innerText = "RUNNING"; text.className = "text-xl font-bold text-green-600 tracking-tight uppercase";
-                lastUpdate.innerText = "Last Update: " + new Date().toLocaleTimeString('en-US');
-
-                clearTimeout(machineTimeout);
-                machineTimeout = setTimeout(() => { setMachineStatus(false); }, 10000);
-            } else {
-                isSystemRunning = false;
-                card.classList.replace('border-green-500', 'border-slate-400');
-                ping.classList.add('hidden'); dot.classList.replace('bg-green-500', 'bg-slate-500');
-                text.innerText = "STANDBY"; text.className = "text-xl font-bold text-slate-500 tracking-tight uppercase";
-                clearTimeout(machineTimeout);
-            }
-        }
-
-        // ==========================================
-        // 4. SISTEM GRAFIK DENGAN FILTER & SCROLL
-        // ==========================================
-        const chartOptions = { 
-            responsive: true, 
-            maintainAspectRatio: false, 
-            animation: false, 
-            scales: { x: { ticks: { maxTicksLimit: 20 } } },
-            plugins: { legend: { display: false } }
-        };
-
-        let tempChart, rpmChart, volChart;
-        const MAX_RENDERED_CHART_POINTS = 1200;
-
-        try {
-            const ctxTemp = document.getElementById('tempChart').getContext('2d');
-            tempChart = new Chart(ctxTemp, { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: 'rgb(239, 68, 68)', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 2, fill: true, tension: 0.1, pointRadius: 1 }] }, options: chartOptions });
-
-            const ctxRpm = document.getElementById('rpmChart').getContext('2d');
-            rpmChart = new Chart(ctxRpm, { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: 'rgb(59, 130, 246)', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderWidth: 2, fill: true, tension: 0.1, pointRadius: 1 }] }, options: chartOptions });
-
-            const ctxVol = document.getElementById('volChart').getContext('2d');
-            volChart = new Chart(ctxVol, { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: 'rgb(20, 184, 166)', backgroundColor: 'rgba(20, 184, 166, 0.1)', borderWidth: 2, fill: true, tension: 0.1, pointRadius: 1 }] }, options: chartOptions });
-        } catch(e) {
-            console.warn("Chart.js failed to initialize:", e);
-        }
-
-        window.renderCharts = function() {
-            if(!tempChart || !rpmChart || !volChart) return;
-            ['temp', 'rpm', 'vol'].forEach(type => {
-                const filterValue = document.getElementById(`filter-${type}`).value;
-                const container = document.getElementById(`container-${type}`);
-                const wrapper = document.getElementById(`wrapper-${type}`);
-                
-                let filteredData = allSensorData;
-                if(filterValue !== 'all') {
-                    filteredData = allSensorData.filter(d => d.stage == parseInt(filterValue));
-                }
-
-                // Semua data tetap disimpan untuk CSV/PDF. Grafik diringkas saat sangat panjang
-                // agar dashboard tetap lancar pada tahap Separation yang berlangsung 12 jam.
-                if (filteredData.length > MAX_RENDERED_CHART_POINTS) {
-                    const interval = filteredData.length / MAX_RENDERED_CHART_POINTS;
-                    filteredData = Array.from(
-                        { length: MAX_RENDERED_CHART_POINTS },
-                        (_, index) => filteredData[Math.floor(index * interval)]
-                    );
-                }
-
-                const labels = filteredData.map(d => d.timeStr);
-                const dataPoints = filteredData.map(d => d[type]);
-
-                const chartObj = type === 'temp' ? tempChart : type === 'rpm' ? rpmChart : volChart;
-                chartObj.data.labels = labels;
-                chartObj.data.datasets[0].data = dataPoints;
-
-                if(labels.length === 0) {
-                    wrapper.classList.replace('bg-slate-50', 'bg-slate-200');
-                    container.style.width = '100%';
-                } else {
-                    wrapper.classList.replace('bg-slate-200', 'bg-slate-50');
-                    const dynamicWidth = Math.max(wrapper.clientWidth, labels.length * 25);
-                    container.style.width = dynamicWidth + 'px';
-                }
-
-                chartObj.update();
-            });
-        };
-
-        function addChartData(timeStr, temp, rpm, vol, stage) {
-            allSensorData.push({ timeStr, temp, rpm, vol, stage });
-            window.renderCharts();
-        }
-
-        // ==========================================
-        // 5. SUPABASE AUTH & DATABASE LOGIC
-        // ==========================================
-        window.isBypassMode = false; // Penanda Jalur VIP
-
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            // Bypass hanya boleh untuk pengujian lokal, bukan pada deployment produksi.
-            if (!supabaseClient) {
-                if (!ALLOW_LOCAL_BYPASS) {
-                    document.getElementById('login-error').classList.remove('hidden');
-                    document.getElementById('login-error-text').innerText = 'Authentication service is not configured.';
-                    return;
-                }
-                userContactPhone = document.getElementById('telegram-id').value;
-                resetDataIfNewUser("simulation_bypass");
-                document.getElementById('user-email-display').innerText = document.getElementById('email').value;
-                document.getElementById('db-status-text').innerText = "Local Mode";
-                document.getElementById('db-status-text').className = "text-yellow-300";
-                showDashboard();
-                window.showToast(`Login Local! Telegram ID: ${userContactPhone}`, "success");
-                return;
-            }
-
-            const email = document.getElementById('email').value;
-            const pwd = document.getElementById('password').value;
-            userContactPhone = document.getElementById('telegram-id').value;
-
-            const btnText = document.querySelector('#btn-login span');
-            const spinner = document.getElementById('login-spinner');
-            btnText.innerText = "Checking..."; spinner.classList.remove('hidden');
-            document.getElementById('login-error').classList.add('hidden');
-
-            // Coba Login ke Supabase
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email: email, password: pwd });
-            
-            if (error) {
-                btnText.innerText = "Enter Dashboard"; spinner.classList.add('hidden');
-                document.getElementById('login-error').classList.remove('hidden');
-                document.getElementById('login-error-text').innerText = error.message;
-            } else {
-                btnText.innerText = "Enter"; spinner.classList.add('hidden');
-                // Proses login berhasil akan ditangani oleh onAuthStateChange di bawah
-            }
-        });
-
-        if (supabaseClient) {
-            supabaseClient.auth.onAuthStateChange((event, session) => {
-                if (window.isBypassMode) return; // Cegah Supabase menendang user saat lewat tombol Bypass
-
-                if (session) {
-                    resetDataIfNewUser(session.user.email);
-                    document.getElementById('user-email-display').innerText = session.user.email;
-                    document.getElementById('db-status-text').innerText = "DB Active";
-                    document.getElementById('db-status-text').className = "text-green-300";
-                    showDashboard();
-                } else {
-                    document.getElementById('db-status-text').innerText = "Disconnected";
-                    document.getElementById('db-status-text').className = "text-slate-300";
-                    showLogin();
-                }
-            });
-        } else {
-            document.getElementById('db-status-text').innerText = "Local Mode";
-            document.getElementById('db-status-text').className = "text-yellow-300";
-        }
-
-        function showDashboard() {
-            const lp = document.getElementById('login-page'); const db = document.getElementById('dashboard-app');
-            lp.classList.add('opacity-0', 'pointer-events-none');
-            setTimeout(() => {
-                lp.classList.add('hidden'); db.classList.remove('hidden'); updateStepsUI();
-                setTimeout(() => { db.classList.remove('opacity-0'); connectMQTT(); }, 50);
-            }, 500);
-        }
-        function showLogin() {
-            const lp = document.getElementById('login-page'); const db = document.getElementById('dashboard-app');
-            isSystemRunning = false; db.classList.add('opacity-0');
-            setTimeout(() => {
-                db.classList.add('hidden'); lp.classList.remove('hidden');
-                setTimeout(() => { lp.classList.remove('opacity-0', 'pointer-events-none'); }, 50);
-            }, 500);
-        }
-
-        window.bypassLogin = function() {
-            if (!ALLOW_LOCAL_BYPASS) {
-                console.warn('Login bypass is disabled outside local development.');
-                return;
-            }
-            window.isBypassMode = true; // Aktifkan Jalur VIP
-            userContactPhone = document.getElementById('telegram-id').value;
-            resetDataIfNewUser("simulation_bypass");
-            document.getElementById('user-email-display').innerText = "Simulation Mode";
-            document.getElementById('db-status-text').innerText = "Local Mode";
-            document.getElementById('db-status-text').className = "text-yellow-300";
-            showDashboard();
-            window.showToast(`Notifications set to Telegram ID: ${userContactPhone || 'None'}`, "info");
-        };
-
-        window.logoutDashboard = async function() {
-            window.isBypassMode = false;
-            if (isSimulating) window.toggleSimulation();
-            if (mqttClient && mqttClient.isConnected && mqttClient.isConnected()) mqttClient.disconnect();
-            setMachineStatus(false);
-            if (supabaseClient) {
-                await supabaseClient.auth.signOut();
-            } else {
-                showLogin();
-            }
-        };
-
-        async function logData(dataObj) {
-            const logEntry = { 
-                stage: dataObj.stage,
-                temp: dataObj.temp,
-                rpm: dataObj.rpm,
-                vol: dataObj.vol,
-                level_detected: dataObj.levelDetected === true || dataObj.level_detected === true,
-                waktu_lokal: new Date().toLocaleTimeString('en-US'), 
-                tanggal: new Date().toLocaleDateString('en-US') 
-            };
-            
-            localDataLog.push(logEntry);
-            
-            if (supabaseClient) {
-                const { error } = await supabaseClient.from('reactor_logs').insert([logEntry]);
-                if (error) console.warn('Failed to insert into Supabase:', error.message);
-            }
-        }
-
-        // ==========================================
-        // 6. KONEKSI MQTT & EMERGENCY STOP
-        // ==========================================
-        let mqttClient = null;
-        try {
-            mqttClient = new Paho.MQTT.Client("broker.hivemq.com", 8884, "WebClient_" + Math.random().toString(16).substr(2, 8));
-            mqttClient.onConnectionLost = (resp) => {
-                if (resp.errorCode !== 0) {
-                    document.getElementById('status-text').innerText = "Disconnected";
-                    document.getElementById('status-dot').classList.replace('bg-green-400', 'bg-red-400');
-                    if(!document.getElementById('dashboard-app').classList.contains('hidden')) setTimeout(connectMQTT, 5000);
-                }
-            };
-            mqttClient.onMessageArrived = (msg) => {
-                try {
-                    const payload = JSON.parse(msg.payloadString);
-                    const normalizedPayload = updateUI(payload);
-                    if (normalizedPayload) {
-                        addChartData(new Date().toLocaleTimeString('en-US'), normalizedPayload.temp, normalizedPayload.rpm, normalizedPayload.vol, normalizedPayload.stage);
-                        logData(normalizedPayload);
-                    }
-                } catch (e) {
-                    console.warn('Invalid MQTT message ignored:', e);
-                }
-            };
-        } catch(e) {
-            console.warn("MQTT Client initialization failed:", e);
-        }
-
-        function connectMQTT() {
-            if (!mqttClient) return;
-            if (mqttClient.isConnected && mqttClient.isConnected()) return;
-            document.getElementById('status-text').innerText = "Connecting...";
-            try {
-                mqttClient.connect({
-                    onSuccess: () => {
-                        document.getElementById('status-text').innerText = "Connected";
-                        document.getElementById('status-dot').classList.replace('bg-red-400', 'bg-green-400');
-                        mqttClient.subscribe("ta/reaktor/data_sensor");
-                    },
-                    onFailure: (err) => {
-                        document.getElementById('status-text').innerText = "Conn Failed";
-                        if (!err.errorMessage || !err.errorMessage.includes("SecurityError")) setTimeout(connectMQTT, 5000);
-                    }, useSSL: true
-                });
-            } catch (e) { }
-        }
-
-        window.emergencyStop = function() {
-            if(!mqttClient || !mqttClient.isConnected || !mqttClient.isConnected()) {
-                window.showToast("Emergency stop cannot be sent because MQTT is disconnected", "error");
-                return;
-            }
-            if(confirm("DANGER: Are you sure you want to trigger EMERGENCY STOP? This will shut down all actuators remotely.")) {
-                try {
-                    const message = new Paho.MQTT.Message(JSON.stringify({ command: "ESTOP", value: 1 }));
-                    message.destinationName = "ta/reaktor/command";
-                    message.qos = 1;
-                    mqttClient.send(message);
-                    window.showToast("Emergency Stop signal broadcasted to ESP32!", "success");
-                    setMachineStatus(false);
-                } catch(e) {
-                    window.showToast("Failed to send E-STOP: Disconnected from broker", "error");
-                }
-            }
-        };
-
-        // ==========================================
-        // 7. WINDOW EXPORTS (Modals, CSV, PDF)
-        // ==========================================
-        window.showStageDetail = function(stageId) {
-            const data = targetParameters[stageId];
-            const avgData = stageAverages[stageId];
-            
-            document.getElementById('modal-title').innerText = `Stage ${stageId}: ${data.name}`;
-            
-            const tolEl = document.getElementById('modal-tol');
-            if(data.tolerance && (data.tolerance.temp || data.tolerance.rpm)) {
-                tolEl.innerHTML = '<span class="text-green-600"><i class="fa-solid fa-check"></i> Tolerance monitoring is active</span>';
-            } else {
-                tolEl.innerHTML = '<span class="text-slate-400"><i class="fa-solid fa-ban"></i> Tolerance monitoring is inactive</span>';
-            }
-
-            document.getElementById('modal-tgt-temp').innerText = formatTarget(data.targetTemp, '°C');
-            document.getElementById('modal-tgt-rpm').innerText = formatTarget(data.targetRpm, 'RPM');
-            document.getElementById('modal-tgt-vol').innerText = getVolumeTargetLabel(data);
-            document.getElementById('modal-tgt-time').innerText = data.timeStr || "-";
-
-            if(avgData.count > 0) {
-                document.getElementById('modal-avg-temp').innerText = (avgData.sumTemp / avgData.count).toFixed(1) + " °C";
-                document.getElementById('modal-avg-rpm').innerText = Math.round(avgData.sumRpm / avgData.count) + " RPM";
-                document.getElementById('modal-avg-vol').innerText = (avgData.sumVol / avgData.count).toFixed(1) + " ml";
-            } else {
-                document.getElementById('modal-avg-temp').innerText = `No data`;
-                document.getElementById('modal-avg-rpm').innerText = `No data`;
-                document.getElementById('modal-avg-vol').innerText = `No data`;
-            }
-            
-            document.getElementById('modal-avg-time').innerText = formatTime(avgData.durationSec || 0);
-
-            document.getElementById('modal-detail').classList.remove('hidden');
-        };
-
-        window.closeModal = function() { document.getElementById('modal-detail').classList.add('hidden'); };
-
-        window.showToast = function(msg, type = "info") {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-message').innerText = msg;
-            const icon = document.getElementById('toast-icon');
-            if(type === 'success') { icon.className = "fa-solid fa-check-circle text-green-400"; } 
-            else if(type === 'error') { icon.className = "fa-solid fa-triangle-exclamation text-red-500"; }
-            else { icon.className = "fa-solid fa-info-circle text-blue-400"; }
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
-        };
-
-        window.downloadDataCSV = function() {
-            let dataToDownload = localDataLog; 
-            if (dataToDownload.length === 0) { window.showToast("No sensor data yet!", "info"); return; }
-            const headers = ["Date", "Time", "Stage", "Temperature_C", "RPM", "Volume_ml", "Level_Detected"];
-            const csvRows = [headers.join(",")];
-            dataToDownload.forEach(r => csvRows.push([
-                r.tanggal || "-", r.waktu_lokal || "-", r.stage || "-", r.temp || "0", r.rpm || "0",
-                Number(r.vol || 0).toFixed(1), r.level_detected ? 'true' : 'false'
-            ].join(",")));
-            
-            const a = document.createElement('a');
-            a.href = window.URL.createObjectURL(new Blob([csvRows.join("\n")], { type: 'text/csv' }));
-            a.download = `Reactor_Data_TA_${new Date().getTime()}.csv`;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            window.showToast(`Successfully downloaded ${dataToDownload.length} rows of data!`, "success");
-        };
-
-        window.downloadDataPDF = function() {
-            if (!window.jspdf) {
-                window.showToast("PDF Library is still loading. Please try again.", "error");
-                return;
-            }
-            
-            const batchNum = prompt("Enter Batch / Experiment Number:", "BATCH-" + new Date().toISOString().slice(0,10).replace(/-/g,""));
-            if(!batchNum) return; 
-
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            // Header - Make it slightly more compact
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(16);
-            doc.setTextColor(15, 118, 110); 
-            doc.text("ESTERIFICATION REACTOR REPORT", 14, 20);
-            
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(9);
-            doc.setTextColor(100, 100, 100);
-            doc.text("MONOESTER FOR TRANSFORMATOR INSULATING LIQUID", 14, 26);
-            
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "bold");
-            doc.text("Batch Number:", 14, 36);
-            doc.setFont("helvetica", "normal");
-            doc.text(batchNum, 42, 36);
-            
-            doc.setFont("helvetica", "bold");
-            doc.text("Date of Report:", 14, 42);
-            doc.setFont("helvetica", "normal");
-            doc.text(new Date().toLocaleDateString('en-US') + " " + new Date().toLocaleTimeString('en-US'), 42, 42);
-
-            const tableData = [];
-            for(let i=1; i<=6; i++) {
-                const p = targetParameters[i];
-                const avg = stageAverages[i];
-                let aT = "-", aR = "-", aV = "-", aTime = "00:00:00";
-                
-                if(avg.count > 0) {
-                    aT = (avg.sumTemp / avg.count).toFixed(1) + " °C";
-                    aR = Math.round(avg.sumRpm / avg.count) + " RPM";
-                    aV = (avg.sumVol / avg.count).toFixed(1) + " ml";
-                }
-                aTime = formatTime(avg.durationSec || 0);
-                
-                // Actuators full text
-                const actStr = `Motor: ${p.act.motor}\nHeater: ${p.act.heater}\nValve: ${p.act.valve}`;
-                const rowSpanCount = 4;
-
-                tableData.push([
-                    {rowSpan: rowSpanCount, content: `STAGE ${i}\n${p.name.toUpperCase()}`, styles: {valign: 'middle', fontStyle: 'bold', halign: 'center'}}, 
-                    "Temperature", formatTarget(p.targetTemp, '°C'), aT,
-                    {rowSpan: rowSpanCount, content: actStr, styles: {valign: 'middle', halign: 'left'}}
-                ]);
-                tableData.push(["RPM", formatTarget(p.targetRpm, 'RPM'), aR]);
-                tableData.push(["Volume / level", getVolumeTargetLabel(p), aV]);
-                tableData.push(["Duration", p.timeStr, aTime]);
-            }
-
-            doc.autoTable({
-                startY: 48,
-                head: [['STAGE / PROCESS', 'PARAMETER', 'TARGET VALUE', 'ACTUAL (AVG/TOTAL)', 'ACTUATORS']],
-                body: tableData,
-                theme: 'grid',
-                headStyles: { fillColor: [15, 118, 110], halign: 'center', fontStyle: 'bold', fontSize: 9 }, 
-                styles: { fontSize: 8, cellPadding: 1.5, textColor: [40, 40, 40] },
-                columnStyles: {
-                    1: { fontStyle: 'bold' },
-                    2: { halign: 'center' },
-                    3: { halign: 'center', textColor: [15, 118, 110], fontStyle: 'bold' },
-                    4: { fontSize: 8 }
-                }
-            });
-
-            // Notes Section
-            let finalY = doc.lastAutoTable.finalY + 8;
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(11);
-            doc.setTextColor(0, 0, 0);
-            doc.text("Notes:", 14, finalY);
-            
-            // Box directly down to the bottom margin (297mm page height - 14mm bottom margin)
-            doc.setDrawColor(150);
-            const boxHeight = 297 - 14 - (finalY + 3); 
-            doc.rect(14, finalY + 3, 182, boxHeight); 
-
-            doc.save(`Reactor_Report_${batchNum}.pdf`);
-            window.showToast("PDF Report generated successfully!", "success");
-        };
-
-        let simInterval, isSimulating = false, simStage = 1, simTime = 0;
-        window.toggleSimulation = function() {
-            const btn = document.getElementById('sim-btn');
-            if (isSimulating) {
-                clearInterval(simInterval); btn.innerText = "Start Simulation"; btn.classList.replace('bg-red-500', 'bg-yellow-500');
-                isSimulating = false; isSystemRunning = false; setMachineStatus(false);
-            } else {
-                btn.innerText = "Stop Simulation"; btn.classList.replace('bg-yellow-500', 'bg-red-500');
-                isSimulating = true; isSystemRunning = true; simStage = 1; simTime = 0;
-                
-                simInterval = setInterval(() => {
-                    simTime++;
-                    if(simTime % 10 === 0 && simStage < 6) simStage++;
-                    
-                    const target = targetParameters[simStage];
-                    // Set point 0 °C merepresentasikan heater OFF; suhu aktual mengikuti suhu sekitar.
-                    let sTemp = target.targetTemp > 0 ? target.targetTemp + (Math.random() * 4 - 2) : 28 + (Math.random() * 2 - 1);
-                    let sRpm = target.targetRpm > 0 ? target.targetRpm + (Math.random() * 10 - 5) : 0;
-                    let sVol = simStage === 6
-                        ? Math.min(500, 300 + Math.max(0, simTime - 50) * 8) + (Math.random() * 4 - 2)
-                        : 500 + (Math.random() * 10 - 5);
-                    
-                    if(Math.random() > 0.8) {
-                        if (target.tolerance.temp) sTemp += target.targetTemp * 0.25;
-                        else if (target.tolerance.rpm) sRpm = 25;
-                    }
-
-                    const fakeData = { 
-                        temp: sTemp, 
-                        rpm: Math.round(sRpm), 
-                        vol: sVol, 
-                        stage: simStage,
-                        levelDetected: simStage === 6 && sVol >= target.levelThresholdVol,
-                        act: {
-                            motor: target.act.motor === 'ON',
-                            heater: target.act.heater === 'ON',
-                            valve: target.act.valve === 'ON'
-                        }
-                    };
-                    updateUI(fakeData);
-                    addChartData(new Date().toLocaleTimeString('en-US'), fakeData.temp, fakeData.rpm, fakeData.vol, fakeData.stage);
-                    logData(fakeData); 
-                }, 1000);
-            }
-        }
-    </script>
+      </section>
+
+      <section class="grid gap-6 lg:grid-cols-3">
+        <div class="rounded-xl bg-white p-4 shadow-sm lg:col-span-2">
+          <h2 class="mb-3 font-bold">Grafik Suhu, RPM, dan Arus</h2><div class="h-72"><canvas id="main-chart"></canvas></div>
+        </div>
+        <div class="rounded-xl bg-white p-4 shadow-sm"><h2 class="mb-3 font-bold">Grafik Volume</h2><div class="h-72"><canvas id="volume-chart"></canvas></div></div>
+      </section>
+
+      <section class="grid gap-6 lg:grid-cols-2">
+        <section class="rounded-xl bg-white p-4 shadow-sm">
+          <h2 class="font-bold">Kontrol Proses</h2><p class="mt-1 text-sm text-slate-500">Perintah diteruskan backend ke ESP32/simulator melalui topik kontrol MQTT.</p>
+          <label class="mt-4 block text-sm font-semibold">Kode batch
+            <input id="batch-code-input" placeholder="Contoh: UJI-001" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-teal-600">
+          </label>
+          <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <button data-command="start" class="control-button rounded-lg bg-teal-700 px-3 py-2 font-bold text-white hover:bg-teal-800"><i class="fa-solid fa-play mr-1"></i> Mulai</button>
+            <button data-command="pause" class="control-button rounded-lg bg-amber-500 px-3 py-2 font-bold text-slate-900 hover:bg-amber-600"><i class="fa-solid fa-pause mr-1"></i> Pause</button>
+            <button data-command="resume" class="control-button rounded-lg bg-cyan-600 px-3 py-2 font-bold text-white hover:bg-cyan-700"><i class="fa-solid fa-play mr-1"></i> Resume</button>
+            <button data-command="restart" class="control-button rounded-lg bg-slate-700 px-3 py-2 font-bold text-white hover:bg-slate-800"><i class="fa-solid fa-rotate-right mr-1"></i> Restart</button>
+            <button data-command="reset_emergency" class="control-button rounded-lg bg-violet-600 px-3 py-2 font-bold text-white hover:bg-violet-700"><i class="fa-solid fa-unlock mr-1"></i> Reset stop</button>
+            <button id="emergency-button" class="rounded-lg bg-red-700 px-3 py-2 font-bold text-white hover:bg-red-800"><i class="fa-solid fa-power-off mr-1"></i> EMERGENCY</button>
+          </div>
+          <p id="control-message" class="mt-3 min-h-5 text-sm text-slate-500"></p>
+        </section>
+
+        <section class="rounded-xl bg-white p-4 shadow-sm">
+          <h2 class="font-bold">Status & Toggle Aktuator</h2><p class="mt-1 text-sm text-slate-500">Toggle merupakan perintah manual dan setiap aksi disimpan ke sensor_payload pada reactor_logs.</p>
+          <div class="mt-4 space-y-3">
+            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-3"><span><i class="fa-solid fa-fan mr-2 text-blue-600"></i>Motor pengaduk</span><input data-actuator="motor" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-3"><span><i class="fa-solid fa-fire-flame-simple mr-2 text-red-600"></i>Heater</span><input data-actuator="heater" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-3"><span><i class="fa-solid fa-faucet-drip mr-2 text-teal-600"></i>Valve katalis</span><input data-actuator="catalyst_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-3"><span><i class="fa-solid fa-filter mr-2 text-violet-600"></i>Valve pemisah</span><input data-actuator="separator_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+          </div>
+        </section>
+      </section>
+
+      <section class="rounded-xl bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-end justify-between gap-3"><div><h2 class="font-bold">Rekap dan Unduh Data</h2><p class="text-sm text-slate-500">CSV berisi semua sampel batch; PDF berisi ringkasan rata-rata dan sampel terbaru.</p></div><div class="flex flex-wrap gap-2"><select id="batch-select" class="rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="">Batch aktif</option></select><button id="load-batch" class="rounded-lg bg-slate-700 px-3 py-2 text-sm font-bold text-white">Muat</button><button id="download-csv" class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-bold text-white"><i class="fa-solid fa-file-csv mr-1"></i>CSV</button><button id="download-pdf" class="rounded-lg bg-orange-600 px-3 py-2 text-sm font-bold text-white"><i class="fa-solid fa-file-pdf mr-1"></i>PDF</button></div></div>
+        <div class="mt-4 overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="border-b bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="p-2">Waktu</th><th class="p-2">Tahap</th><th class="p-2">Suhu</th><th class="p-2">RPM</th><th class="p-2">Volume</th><th class="p-2">Arus</th><th class="p-2">Level</th></tr></thead><tbody id="log-table"><tr><td class="p-3 text-slate-500" colspan="7">Belum ada data untuk ditampilkan.</td></tr></tbody></table></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="fixed bottom-5 right-5 hidden max-w-sm rounded-lg bg-slate-900 px-4 py-3 text-sm text-white shadow-xl"></div>
+
+  <script>
+    // Bila dashboard di-host terpisah dari server.js (misalnya Vercel), isi URL backend di sini.
+    // Contoh: window.REACTOR_CONFIG = { apiBaseUrl: 'https://nama-backend.onrender.com' };
+    window.REACTOR_CONFIG = window.REACTOR_CONFIG || { apiBaseUrl: '' };
+    const API_BASE = (window.REACTOR_CONFIG.apiBaseUrl || window.location.origin).replace(/\/$/, '');
+    const session = { token: sessionStorage.getItem('reactor_access_token') || '', user: null, events: null };
+    let currentState = null;
+    let currentLogs = [];
+    let lastSampleKey = '';
+    const displayStage = { 1:'Mixing', 2:'Add Catalyst', 3:'Reflux', 4:'Separation', 5:'Oil Treatment', 6:'Filtration' };
+
+    const mainChart = new Chart(document.getElementById('main-chart'), { type:'line', data:{ labels:[], datasets:[
+      { label:'Suhu (°C)', data:[], borderColor:'#ef4444', backgroundColor:'#ef4444', yAxisID:'temperature', tension:.25 },
+      { label:'RPM', data:[], borderColor:'#2563eb', backgroundColor:'#2563eb', yAxisID:'rpm', tension:.25 },
+      { label:'Arus (A)', data:[], borderColor:'#d97706', backgroundColor:'#d97706', yAxisID:'current', tension:.25 }
+    ]}, options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false}, scales:{ temperature:{position:'left', title:{display:true,text:'°C'}}, rpm:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'RPM'}}, current:{position:'right',offset:true,grid:{drawOnChartArea:false},title:{display:true,text:'A'}} } } });
+    const volumeChart = new Chart(document.getElementById('volume-chart'), { type:'line', data:{labels:[],datasets:[{label:'Volume (ml)',data:[],borderColor:'#059669',backgroundColor:'rgba(5,150,105,.12)',fill:true,tension:.25}]}, options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,title:{display:true,text:'ml'}}}} });
+
+    function number(value, digits=1) { const parsed = Number(value); return Number.isFinite(parsed) ? parsed.toFixed(digits) : (0).toFixed(digits); }
+    function formatElapsed(seconds=0) { seconds=Math.max(0,Math.floor(Number(seconds)||0)); return [Math.floor(seconds/3600),Math.floor((seconds%3600)/60),seconds%60].map(v=>String(v).padStart(2,'0')).join(':'); }
+    function text(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])); }
+    function showToast(message, kind='info') { const node=document.getElementById('toast'); node.textContent=message; node.className=`fixed bottom-5 right-5 max-w-sm rounded-lg px-4 py-3 text-sm text-white shadow-xl ${kind==='error'?'bg-red-700':kind==='success'?'bg-teal-700':'bg-slate-900'}`; node.classList.remove('hidden'); clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>node.classList.add('hidden'),4500); }
+
+    async function api(path, options={}) {
+      const headers = { ...(options.body ? {'Content-Type':'application/json'} : {}), ...(options.headers || {}) };
+      if (session.token) headers.Authorization=`Bearer ${session.token}`;
+      const response=await fetch(`${API_BASE}${path}`, {...options, headers});
+      const body=await response.json().catch(()=>({error:'Respons server tidak valid.'}));
+      if (response.status===401 && session.token) logout();
+      if (!response.ok) throw new Error(body.error || 'Permintaan gagal.');
+      return body;
+    }
+
+    function addChartPoint(data, label) {
+      const key=`${data.batchId||''}-${data.elapsedSeconds||data.elapsed_seconds||''}-${data.temp}-${data.rpm}-${data.current}`;
+      if (key===lastSampleKey) return;
+      lastSampleKey=key;
+      const chartLabel=label || new Date().toLocaleTimeString('id-ID');
+      mainChart.data.labels.push(chartLabel); volumeChart.data.labels.push(chartLabel);
+      mainChart.data.datasets[0].data.push(Number(data.temp)); mainChart.data.datasets[1].data.push(Number(data.rpm)); mainChart.data.datasets[2].data.push(Number(data.current)); volumeChart.data.datasets[0].data.push(Number(data.vol));
+      if (mainChart.data.labels.length>60) { mainChart.data.labels.shift(); mainChart.data.datasets.forEach(set=>set.data.shift()); volumeChart.data.labels.shift(); volumeChart.data.datasets[0].data.shift(); }
+      mainChart.update('none'); volumeChart.update('none');
+    }
+
+    function applyState(state) {
+      currentState=state;
+      const data=state.latestData;
+      document.getElementById('batch-label').textContent=`Batch: ${state.batchCode || state.batchId || '-'}`;
+      document.getElementById('stage-status').textContent=state.currentStageId ? `Tahap ${state.currentStageId}/6 — ${state.currentStageName}` : 'Menunggu data sensor';
+      document.querySelectorAll('.stage-card').forEach(card=>card.classList.toggle('stage-active', Number(card.dataset.stage)===Number(state.currentStageId)));
+      const run=String(state.runStatus || 'standby').toUpperCase(); const badge=document.getElementById('run-badge'); badge.textContent=run; badge.className=`rounded-full px-3 py-1.5 ${run==='RUNNING'?'bg-emerald-600':run==='EMERGENCY'?'bg-red-700':run==='PAUSED'?'bg-amber-500 text-slate-950':'bg-slate-700'}`;
+      if (!data) return;
+      document.getElementById('temp-value').textContent=number(data.temp); document.getElementById('rpm-value').textContent=Math.round(Number(data.rpm)||0); document.getElementById('vol-value').textContent=number(data.vol); document.getElementById('current-value').textContent=number(data.current,2); document.getElementById('elapsed-value').textContent=formatElapsed(data.elapsedSeconds); document.getElementById('last-update').textContent=`Update: ${new Date().toLocaleTimeString('id-ID')}`;
+      document.getElementById('level-text').textContent=data.levelDetected ? '✓ Level akhir terdeteksi (≥375 ml)' : 'Level akhir: menunggu (≥375 ml)';
+      document.querySelectorAll('[data-actuator]').forEach(toggle => { toggle.checked=Boolean(data.act?.[toggle.dataset.actuator]); });
+      addChartPoint({ ...data, batchId:state.batchId }, new Date().toLocaleTimeString('id-ID'));
+    }
+
+    function showAnomaly(payload) { const summary=(payload.anomalies||[]).map(item=>`${item.label}: ${item.value} (${item.setPoint})`).join(' | ') || 'Parameter melebihi batas aman.'; document.getElementById('anomaly-text').textContent=`${payload.stageName || 'Proses'} — ${summary}`; const banner=document.getElementById('anomaly-banner'); banner.classList.remove('hidden'); clearTimeout(showAnomaly.timer); showAnomaly.timer=setTimeout(()=>banner.classList.add('hidden'),12000); }
+
+    function renderLogs(logs) {
+      const rows=logs.slice(-20).reverse(); const body=document.getElementById('log-table');
+      body.innerHTML=rows.length ? rows.map(row=>`<tr class="border-b border-slate-100"><td class="p-2">${text(row.tanggal || '')} ${text(row.waktu_lokal || '')}</td><td class="p-2">${text(row.stage)} — ${text(displayStage[row.stage]||'-')}</td><td class="p-2">${number(row.temp)} °C</td><td class="p-2">${Math.round(Number(row.rpm)||0)}</td><td class="p-2">${number(row.vol)} ml</td><td class="p-2">${number(row.current,2)} A</td><td class="p-2">${row.level_detected ? 'Terdeteksi' : '-'}</td></tr>`).join('') : '<tr><td class="p-3 text-slate-500" colspan="7">Belum ada data untuk ditampilkan.</td></tr>';
+    }
+
+    async function loadLogs(batchId='') { currentLogs=await api(`/api/logs?limit=2000${batchId ? `&batchId=${encodeURIComponent(batchId)}` : ''}`); renderLogs(currentLogs); return currentLogs; }
+    async function loadBatches() { const batches=await api('/api/batches'); const select=document.getElementById('batch-select'); const selected=select.value; select.innerHTML='<option value="">Batch aktif</option>'+batches.map(item=>`<option value="${text(item.batchId)}">${text(item.batchCode || item.batchId)} — ${new Date(item.latestAt).toLocaleString('id-ID')}</option>`).join(''); select.value=selected; }
+
+    async function sendControl(action, extras={}) {
+      if (action==='emergency_stop' && !confirm('Yakin melakukan EMERGENCY STOP? Semua aktuator akan diperintahkan OFF.')) return;
+      const code=document.getElementById('batch-code-input').value.trim(); const payload={action,...extras}; if (code) { payload.batch_id=code; payload.batch_code=code; }
+      document.getElementById('control-message').textContent='Mengirim perintah...';
+      try { const result=await api('/api/control',{method:'POST',body:JSON.stringify(payload)}); applyState(result.state); document.getElementById('control-message').textContent=`Perintah ${action} berhasil dikirim ke MQTT.`; showToast('Perintah berhasil dikirim.','success'); } catch(error) { document.getElementById('control-message').textContent=error.message; showToast(error.message,'error'); }
+    }
+
+    function downloadFile(content, name, type) { const link=document.createElement('a'); link.href=URL.createObjectURL(new Blob([content],{type})); link.download=name; link.click(); URL.revokeObjectURL(link.href); }
+    function csvEscape(value) { const valueText=String(value ?? ''); return /[",\n]/.test(valueText) ? `"${valueText.replaceAll('"','""')}"` : valueText; }
+    function downloadCsv() { const rows=[['Batch ID','Batch Code','Tanggal','Waktu Lokal','Stage','Proses','Suhu °C','RPM','Volume ml','Arus A','Level Terdeteksi','Aktuator / Payload'],...currentLogs.map(row=>[row.batch_id,row.batch_code,row.tanggal,row.waktu_lokal,row.stage,displayStage[row.stage]||'',row.temp,row.rpm,row.vol,row.current,row.level_detected,JSON.stringify(row.sensor_payload||{})])]; downloadFile(rows.map(row=>row.map(csvEscape).join(',')).join('\n'),'Reactor_Data.csv','text/csv;charset=utf-8'); }
+    function downloadPdf() { if (!window.jspdf) return showToast('Library PDF belum dimuat. Periksa koneksi internet.','error'); const {jsPDF}=window.jspdf; const doc=new jsPDF(); const n=currentLogs.length||1; const averages={temp:currentLogs.reduce((sum,row)=>sum+Number(row.temp||0),0)/n,rpm:currentLogs.reduce((sum,row)=>sum+Number(row.rpm||0),0)/n,vol:currentLogs.reduce((sum,row)=>sum+Number(row.vol||0),0)/n,current:currentLogs.reduce((sum,row)=>sum+Number(row.current||0),0)/n}; doc.setFontSize(16); doc.text('Laporan Batch Reaktor Esterifikasi',14,18); doc.setFontSize(10); doc.text(`Batch: ${currentState?.batchCode || currentLogs[0]?.batch_code || '-'}`,14,26); doc.text(`Dibuat: ${new Date().toLocaleString('id-ID')}`,14,32); doc.autoTable({startY:38,head:[['Jumlah Sampel','Rata-rata Suhu','Rata-rata RPM','Rata-rata Volume','Rata-rata Arus']],body:[[currentLogs.length,`${number(averages.temp)} °C`,`${Math.round(averages.rpm)} RPM`,`${number(averages.vol)} ml`,`${number(averages.current,2)} A`]],theme:'grid',headStyles:{fillColor:[15,118,110]}}); doc.autoTable({startY:60,head:[['Waktu','Stage','Suhu','RPM','Volume','Arus','Level']],body:currentLogs.slice(-100).map(row=>[`${row.tanggal||''} ${row.waktu_lokal||''}`,`${row.stage} - ${displayStage[row.stage]||''}`,`${number(row.temp)} °C`,row.rpm,`${number(row.vol)} ml`,`${number(row.current,2)} A`,row.level_detected?'Ya':'Tidak']),theme:'striped',styles:{fontSize:7},headStyles:{fillColor:[15,118,110]}}); doc.save('Reactor_Laporan_Batch.pdf'); }
+
+    function startEvents() { session.events?.close(); session.events=new EventSource(`${API_BASE}/api/events?token=${encodeURIComponent(session.token)}`); session.events.addEventListener('state',event=>applyState(JSON.parse(event.data))); session.events.addEventListener('anomaly',event=>showAnomaly(JSON.parse(event.data))); session.events.onerror=()=>{ document.getElementById('mqtt-badge').innerHTML='<i class="fa-solid fa-circle mr-1 text-amber-400"></i> Realtime reconnecting'; }; document.getElementById('mqtt-badge').innerHTML='<i class="fa-solid fa-circle mr-1 text-emerald-400"></i> Realtime connected'; }
+    function logout() { session.events?.close(); sessionStorage.removeItem('reactor_access_token'); session.token=''; document.getElementById('dashboard').classList.add('hidden'); document.getElementById('login-page').classList.remove('hidden'); }
+
+    document.getElementById('login-form').addEventListener('submit',async event=>{ event.preventDefault(); const button=document.getElementById('login-button'); const errorNode=document.getElementById('login-error'); button.disabled=true; button.textContent='Memeriksa akun...'; errorNode.classList.add('hidden'); try { const response=await fetch(`${API_BASE}/api/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('email').value.trim(),password:document.getElementById('password').value,telegramId:document.getElementById('telegram-id').value.trim()})}); const body=await response.json(); if (!response.ok) throw new Error(body.error||'Login gagal.'); session.token=body.accessToken; session.user=body.user; sessionStorage.setItem('reactor_access_token',session.token); document.getElementById('user-display').textContent=body.user.email; document.getElementById('login-page').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden'); await Promise.all([loadLogs(),loadBatches()]); const state=await api('/api/state'); applyState(state); startEvents(); } catch(error) { errorNode.textContent=error.message; errorNode.classList.remove('hidden'); } finally { button.disabled=false; button.textContent='Masuk ke Dashboard'; }});
+    document.getElementById('logout-button').addEventListener('click',logout); document.getElementById('hide-anomaly').addEventListener('click',()=>document.getElementById('anomaly-banner').classList.add('hidden')); document.querySelectorAll('.control-button').forEach(button=>button.addEventListener('click',()=>sendControl(button.dataset.command))); document.getElementById('emergency-button').addEventListener('click',()=>sendControl('emergency_stop')); document.querySelectorAll('[data-actuator]').forEach(toggle=>toggle.addEventListener('change',()=>sendControl('set_actuator',{actuator:toggle.dataset.actuator,enabled:toggle.checked}))); document.getElementById('load-batch').addEventListener('click',async()=>{ try { await loadLogs(document.getElementById('batch-select').value); showToast('Data batch dimuat.','success'); } catch(error) { showToast(error.message,'error'); } }); document.getElementById('batch-select').addEventListener('change',event=>{ if (event.target.value) document.getElementById('batch-code-input').value=event.target.value; }); document.getElementById('download-csv').addEventListener('click',downloadCsv); document.getElementById('download-pdf').addEventListener('click',downloadPdf);
+  </script>
 </body>
 </html>

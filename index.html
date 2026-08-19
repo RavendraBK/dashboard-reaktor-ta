@@ -1179,7 +1179,7 @@
     const isExplicitDemo = urlParams.has('demo') || urlParams.has('mode') && ['demo', 'sim', 'simulation', 'guest'].includes(urlParams.get('mode'));
     let isDemoMode = isExplicitDemo || sessionStorage.getItem('reactor_demo_mode') === 'true';
 
-    const isLocal = ['localhost', '127.0.0.1', '0.0.0.0', ''].includes(window.location.hostname);
+        const isLocal = ['localhost', '127.0.0.1', '0.0.0.0', ''].includes(window.location.hostname);
     const defaultApiBase = isLocal
       ? window.location.origin
       : (window.location.origin.includes('vercel.app')
@@ -1198,6 +1198,9 @@
     let activeModalStage = null;
     let demoInterval = null;
     let cumulativeWattHours = 0;
+    let lastNotifiedStageId = null;
+    let lastNotifiedRunStatus = null;
+    let batchCompleteNotified = false;
 
     const chartFilters = { temp: 'all', rpm: 'all', current: 'all', vol: 'all' };
     const chartWindows = { temp: 100, rpm: 100, current: 100, vol: 100 };
@@ -2008,9 +2011,9 @@
           lastNotifiedStageId = state.currentStageId;
         }
 
-        if (state.currentStageId === 6 && data?.levelDetected && !batchCompleteNotified) {
+        if (state.currentStageId === 5 && data?.levelDetected && !batchCompleteNotified) {
           sendBrowserNotification(`🎉 Reaktor: Proses Sintesis Selesai (Batch ${batchCode || '-'})`, {
-            body: 'Tahap 6 Filtrasi telah selesai. Laporan PDF lengkap & rekapan telah dikirim ke Telegram.'
+            body: 'Tahap 5 Filtrasi telah selesai. Laporan PDF lengkap & rekapan telah dikirim ke Telegram.'
           });
           batchCompleteNotified = true;
         }
@@ -2074,9 +2077,8 @@
 
       renderTimeline();
       if (activeModalStage) openStageModal(activeModalStage);
-    }    let lastNotifiedStageId = null;
-    let lastNotifiedRunStatus = null;
-    let batchCompleteNotified = false;
+    }
+
 
     function updateNotificationButtonUI() {
       const btn = document.getElementById('notif-perm-btn');

@@ -126,7 +126,7 @@
           </button>
 
           <span id="mqtt-badge" class="hidden sm:inline-flex items-center rounded-full bg-slate-800/80 px-2.5 py-1 text-[11px] font-medium"><i class="fa-solid fa-circle mr-1.5 text-slate-400"></i> MQTT: Checking</span>
-          <span id="run-badge" class="rounded-full bg-slate-800 px-2.5 py-1 text-[11px] font-bold uppercase">STANDBY</span>
+          <span id="run-badge" class="inline-flex items-center gap-1.5 rounded-full bg-slate-800/90 border border-slate-700/80 px-2.5 py-1 text-[11px] font-bold text-slate-300 shadow-sm"><span id="run-dot" class="h-2 w-2 rounded-full bg-red-500"></span><span id="run-text">Mesin: Mati (Standby)</span></span>
           <span id="user-display" class="hidden md:inline-block rounded-full bg-teal-950 dark:bg-slate-800 px-2.5 py-1 text-[11px] font-medium text-teal-200 dark:text-teal-300"></span>
           <button id="logout-button" class="rounded-xl bg-slate-800 px-2.5 py-1 text-[11px] font-semibold text-slate-200 transition hover:bg-slate-700 hover:text-white">
             <i class="fa-solid fa-right-from-bracket mr-1"></i> <span id="logout-text">Sign Out</span>
@@ -1959,8 +1959,26 @@
 
       const run = String(state.runStatus || 'standby').toUpperCase();
       const badge = document.getElementById('run-badge');
-      badge.textContent = run;
-      badge.className = `rounded-full px-2.5 py-1 text-[11px] font-bold ${run === 'RUNNING' ? 'bg-emerald-600 text-white' : run === 'EMERGENCY' ? 'bg-red-700 text-white' : run === 'PAUSED' ? 'bg-amber-500 text-slate-950' : 'bg-slate-700 text-white'}`;
+      const dot = document.getElementById('run-dot');
+      const txt = document.getElementById('run-text');
+
+      if (run === 'RUNNING') {
+        badge.className = 'inline-flex items-center gap-1.5 rounded-full bg-emerald-950/80 border border-emerald-500/60 px-2.5 py-1 text-[11px] font-bold text-emerald-300 shadow-sm';
+        if (dot) dot.className = 'h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.9)]';
+        if (txt) txt.textContent = 'Mesin: Menyala (Running)';
+      } else if (run === 'EMERGENCY') {
+        badge.className = 'inline-flex items-center gap-1.5 rounded-full bg-red-950 border border-red-500 px-2.5 py-1 text-[11px] font-bold text-red-200 shadow-sm animate-pulse';
+        if (dot) dot.className = 'h-2 w-2 rounded-full bg-red-600 animate-ping';
+        if (txt) txt.textContent = 'Mesin: Emergency Stop';
+      } else if (run === 'PAUSED') {
+        badge.className = 'inline-flex items-center gap-1.5 rounded-full bg-amber-950/80 border border-amber-500/60 px-2.5 py-1 text-[11px] font-bold text-amber-300 shadow-sm';
+        if (dot) dot.className = 'h-2 w-2 rounded-full bg-amber-400 animate-pulse';
+        if (txt) txt.textContent = 'Mesin: Dijeda (Paused)';
+      } else {
+        badge.className = 'inline-flex items-center gap-1.5 rounded-full bg-slate-800/90 border border-slate-700/80 px-2.5 py-1 text-[11px] font-bold text-slate-300 shadow-sm';
+        if (dot) dot.className = 'h-2 w-2 rounded-full bg-red-500';
+        if (txt) txt.textContent = 'Mesin: Mati / Standby';
+      }
 
       const lockBanner = document.getElementById('lock-warning-banner');
       if (!batchCode || run === 'STANDBY') {

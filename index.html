@@ -2608,21 +2608,22 @@
       actuators: { motor: true, heater: true, catalyst_valve: false, separator_valve: false, servo: false }
     };
 
-    function startDemoMode() {
-      const visitorNameInput = document.getElementById('guest-visitor-name').value.trim();
-      if (!visitorNameInput && !sessionStorage.getItem('reactor_guest_name')) {
-        showToast('Please enter your full name before launching demo!', 'error');
-        document.getElementById('guest-visitor-name').focus();
-        return;
-      }
+        function startDemoMode(customName) {
+      const visitorInput = document.getElementById('guest-visitor-name');
+      const visitorNameInput = typeof customName === 'string' && customName.trim()
+        ? customName.trim()
+        : (visitorInput ? visitorInput.value.trim() : '');
+      const savedName = sessionStorage.getItem('reactor_guest_name');
+      const visitorName = visitorNameInput || savedName || 'Guest Visitor';
 
-      const visitorName = visitorNameInput || sessionStorage.getItem('reactor_guest_name') || 'Guest Visitor';
       isDemoMode = true;
       sessionStorage.setItem('reactor_demo_mode', 'true');
       sessionStorage.setItem('reactor_guest_name', visitorName);
-      sessionStorage.setItem('reactor_guest_entered_at', new Date().toISOString());
+      if (!sessionStorage.getItem('reactor_guest_entered_at')) {
+        sessionStorage.setItem('reactor_guest_entered_at', new Date().toISOString());
+      }
 
-      // Save visitor access to DB
+      // Save visitor access to DB in background
       logVisitorAccess(visitorName, false);
 
       document.getElementById('login-page').classList.add('hidden');
@@ -2645,7 +2646,7 @@
       if (demoInterval) clearInterval(demoInterval);
       demoInterval = setInterval(tickDemoSimulation, 2000);
       tickDemoSimulation();
-      showToast(`Welcome, ${visitorName}! Exhibition Demo Mode active.`, 'success');
+      showToast(`Selamat datang, ${visitorName}! Mode Demo Pameran aktif.`, 'success');
     }
 
     function tickDemoSimulation() {
@@ -2843,14 +2844,22 @@
       }
     });
 
-    (async function initApp() {
+        (async function initApp() {
       initTheme();
       calculateStoichiometry();
-      if (isDemoMode) {
+
+      // If URL contains ?demo or ?mode=demo OR if demo was previously active -> launch demo immediately
+      if (isExplicitDemo || sessionStorage.getItem('reactor_demo_mode') === 'true') {
         startDemoMode();
         return;
       }
-      if (!session.token) return;
+
+      if (!session.token) {
+        document.getElementById('login-page').classList.remove('hidden');
+        document.getElementById('dashboard').classList.add('hidden');
+        return;
+      }
+
       try {
         if (session.user?.email) document.getElementById('user-display').textContent = session.user.email;
         const state = await api('/api/state');

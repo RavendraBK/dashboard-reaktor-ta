@@ -536,7 +536,7 @@ app.post('/api/auth/login', async (request, response) => {
     const { error: upsertError } = await supabase.from('profiles').upsert({
         id: data.user.id,
         telegram_chat_id: telegramChatId,
-        update_at: new Date().toISOString()
+        updated_at: new Date().toISOString()
     }, { onConflict: 'id' });
     if (upsertError) return response.status(500).json({ error: `Profil tidak dapat disimpan: ${upsertError.message}` });
 

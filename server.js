@@ -28,13 +28,24 @@ const config = Object.freeze({
     anomalyCooldownMs: Number(process.env.ANOMALY_COOLDOWN_MS || 60_000),
     telegramToken: process.env.TELEGRAM_BOT_TOKEN,
     telegramChatIds: process.env.TELEGRAM_CHAT_IDS.split(',').map((id) => id.trim()).filter(Boolean),
-    // Gunakan "batch code" hanya bila kolom Supabase memang terlanjur memakai spasi.
     batchCodeColumn: process.env.REACTOR_BATCH_CODE_COLUMN || 'batch_code'
 });
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+const supabaseUrl = (process.env.SUPABASE_URL || '').replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const supabase = createClient(supabaseUrl, supabaseKey, {
     auth: { persistSession: false, autoRefreshToken: false }
 });
+
+function createUserClient(accessToken) {
+    return createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${accessToken}` } },
+        auth: { persistSession: false, autoRefreshToken: false }
+    });
+}
+
+
 
 // Nilai proses yang dinilai. Temp null = sensor tetap dicatat, tetapi tidak dibandingkan
 // dengan 0 °C karena heater memang dimatikan pada tahap tersebut.
@@ -503,9 +514,16 @@ const app = express();
 app.disable('x-powered-by');
 app.use((request, response, next) => {
     const origin = request.get('origin');
-    if (origin && (!config.frontendOrigin || config.frontendOrigin === origin)) {
-        response.set('Access-Control-Allow-Origin', origin);
-        response.set('Vary', 'Origin');
+    if (origin) {
+        const allowed = (config.frontendOrigin || '')
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
+        const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+        if (allowed.length === 0 || allowed.includes('*') || allowed.includes(origin) || isLocalhost) {
+            response.set('Access-Control-Allow-Origin', origin);
+            response.set('Vary', 'Origin');
+        }
     }
     response.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     response.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -524,21 +542,50 @@ app.post('/api/auth/login', async (request, response) => {
         return response.status(400).json({ error: 'Email, password, dan Telegram Chat ID wajib diisi.' });
     }
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error || !data.session || !data.user) return response.status(401).json({ error: 'Email atau password tidak sesuai.' });
+    if (error || !data.session || !data.user) {
+        return response.status(401).json({ error: error?.message || 'Email atau password tidak sesuai.' });
+    }
 
     const telegramChatId = String(telegramId).trim();
-    const { data: profile, error: profileError } = await supabase
+    const userClient = createUserClient(data.session.access_token);
+
+    // 1. Coba baca profil: coba dengan supabase admin, lalu userClient jika gagal RLS
+    let profile = null;
+    let { data: pData, error: profileError } = await supabase
         .from('profiles').select('telegram_chat_id').eq('id', data.user.id).maybeSingle();
-    if (profileError) return response.status(500).json({ error: `Profil tidak dapat dibaca: ${profileError.message}` });
-    if (profile?.telegram_chat_id && profile.telegram_chat_id !== telegramChatId) {
-        return response.status(403).json({ error: 'Telegram Chat ID tidak sesuai dengan akun ini.' });
+    if (profileError) {
+        const userCheck = await userClient
+            .from('profiles').select('telegram_chat_id').eq('id', data.user.id).maybeSingle();
+        if (!userCheck.error) {
+            pData = userCheck.data;
+            profileError = null;
+        }
     }
-    const { error: upsertError } = await supabase.from('profiles').upsert({
+    if (pData) {
+        profile = pData;
+    }
+
+    if (profile?.telegram_chat_id && profile.telegram_chat_id !== telegramChatId) {
+        return response.status(403).json({ error: 'Telegram Chat ID tidak sesuai dengan profil akun ini.' });
+    }
+
+    // 2. Upsert profil: coba admin client terlebih dahulu, jika kena RLS fallback ke user client
+    const profilePayload = {
         id: data.user.id,
         telegram_chat_id: telegramChatId,
         updated_at: new Date().toISOString()
-    }, { onConflict: 'id' });
-    if (upsertError) return response.status(500).json({ error: `Profil tidak dapat disimpan: ${upsertError.message}` });
+    };
+
+    let { error: upsertError } = await supabase.from('profiles').upsert(profilePayload, { onConflict: 'id' });
+    if (upsertError) {
+        console.warn(`[AUTH] Admin upsert profil gagal (${upsertError.message}), mencoba fallback dengan token user...`);
+        const userUpsert = await userClient.from('profiles').upsert(profilePayload, { onConflict: 'id' });
+        upsertError = userUpsert.error;
+    }
+
+    if (upsertError) {
+        console.warn(`[AUTH] Peringatan: Profil tidak dapat disimpan ke Supabase (${upsertError.message}). Tetap melanjutkan sesi login.`);
+    }
 
     processState.notificationChatIds.add(telegramChatId);
     return response.json({
@@ -553,7 +600,8 @@ app.get('/api/events', requireUser, (request, response) => {
     response.status(200).set({
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
-        Connection: 'keep-alive'
+        Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no'
     });
     response.flushHeaders();
     response.write(`event: state\ndata: ${JSON.stringify(getPublicState())}\n\n`);

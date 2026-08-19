@@ -11,20 +11,34 @@ Simulator menunggu perintah Start Simulation dari dashboard. Semua tombol kontro
 import json
 import os
 import random
+import sys
 import threading
 import time
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+# Fix encoding konsol Windows untuk karakter emoji
+if sys.platform == "win32":
+    import io
+    if hasattr(sys.stdout, "buffer"):
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "buffer"):
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+
 import paho.mqtt.client as mqtt
-from paho.mqtt.enums import CallbackAPIVersion
+
+try:
+    from paho.mqtt.enums import CallbackAPIVersion
+except ImportError:
+    CallbackAPIVersion = None
+
 
 
 # ==========================================
 # PENGATURAN MQTT — samakan dengan file .env
 # ==========================================
-BROKER = os.getenv("MQTT_BROKER", "broker.hivemq.com")
+BROKER = os.getenv("MQTT_BROKER", "broker.emqx.io")
 PORT = int(os.getenv("MQTT_PORT", "1883"))
 SENSOR_TOPIC = os.getenv("MQTT_SENSOR_TOPIC", "ta/reaktor/data_sensor")
 CONTROL_TOPIC = os.getenv("MQTT_CONTROL_TOPIC", "ta/reaktor/control")
@@ -173,13 +187,14 @@ def publish_snapshot(force_anomaly=False):
         print("❌ Payload belum terkirim. Kode MQTT:", result.rc)
 
 
-def on_connect(mqtt_client, _userdata, _flags, reason_code, _properties):
-    if reason_code == 0:
+def on_connect(mqtt_client, _userdata, _flags, reason_code, _properties=None):
+    rc = getattr(reason_code, "value", reason_code)
+    if rc == 0:
         print("✅ Terhubung ke MQTT Broker HiveMQ.")
         mqtt_client.subscribe(CONTROL_TOPIC, qos=1)
         print(f"👂 Menunggu perintah dashboard pada: {CONTROL_TOPIC}")
     else:
-        print(f"❌ Gagal terhubung ke broker. Kode: {reason_code}")
+        print(f"❌ Gagal terhubung ke broker. Kode: {rc}")
 
 
 def on_message(_mqtt_client, _userdata, message):
@@ -230,13 +245,20 @@ def on_message(_mqtt_client, _userdata, message):
     publish_snapshot()
 
 
-client = mqtt.Client(
-    callback_api_version=CallbackAPIVersion.VERSION2,
-    client_id="Sim_ESP32_" + str(random.randint(1000, 9999)),
-    protocol=mqtt.MQTTv311
-)
+if CallbackAPIVersion is not None:
+    client = mqtt.Client(
+        callback_api_version=CallbackAPIVersion.VERSION2,
+        client_id="Sim_ESP32_" + str(random.randint(1000, 9999)),
+        protocol=mqtt.MQTTv311
+    )
+else:
+    client = mqtt.Client(
+        client_id="Sim_ESP32_" + str(random.randint(1000, 9999)),
+        protocol=mqtt.MQTTv311
+    )
 client.on_connect = on_connect
 client.on_message = on_message
+
 
 
 def main():

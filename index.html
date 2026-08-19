@@ -135,11 +135,19 @@
   <div id="toast" class="fixed bottom-5 right-5 hidden max-w-sm rounded-lg bg-slate-900 px-4 py-3 text-sm text-white shadow-xl"></div>
 
   <script>
-    // Bila dashboard di-host terpisah dari server.js (misalnya Vercel), isi URL backend di sini.
-    // Contoh: window.REACTOR_CONFIG = { apiBaseUrl: 'https://nama-backend.onrender.com' };
-    window.REACTOR_CONFIG = window.REACTOR_CONFIG || { apiBaseUrl: 'https://dashboard-reaktor-ta.onrender.com' };
-    const API_BASE = (window.REACTOR_CONFIG.apiBaseUrl || window.location.origin).replace(/\/$/, '');
-    const session = { token: sessionStorage.getItem('reactor_access_token') || '', user: null, events: null };
+    // Bila dashboard di-host terpisah dari server.js (misalnya Vercel), URL backend dapat disesuaikan otomatis
+    const isLocal = ['localhost', '127.0.0.1', '0.0.0.0', ''].includes(window.location.hostname);
+    const defaultApiBase = isLocal
+      ? window.location.origin
+      : (window.location.origin.includes('vercel.app')
+          ? 'https://dashboard-reaktor-ta.onrender.com'
+          : window.location.origin);
+    const API_BASE = ((window.REACTOR_CONFIG && window.REACTOR_CONFIG.apiBaseUrl) || defaultApiBase).replace(/\/+$/, '');
+    const session = {
+      token: sessionStorage.getItem('reactor_access_token') || '',
+      user: JSON.parse(sessionStorage.getItem('reactor_user') || 'null'),
+      events: null
+    };
     let currentState = null;
     let currentLogs = [];
     let lastSampleKey = '';
@@ -215,10 +223,28 @@
     function downloadPdf() { if (!window.jspdf) return showToast('Library PDF belum dimuat. Periksa koneksi internet.','error'); const {jsPDF}=window.jspdf; const doc=new jsPDF(); const n=currentLogs.length||1; const averages={temp:currentLogs.reduce((sum,row)=>sum+Number(row.temp||0),0)/n,rpm:currentLogs.reduce((sum,row)=>sum+Number(row.rpm||0),0)/n,vol:currentLogs.reduce((sum,row)=>sum+Number(row.vol||0),0)/n,current:currentLogs.reduce((sum,row)=>sum+Number(row.current||0),0)/n}; doc.setFontSize(16); doc.text('Laporan Batch Reaktor Esterifikasi',14,18); doc.setFontSize(10); doc.text(`Batch: ${currentState?.batchCode || currentLogs[0]?.batch_code || '-'}`,14,26); doc.text(`Dibuat: ${new Date().toLocaleString('id-ID')}`,14,32); doc.autoTable({startY:38,head:[['Jumlah Sampel','Rata-rata Suhu','Rata-rata RPM','Rata-rata Volume','Rata-rata Arus']],body:[[currentLogs.length,`${number(averages.temp)} °C`,`${Math.round(averages.rpm)} RPM`,`${number(averages.vol)} ml`,`${number(averages.current,2)} A`]],theme:'grid',headStyles:{fillColor:[15,118,110]}}); doc.autoTable({startY:60,head:[['Waktu','Stage','Suhu','RPM','Volume','Arus','Level']],body:currentLogs.slice(-100).map(row=>[`${row.tanggal||''} ${row.waktu_lokal||''}`,`${row.stage} - ${displayStage[row.stage]||''}`,`${number(row.temp)} °C`,row.rpm,`${number(row.vol)} ml`,`${number(row.current,2)} A`,row.level_detected?'Ya':'Tidak']),theme:'striped',styles:{fontSize:7},headStyles:{fillColor:[15,118,110]}}); doc.save('Reactor_Laporan_Batch.pdf'); }
 
     function startEvents() { session.events?.close(); session.events=new EventSource(`${API_BASE}/api/events?token=${encodeURIComponent(session.token)}`); session.events.addEventListener('state',event=>applyState(JSON.parse(event.data))); session.events.addEventListener('anomaly',event=>showAnomaly(JSON.parse(event.data))); session.events.onerror=()=>{ document.getElementById('mqtt-badge').innerHTML='<i class="fa-solid fa-circle mr-1 text-amber-400"></i> Realtime reconnecting'; }; document.getElementById('mqtt-badge').innerHTML='<i class="fa-solid fa-circle mr-1 text-emerald-400"></i> Realtime connected'; }
-    function logout() { session.events?.close(); sessionStorage.removeItem('reactor_access_token'); session.token=''; document.getElementById('dashboard').classList.add('hidden'); document.getElementById('login-page').classList.remove('hidden'); }
+    function logout() { session.events?.close(); sessionStorage.removeItem('reactor_access_token'); sessionStorage.removeItem('reactor_user'); session.token=''; session.user=null; document.getElementById('dashboard').classList.add('hidden'); document.getElementById('login-page').classList.remove('hidden'); }
 
-    document.getElementById('login-form').addEventListener('submit',async event=>{ event.preventDefault(); const button=document.getElementById('login-button'); const errorNode=document.getElementById('login-error'); button.disabled=true; button.textContent='Memeriksa akun...'; errorNode.classList.add('hidden'); try { const response=await fetch(`${API_BASE}/api/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('email').value.trim(),password:document.getElementById('password').value,telegramId:document.getElementById('telegram-id').value.trim()})}); const body=await response.json(); if (!response.ok) throw new Error(body.error||'Login gagal.'); session.token=body.accessToken; session.user=body.user; sessionStorage.setItem('reactor_access_token',session.token); document.getElementById('user-display').textContent=body.user.email; document.getElementById('login-page').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden'); await Promise.all([loadLogs(),loadBatches()]); const state=await api('/api/state'); applyState(state); startEvents(); } catch(error) { errorNode.textContent=error.message; errorNode.classList.remove('hidden'); } finally { button.disabled=false; button.textContent='Masuk ke Dashboard'; }});
+    document.getElementById('login-form').addEventListener('submit',async event=>{ event.preventDefault(); const button=document.getElementById('login-button'); const errorNode=document.getElementById('login-error'); button.disabled=true; button.textContent='Memeriksa akun...'; errorNode.classList.add('hidden'); try { const response=await fetch(`${API_BASE}/api/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('email').value.trim(),password:document.getElementById('password').value,telegramId:document.getElementById('telegram-id').value.trim()})}); const body=await response.json(); if (!response.ok) throw new Error(body.error||'Login gagal.'); session.token=body.accessToken; session.user=body.user; sessionStorage.setItem('reactor_access_token',session.token); sessionStorage.setItem('reactor_user',JSON.stringify(body.user)); document.getElementById('user-display').textContent=body.user.email; document.getElementById('login-page').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden'); await Promise.all([loadLogs(),loadBatches()]); const state=await api('/api/state'); applyState(state); startEvents(); } catch(error) { errorNode.textContent=error.message; errorNode.classList.remove('hidden'); } finally { button.disabled=false; button.textContent='Masuk ke Dashboard'; }});
     document.getElementById('logout-button').addEventListener('click',logout); document.getElementById('hide-anomaly').addEventListener('click',()=>document.getElementById('anomaly-banner').classList.add('hidden')); document.querySelectorAll('.control-button').forEach(button=>button.addEventListener('click',()=>sendControl(button.dataset.command))); document.getElementById('emergency-button').addEventListener('click',()=>sendControl('emergency_stop')); document.querySelectorAll('[data-actuator]').forEach(toggle=>toggle.addEventListener('change',()=>sendControl('set_actuator',{actuator:toggle.dataset.actuator,enabled:toggle.checked}))); document.getElementById('load-batch').addEventListener('click',async()=>{ try { await loadLogs(document.getElementById('batch-select').value); showToast('Data batch dimuat.','success'); } catch(error) { showToast(error.message,'error'); } }); document.getElementById('batch-select').addEventListener('change',event=>{ if (event.target.value) document.getElementById('batch-code-input').value=event.target.value; }); document.getElementById('download-csv').addEventListener('click',downloadCsv); document.getElementById('download-pdf').addEventListener('click',downloadPdf);
+
+    // Auto restore session jika user sudah pernah login sebelumnya
+    (async function initSession() {
+      if (!session.token) return;
+      try {
+        if (session.user?.email) document.getElementById('user-display').textContent = session.user.email;
+        const state = await api('/api/state');
+        document.getElementById('login-page').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        applyState(state);
+        await Promise.all([loadLogs(), loadBatches()]);
+        startEvents();
+      } catch (err) {
+        console.warn('Sesi tersimpan tidak dapat dipulihkan:', err.message);
+        logout();
+      }
+    })();
+
   </script>
 </body>
 </html>

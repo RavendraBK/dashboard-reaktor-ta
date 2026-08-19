@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Esterification Reactor Dashboard</title>
+  <title>Esterification Reactor — Smart IoT Supervisory System</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -14,30 +14,39 @@
     .warning-flash { animation: warningFlash .8s infinite; }
     .switch:checked + .switch-track { background:#0f766e; }
     .switch:checked + .switch-track:after { transform:translateX(1.25rem); }
-    /* Custom scrollbar */
+    @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .animate-spin-impeller { animation: spin-slow 2s linear infinite; }
+    .animate-spin-fast { animation: spin-slow 0.8s linear infinite; }
+    @keyframes pulse-glow { 0%,100% { opacity: 0.9; filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8)); } 50% { opacity: 0.4; filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.3)); } }
+    .heating-glow { animation: pulse-glow 1.5s ease-in-out infinite; }
+    @keyframes flow-liquid { 0% { stroke-dashoffset: 20; } 100% { stroke-dashoffset: 0; } }
+    .flow-active { stroke-dasharray: 6; animation: flow-liquid 1s linear infinite; }
     ::-webkit-scrollbar { height: 6px; width: 6px; }
     ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   </style>
 </head>
-<body class="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased">
-  <!-- Login Page -->
-  <main id="login-page" class="min-h-screen bg-gradient-to-br from-teal-900 via-teal-800 to-cyan-800 flex items-center justify-center p-5">
+<body class="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased flex flex-col">
+
+  <!-- ========================================================================= -->
+  <!-- 1. LOGIN PAGE -->
+  <!-- ========================================================================= -->
+  <main id="login-page" class="min-h-screen bg-gradient-to-br from-teal-950 via-teal-900 to-cyan-900 flex items-center justify-center p-5">
     <section class="w-full max-w-md rounded-2xl bg-white p-7 shadow-2xl">
       <div class="mb-6 text-center">
-        <div class="mx-auto mb-3.5 grid h-16 w-16 place-items-center rounded-full bg-teal-100 text-3xl text-teal-700 shadow-inner"><i class="fa-solid fa-flask-vial"></i></div>
-        <h1 class="text-2xl font-extrabold text-slate-800">Esterification Reactor</h1>
-        <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-teal-700">Real-time Monoester Monitoring & Control</p>
+        <div class="mx-auto mb-3.5 grid h-16 w-16 place-items-center rounded-2xl bg-teal-100 text-3xl text-teal-700 shadow-inner"><i class="fa-solid fa-flask-vial"></i></div>
+        <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Esterification Reactor</h1>
+        <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-teal-700">IoT Supervisory & Synthesis Control</p>
       </div>
 
       <!-- Visitor Demo Quick Access Banner -->
       <div class="mb-5 rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-purple-50 p-4 text-center">
         <div class="flex items-center justify-center gap-2 text-indigo-900 font-bold text-sm">
           <i class="fa-solid fa-qrcode text-indigo-600"></i>
-          <span>Exhibition & Guest Visitor?</span>
+          <span>Exhibition Guest Visitor?</span>
         </div>
-        <p class="mt-1 text-[11px] text-slate-600">Try interactive simulation mode with real-time dummy physics without logging in.</p>
+        <p class="mt-1 text-[11px] text-slate-600">Experience the full interactive simulation with live physics and telemetry without logging in.</p>
         <button id="guest-demo-btn" type="button" class="mt-3 w-full rounded-lg bg-indigo-600 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-indigo-700 active:scale-[0.99]">
           <i class="fa-solid fa-play mr-1.5"></i> Launch Exhibition Demo Mode
         </button>
@@ -63,276 +72,772 @@
           Sign In to Live Production
         </button>
       </form>
-      <p class="mt-4 text-center text-[11px] text-slate-400">Credentials are managed via Supabase Authentication. Chat ID must match user profile.</p>
+      <p class="mt-4 text-center text-[11px] text-slate-400">Credentials are managed via Supabase Auth. Chat ID connects live Telegram notifications.</p>
     </section>
   </main>
 
-  <!-- Dashboard Page -->
-  <div id="dashboard" class="hidden">
-    <header class="sticky top-0 z-30 bg-teal-900 text-white shadow-lg transition-colors" id="main-header">
-      <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+  <!-- ========================================================================= -->
+  <!-- 2. MAIN APP SHELL (SIDEBAR + CONTENT) -->
+  <!-- ========================================================================= -->
+  <div id="dashboard" class="hidden flex-1 flex flex-col min-h-screen">
+    
+    <!-- Top Header Bar -->
+    <header class="sticky top-0 z-30 bg-teal-900 text-white shadow-md transition-colors" id="main-header">
+      <div class="flex items-center justify-between px-4 py-2.5">
         <div class="flex items-center gap-3">
-          <i class="fa-solid fa-flask-vial text-3xl text-teal-300"></i>
-          <div>
-            <div class="flex items-center gap-2">
-              <h1 class="font-bold text-base md:text-lg">Esterification Reactor</h1>
-              <span id="mode-badge" class="rounded-full bg-teal-700 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-teal-100">LIVE SYSTEM</span>
+          <button id="sidebar-toggle-btn" class="rounded-lg p-1.5 text-teal-200 hover:bg-teal-800 hover:text-white lg:hidden">
+            <i class="fa-solid fa-bars text-lg"></i>
+          </button>
+          <div class="flex items-center gap-2.5">
+            <i class="fa-solid fa-flask-vial text-2xl text-teal-300"></i>
+            <div>
+              <div class="flex items-center gap-2">
+                <h1 class="font-bold text-sm md:text-base leading-tight">Esterification Reactor</h1>
+                <span id="mode-badge" class="rounded-full bg-teal-700 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-teal-100">LIVE SYSTEM</span>
+              </div>
+              <p class="text-[10px] text-teal-200 hidden sm:block">IoT Supervisory & Synthesis Control — Monoester</p>
             </div>
-            <p class="text-xs text-teal-200">IoT Monitoring & Supervisory Control — Monoester</p>
           </div>
         </div>
-        <div class="flex flex-wrap items-center gap-2 text-xs">
-          <span id="mqtt-badge" class="rounded-full bg-slate-800 px-3 py-1.5 font-medium"><i class="fa-solid fa-circle mr-1.5 text-slate-400"></i> MQTT: Checking...</span>
-          <span id="run-badge" class="rounded-full bg-slate-800 px-3 py-1.5 font-bold uppercase">STANDBY</span>
-          <span id="user-display" class="rounded-full bg-teal-950 px-3 py-1.5 font-medium text-teal-200"></span>
-          <button id="logout-button" class="rounded-lg bg-slate-800 px-3 py-1.5 font-semibold text-slate-200 transition hover:bg-slate-700 hover:text-white"><i class="fa-solid fa-right-from-bracket mr-1"></i> <span id="logout-text">Sign Out</span></button>
+
+        <div class="flex items-center gap-2 text-xs">
+          <span id="mqtt-badge" class="hidden sm:inline-flex items-center rounded-full bg-slate-800/80 px-2.5 py-1 text-[11px] font-medium"><i class="fa-solid fa-circle mr-1.5 text-slate-400"></i> MQTT: Checking</span>
+          <span id="run-badge" class="rounded-full bg-slate-800 px-2.5 py-1 text-[11px] font-bold uppercase">STANDBY</span>
+          <span id="user-display" class="hidden md:inline-block rounded-full bg-teal-950 px-2.5 py-1 text-[11px] font-medium text-teal-200"></span>
+          <button id="logout-button" class="rounded-lg bg-slate-800 px-2.5 py-1 text-[11px] font-semibold text-slate-200 transition hover:bg-slate-700 hover:text-white">
+            <i class="fa-solid fa-right-from-bracket mr-1"></i> <span id="logout-text">Sign Out</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Demo Mode Notice Banner -->
+      <div id="demo-banner" class="hidden bg-gradient-to-r from-indigo-700 via-purple-700 to-indigo-800 text-white py-1.5 px-4 text-xs border-t border-indigo-600/50">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="rounded bg-white/20 px-1.5 py-0.5 font-bold text-[9px] uppercase tracking-wider">EXHIBITION GUEST MODE</span>
+            <span class="text-[11px]">Interactive sandbox with simulated physics. Real machine and database remain unaffected.</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="demo-fastforward-btn" class="rounded bg-white/20 px-2 py-0.5 text-[10px] font-bold transition hover:bg-white/30"><i class="fa-solid fa-forward-step mr-1"></i> Next Stage</button>
+            <button id="exit-demo-btn" class="rounded bg-white text-indigo-900 px-2 py-0.5 text-[10px] font-bold shadow-sm transition hover:bg-slate-100">Exit Demo</button>
+          </div>
         </div>
       </div>
     </header>
 
-    <!-- Demo Mode Info Notice (Only shown in demo mode) -->
-    <div id="demo-banner" class="hidden bg-gradient-to-r from-indigo-700 via-purple-700 to-indigo-800 text-white py-2 px-4 shadow-sm text-xs">
-      <div class="mx-auto max-w-7xl flex flex-wrap items-center justify-between gap-2">
-        <div class="flex items-center gap-2">
-          <span class="rounded bg-white/20 px-2 py-0.5 font-bold text-[10px] uppercase tracking-wider">EXHIBITION GUEST MODE</span>
-          <span>You are exploring the live interactive simulation with simulated physics. Real machine and database remain unaffected.</span>
+    <!-- Main Layout Container: Sidebar + Content Views -->
+    <div class="flex flex-1 relative overflow-hidden">
+      
+      <!-- SIDEBAR NAVIGATION -->
+      <aside id="sidebar-menu" class="fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 text-slate-300 transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-200 ease-in-out flex flex-col justify-between shadow-xl pt-14 lg:pt-0">
+        <div class="p-4 space-y-6">
+          <div class="space-y-1">
+            <p class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Navigation Menu</p>
+            <nav class="space-y-1 mt-2">
+              <button data-view="dashboard" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold bg-teal-800 text-white shadow-sm transition">
+                <i class="fa-solid fa-gauge-high w-4 text-center text-teal-300"></i>
+                <span>Live Dashboard</span>
+              </button>
+              <button data-view="calculator" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                <i class="fa-solid fa-calculator w-4 text-center text-indigo-400"></i>
+                <span>Stoichiometry Calculator</span>
+              </button>
+              <button data-view="energy" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                <i class="fa-solid fa-bolt w-4 text-center text-amber-400"></i>
+                <span>Energy & Power Monitor</span>
+              </button>
+              <button data-view="comparison" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                <i class="fa-solid fa-chart-line w-4 text-center text-cyan-400"></i>
+                <span>Multi-Batch Analytics</span>
+              </button>
+              <button data-view="logs" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                <i class="fa-solid fa-file-waveform w-4 text-center text-emerald-400"></i>
+                <span>Data Logs & Export</span>
+              </button>
+            </nav>
+          </div>
+
+          <!-- Batch Formulation Card Widget in Sidebar -->
+          <div class="rounded-xl bg-slate-800/80 p-3 border border-slate-700/60 text-xs">
+            <div class="flex items-center justify-between text-slate-300 border-b border-slate-700 pb-2 mb-2">
+              <span class="font-bold text-[11px] text-teal-400"><i class="fa-solid fa-vial mr-1.5"></i>Active Recipe</span>
+              <span id="sidebar-ratio-badge" class="rounded bg-teal-900/80 text-teal-300 px-1.5 py-0.5 text-[9px] font-bold">1:8 Mol</span>
+            </div>
+            <div class="space-y-1.5 text-[11px]">
+              <div class="flex justify-between"><span class="text-slate-400">Alcohol:</span><span id="sb-alc-val" class="font-semibold text-slate-200">Isopropanol (1 L)</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Acid:</span><span id="sb-acid-val" class="font-semibold text-slate-200">Palmitic Acid (706 g)</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Catalyst (4%):</span><span id="sb-cat-val" class="font-semibold text-amber-300">H2SO4 (~40 ml)</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Water (10%):</span><span id="sb-water-val" class="font-semibold text-cyan-300">Pure Water (~100 ml)</span></div>
+            </div>
+          </div>
         </div>
-        <div class="flex items-center gap-2">
-          <button id="demo-fastforward-btn" class="rounded bg-white/20 px-2.5 py-1 text-[11px] font-bold transition hover:bg-white/30"><i class="fa-solid fa-forward-step mr-1"></i> Next Stage</button>
-          <button id="exit-demo-btn" class="rounded bg-white text-indigo-900 px-2.5 py-1 text-[11px] font-bold shadow-sm transition hover:bg-slate-100">Exit Demo</button>
+
+        <!-- Sidebar Footer -->
+        <div class="p-4 border-t border-slate-800 text-[10px] text-slate-400 text-center">
+          <p>Esterification Synthesis Lab</p>
+          <p class="mt-0.5 text-slate-400">PSU 12V 10A · MQTT Telemetry</p>
         </div>
-      </div>
+      </aside>
+
+      <!-- Sidebar Backdrop on Mobile -->
+      <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 hidden lg:hidden"></div>
+
+      <!-- MAIN CONTENT VIEW CONTAINER -->
+      <main class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+
+        <!-- Banner Anomaly Alert -->
+        <section id="anomaly-banner" class="hidden rounded-xl border-2 border-red-600 bg-red-100 p-4 text-red-900 shadow-lg warning-flash">
+          <div class="flex items-start justify-between gap-3">
+            <div><h2 class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>ANOMALY DETECTED</h2><p id="anomaly-text" class="mt-1 text-sm"></p></div>
+            <button id="hide-anomaly" class="rounded bg-red-700 px-3 py-1 text-xs font-bold text-white transition hover:bg-red-800">Dismiss</button>
+          </div>
+        </section>
+
+        <!-- =================================================================== -->
+        <!-- VIEW 1: LIVE DASHBOARD -->
+        <!-- =================================================================== -->
+        <section id="view-dashboard" class="content-view space-y-6">
+          
+          <!-- Key Metrics Row -->
+          <div class="grid grid-cols-2 gap-3 lg:grid-cols-5">
+            <article class="rounded-xl border-l-4 border-red-500 bg-white p-4 shadow-sm">
+              <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-wider text-slate-500">Temperature</span><i class="fa-solid fa-temperature-half text-red-500 text-lg"></i></div>
+              <p class="mt-2"><span id="temp-value" class="text-3xl font-extrabold text-slate-800">0.0</span> <span class="text-sm font-semibold text-slate-500">°C</span></p>
+              <p id="temp-subtext" class="mt-1 text-[11px] text-slate-500">Set Point: 60 / 100 / 120 °C (±10%)</p>
+            </article>
+            <article class="rounded-xl border-l-4 border-blue-500 bg-white p-4 shadow-sm">
+              <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-wider text-slate-500">Agitation Speed</span><i class="fa-solid fa-arrows-rotate text-blue-500 text-lg"></i></div>
+              <p class="mt-2"><span id="rpm-value" class="text-3xl font-extrabold text-slate-800">0</span> <span class="text-sm font-semibold text-slate-500">RPM</span></p>
+              <p id="rpm-subtext" class="mt-1 text-[11px] text-slate-500">Mixing & Oil Treatment: 250 ±10%</p>
+            </article>
+            <article class="rounded-xl border-l-4 border-amber-500 bg-white p-4 shadow-sm">
+              <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-wider text-slate-500">Motor Current</span><i class="fa-solid fa-bolt text-amber-500 text-lg"></i></div>
+              <p class="mt-2"><span id="current-value" class="text-3xl font-extrabold text-slate-800">0.00</span> <span class="text-sm font-semibold text-slate-500">A</span></p>
+              <p id="current-subtext" class="mt-1 text-[11px] text-slate-500">Set Point: 2.0 A (PSU 12V Load)</p>
+            </article>
+            <article class="rounded-xl border-l-4 border-emerald-500 bg-white p-4 shadow-sm">
+              <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-wider text-slate-500">Liquid Volume</span><i class="fa-solid fa-flask text-emerald-500 text-lg"></i></div>
+              <p class="mt-2"><span id="vol-value" class="text-3xl font-extrabold text-slate-800">0.0</span> <span class="text-sm font-semibold text-slate-500">ml</span></p>
+              <p id="level-text" class="mt-1 text-[11px] text-slate-500">Final level: waiting (≥375 ml)</p>
+            </article>
+            <article class="col-span-2 rounded-xl border-l-4 border-teal-600 bg-white p-4 shadow-sm lg:col-span-1">
+              <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Elapsed</span><i class="fa-solid fa-stopwatch text-teal-600 text-lg"></i></div>
+              <p id="elapsed-value" class="mt-2 text-2xl font-extrabold text-slate-800">00:00:00</p>
+              <p id="last-update" class="mt-1 text-[11px] text-slate-500">No data received yet</p>
+            </article>
+          </div>
+
+          <!-- 2D ANIMATED REACTOR SCHEMATIC (DIGITAL TWIN) -->
+          <div class="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 p-5 text-white shadow-lg border border-slate-800">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
+              <div class="flex items-center gap-2.5">
+                <span class="grid h-8 w-8 place-items-center rounded-lg bg-teal-500/20 text-teal-400"><i class="fa-solid fa-cubes-stacked"></i></span>
+                <div>
+                  <h3 class="font-bold text-sm text-slate-100">2D Reactor Schematic & Digital Twin</h3>
+                  <p class="text-[11px] text-slate-400">Live animated physical visualization of actuators, fluid level & heating mantle</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 text-xs">
+                <span id="dt-stage-pill" class="rounded-full bg-teal-900/90 text-teal-300 px-3 py-1 font-bold border border-teal-700/50">Stage 1: Mixing</span>
+                <span id="dt-power-pill" class="rounded-full bg-amber-900/80 text-amber-300 px-3 py-1 font-bold border border-amber-700/50">0.0 W (12V)</span>
+              </div>
+            </div>
+
+            <div class="grid lg:grid-cols-12 gap-6 items-center">
+              <!-- Animated SVG Reactor Vessel Graphic -->
+              <div class="lg:col-span-8 flex justify-center items-center py-2">
+                <svg viewBox="0 0 520 280" class="w-full max-w-xl h-auto drop-shadow-2xl select-none" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Inflow Pipe: Catalyst -->
+                  <path d="M 60 40 L 150 40 L 150 90" fill="none" stroke="#475569" stroke-width="8" stroke-linecap="round"/>
+                  <path id="svg-flow-cat" d="M 60 40 L 150 40 L 150 90" fill="none" stroke="#2dd4bf" stroke-width="4" class="" stroke-linecap="round"/>
+                  <rect x="85" y="28" width="30" height="24" rx="4" fill="#0f172a" stroke="#64748b" stroke-width="2"/>
+                  <text x="100" y="44" fill="#94a3b8" font-size="9" text-anchor="middle" font-weight="bold">CAT</text>
+                  <circle id="svg-val-cat" cx="100" cy="20" r="4" fill="#ef4444"/>
+
+                  <!-- Outflow Pipe: Separator -->
+                  <path d="M 370 210 L 440 210 L 440 250" fill="none" stroke="#475569" stroke-width="8" stroke-linecap="round"/>
+                  <path id="svg-flow-sep" d="M 370 210 L 440 210 L 440 250" fill="none" stroke="#a78bfa" stroke-width="4" class="" stroke-linecap="round"/>
+                  <rect x="390" y="198" width="30" height="24" rx="4" fill="#0f172a" stroke="#64748b" stroke-width="2"/>
+                  <text x="405" y="214" fill="#94a3b8" font-size="9" text-anchor="middle" font-weight="bold">SEP</text>
+                  <circle id="svg-val-sep" cx="405" cy="190" r="4" fill="#ef4444"/>
+
+                  <!-- Heating Mantle (Outer Jacket) -->
+                  <path id="svg-heater-jacket" d="M 170 110 C 170 240, 350 240, 350 110 Z" fill="none" stroke="#ef4444" stroke-width="6" stroke-dasharray="8 4" opacity="0.3"/>
+
+                  <!-- Main Reactor Tank Body -->
+                  <path d="M 180 90 L 180 200 C 180 235, 340 235, 340 200 L 340 90 Z" fill="#1e293b" stroke="#64748b" stroke-width="4" opacity="0.9"/>
+                  
+                  <!-- Liquid Fluid in Tank -->
+                  <path id="svg-fluid" d="M 184 140 L 184 198 C 184 228, 336 228, 336 198 L 336 140 Z" fill="url(#fluid-grad)" opacity="0.85"/>
+
+                  <!-- Stirrer Motor Top -->
+                  <rect x="235" y="25" width="50" height="35" rx="5" fill="#334155" stroke="#94a3b8" stroke-width="2"/>
+                  <text x="260" y="46" fill="#f8fafc" font-size="10" text-anchor="middle" font-weight="bold">MOTOR</text>
+                  <circle id="svg-motor-led" cx="275" cy="35" r="3" fill="#ef4444"/>
+
+                  <!-- Stirrer Shaft -->
+                  <line x1="260" y1="60" x2="260" y2="195" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"/>
+
+                  <!-- Stirrer Impeller Blades (Animated group) -->
+                  <g id="svg-impeller-group" transform="translate(260, 190)">
+                    <ellipse id="svg-blade-1" cx="0" cy="0" rx="36" ry="7" fill="#38bdf8" opacity="0.9"/>
+                    <line x1="-34" y1="0" x2="34" y2="0" stroke="#ffffff" stroke-width="2"/>
+                    <circle cx="0" cy="0" r="5" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+                  </g>
+
+                  <!-- Final Product Beaker -->
+                  <rect x="420" y="240" width="40" height="35" rx="3" fill="#1e293b" stroke="#64748b" stroke-width="2"/>
+                  <rect id="svg-beaker-liquid" x="422" y="260" width="36" height="13" rx="2" fill="#10b981" opacity="0.8"/>
+                  <text x="440" y="272" fill="#ffffff" font-size="8" text-anchor="middle" font-weight="bold">375ml</text>
+
+                  <!-- Gradients & Filters -->
+                  <defs>
+                    <linearGradient id="fluid-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="#0284c7" stop-opacity="0.8"/>
+                      <stop offset="100%" stop-color="#0369a1" stop-opacity="0.95"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+
+              <!-- Digital Twin Status Cards -->
+              <div class="lg:col-span-4 space-y-2.5">
+                <div class="rounded-xl bg-slate-800/80 p-3 border border-slate-700">
+                  <span class="text-[10px] uppercase tracking-wider font-bold text-slate-400">Actuator States</span>
+                  <div class="grid grid-cols-2 gap-2 mt-2 text-xs">
+                    <div class="flex items-center gap-2"><span id="led-motor" class="h-2.5 w-2.5 rounded-full bg-slate-500"></span><span>Stirrer Motor</span></div>
+                    <div class="flex items-center gap-2"><span id="led-heater" class="h-2.5 w-2.5 rounded-full bg-slate-500"></span><span>Heater Coils</span></div>
+                    <div class="flex items-center gap-2"><span id="led-catalyst" class="h-2.5 w-2.5 rounded-full bg-slate-500"></span><span>Catalyst Valve</span></div>
+                    <div class="flex items-center gap-2"><span id="led-separator" class="h-2.5 w-2.5 rounded-full bg-slate-500"></span><span>Separator Valve</span></div>
+                  </div>
+                </div>
+
+                <div class="rounded-xl bg-slate-800/80 p-3 border border-slate-700 space-y-1.5 text-xs">
+                  <div class="flex justify-between"><span class="text-slate-400">Motor Speed:</span><span id="dt-rpm" class="font-bold text-cyan-400">0 RPM</span></div>
+                  <div class="flex justify-between"><span class="text-slate-400">Core Temp:</span><span id="dt-temp" class="font-bold text-red-400">0.0 °C</span></div>
+                  <div class="flex justify-between"><span class="text-slate-400">Tank Volume:</span><span id="dt-vol" class="font-bold text-emerald-400">0.0 ml</span></div>
+                  <div class="flex justify-between"><span class="text-slate-400">PSU 12V Current:</span><span id="dt-current" class="font-bold text-amber-400">0.00 A</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PRODUCTION STAGE TIMELINE WITH PROGRESS BAR & LIVE COUNTDOWN -->
+          <section class="rounded-xl bg-white p-5 shadow-sm space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <h2 class="text-base font-bold text-slate-800"><i class="fa-solid fa-timeline mr-2 text-teal-700"></i>Production Stage Timeline & ETA</h2>
+                <p id="stage-status" class="text-xs text-slate-500">Waiting for sensor data</p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-semibold text-teal-800"><i class="fa-solid fa-circle-info mr-1"></i>Click stage card for set point & average modal</span>
+                <span id="batch-label" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">Batch: -</span>
+              </div>
+            </div>
+
+            <!-- Active Stage Progress Bar Card -->
+            <div class="rounded-xl bg-slate-50 border border-slate-200/80 p-4 space-y-2">
+              <div class="flex flex-wrap items-center justify-between text-xs font-bold text-slate-700 gap-2">
+                <span id="active-stage-countdown-title">Current Stage Progress</span>
+                <span id="active-stage-countdown-time" class="text-teal-700">00:00:00 / 00:30:00 (0%)</span>
+              </div>
+              <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden shadow-inner">
+                <div id="active-stage-progress-bar" class="bg-gradient-to-r from-teal-600 to-cyan-500 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+              <div class="flex justify-between text-[11px] text-slate-500">
+                <span id="active-stage-eta">ETA: Calculating...</span>
+                <span id="active-stage-overtime" class="font-semibold text-amber-600"></span>
+              </div>
+            </div>
+
+            <!-- 6 Stage Timeline Cards -->
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-6" id="stage-timeline">
+              <!-- Dynamically rendered -->
+            </div>
+          </section>
+
+          <!-- 4 SEPARATE PARAMETER CHARTS (2x2 GRID) -->
+          <section class="grid gap-4 md:grid-cols-2">
+            <!-- 1. Temperature Chart -->
+            <article class="flex flex-col rounded-xl bg-white p-4 shadow-sm">
+              <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="grid h-8 w-8 place-items-center rounded-lg bg-red-100 text-red-600"><i class="fa-solid fa-temperature-half"></i></span>
+                  <div>
+                    <h3 class="font-bold text-slate-800 text-sm">Temperature Chart (°C)</h3>
+                    <p class="text-[11px] text-slate-400">Target: 60 / 100 / 120 °C (±10%)</p>
+                  </div>
+                </div>
+                <select data-chart="temp" class="chart-filter rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-teal-600">
+                  <option value="all">🌐 All Stages (Full Process)</option>
+                  <option value="current">📍 Current Active Stage Only</option>
+                  <option value="1">Stage 1: Mixing</option>
+                  <option value="2">Stage 2: Add Catalyst</option>
+                  <option value="3">Stage 3: Reflux</option>
+                  <option value="4">Stage 4: Separation</option>
+                  <option value="5">Stage 5: Oil Treatment</option>
+                  <option value="6">Stage 6: Filtration</option>
+                </select>
+              </div>
+              <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500">
+                <span>Data window range:</span>
+                <span id="slider-temp-label" class="font-semibold text-teal-700">100 points</span>
+              </div>
+              <input data-chart="temp" type="range" min="20" max="400" value="100" class="chart-slider mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-700">
+              <div class="overflow-x-auto rounded-lg border border-slate-100 p-2">
+                <div class="h-60 min-w-[420px]"><canvas id="chart-temp"></canvas></div>
+              </div>
+            </article>
+
+            <!-- 2. Agitation Speed Chart -->
+            <article class="flex flex-col rounded-xl bg-white p-4 shadow-sm">
+              <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="grid h-8 w-8 place-items-center rounded-lg bg-blue-100 text-blue-600"><i class="fa-solid fa-arrows-rotate"></i></span>
+                  <div>
+                    <h3 class="font-bold text-slate-800 text-sm">Agitation Speed Chart (RPM)</h3>
+                    <p class="text-[11px] text-slate-400">Target: 250 RPM (±10%)</p>
+                  </div>
+                </div>
+                <select data-chart="rpm" class="chart-filter rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-teal-600">
+                  <option value="all">🌐 All Stages (Full Process)</option>
+                  <option value="current">📍 Current Active Stage Only</option>
+                  <option value="1">Stage 1: Mixing</option>
+                  <option value="2">Stage 2: Add Catalyst</option>
+                  <option value="3">Stage 3: Reflux</option>
+                  <option value="4">Stage 4: Separation</option>
+                  <option value="5">Stage 5: Oil Treatment</option>
+                  <option value="6">Stage 6: Filtration</option>
+                </select>
+              </div>
+              <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500">
+                <span>Data window range:</span>
+                <span id="slider-rpm-label" class="font-semibold text-teal-700">100 points</span>
+              </div>
+              <input data-chart="rpm" type="range" min="20" max="400" value="100" class="chart-slider mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-700">
+              <div class="overflow-x-auto rounded-lg border border-slate-100 p-2">
+                <div class="h-60 min-w-[420px]"><canvas id="chart-rpm"></canvas></div>
+              </div>
+            </article>
+
+            <!-- 3. Motor Current Chart -->
+            <article class="flex flex-col rounded-xl bg-white p-4 shadow-sm">
+              <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="grid h-8 w-8 place-items-center rounded-lg bg-amber-100 text-amber-600"><i class="fa-solid fa-bolt"></i></span>
+                  <div>
+                    <h3 class="font-bold text-slate-800 text-sm">Motor Current Chart (A)</h3>
+                    <p class="text-[11px] text-slate-400">Set Point: 2.0 A (Range 0.0–3.2 A)</p>
+                  </div>
+                </div>
+                <select data-chart="current" class="chart-filter rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-teal-600">
+                  <option value="all">🌐 All Stages (Full Process)</option>
+                  <option value="current">📍 Current Active Stage Only</option>
+                  <option value="1">Stage 1: Mixing</option>
+                  <option value="2">Stage 2: Add Catalyst</option>
+                  <option value="3">Stage 3: Reflux</option>
+                  <option value="4">Stage 4: Separation</option>
+                  <option value="5">Stage 5: Oil Treatment</option>
+                  <option value="6">Stage 6: Filtration</option>
+                </select>
+              </div>
+              <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500">
+                <span>Data window range:</span>
+                <span id="slider-current-label" class="font-semibold text-teal-700">100 points</span>
+              </div>
+              <input data-chart="current" type="range" min="20" max="400" value="100" class="chart-slider mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-700">
+              <div class="overflow-x-auto rounded-lg border border-slate-100 p-2">
+                <div class="h-60 min-w-[420px]"><canvas id="chart-current"></canvas></div>
+              </div>
+            </article>
+
+            <!-- 4. Liquid Volume Chart -->
+            <article class="flex flex-col rounded-xl bg-white p-4 shadow-sm">
+              <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="grid h-8 w-8 place-items-center rounded-lg bg-emerald-100 text-emerald-600"><i class="fa-solid fa-flask"></i></span>
+                  <div>
+                    <h3 class="font-bold text-slate-800 text-sm">Liquid Volume Chart (ml)</h3>
+                    <p class="text-[11px] text-slate-400">Target Filtration: ≥375 ml</p>
+                  </div>
+                </div>
+                <select data-chart="vol" class="chart-filter rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-teal-600">
+                  <option value="all">🌐 All Stages (Full Process)</option>
+                  <option value="current">📍 Current Active Stage Only</option>
+                  <option value="1">Stage 1: Mixing</option>
+                  <option value="2">Stage 2: Add Catalyst</option>
+                  <option value="3">Stage 3: Reflux</option>
+                  <option value="4">Stage 4: Separation</option>
+                  <option value="5">Stage 5: Oil Treatment</option>
+                  <option value="6">Stage 6: Filtration</option>
+                </select>
+              </div>
+              <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500">
+                <span>Data window range:</span>
+                <span id="slider-vol-label" class="font-semibold text-teal-700">100 points</span>
+              </div>
+              <input data-chart="vol" type="range" min="20" max="400" value="100" class="chart-slider mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-700">
+              <div class="overflow-x-auto rounded-lg border border-slate-100 p-2">
+                <div class="h-60 min-w-[420px]"><canvas id="chart-vol"></canvas></div>
+              </div>
+            </article>
+          </section>
+
+          <!-- Process Controls & Actuators -->
+          <section class="grid gap-6 lg:grid-cols-2">
+            <section class="rounded-xl bg-white p-4 shadow-sm">
+              <h2 class="font-bold text-slate-800"><i class="fa-solid fa-gamepad mr-2 text-teal-700"></i>Process Controls</h2>
+              <p class="mt-1 text-xs text-slate-500">Commands dispatched to ESP32/simulator via MQTT control topics.</p>
+              <label class="mt-4 block text-sm font-semibold">Batch Code
+                <input id="batch-code-input" placeholder="e.g. BATCH-2026-001" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-teal-600">
+              </label>
+              <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                <button data-command="start" class="control-button rounded-lg bg-teal-700 px-3 py-2 text-sm font-bold text-white transition hover:bg-teal-800"><i class="fa-solid fa-play mr-1"></i> Start</button>
+                <button data-command="pause" class="control-button rounded-lg bg-amber-500 px-3 py-2 text-sm font-bold text-slate-900 transition hover:bg-amber-600"><i class="fa-solid fa-pause mr-1"></i> Pause</button>
+                <button data-command="resume" class="control-button rounded-lg bg-cyan-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-cyan-700"><i class="fa-solid fa-play mr-1"></i> Resume</button>
+                <button data-command="restart" class="control-button rounded-lg bg-slate-700 px-3 py-2 text-sm font-bold text-white transition hover:bg-slate-800"><i class="fa-solid fa-rotate-right mr-1"></i> Restart</button>
+                <button data-command="reset_emergency" class="control-button rounded-lg bg-violet-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-violet-700"><i class="fa-solid fa-unlock mr-1"></i> Reset Stop</button>
+                <button id="emergency-button" class="rounded-lg bg-red-700 px-3 py-2 text-sm font-bold text-white transition hover:bg-red-800"><i class="fa-solid fa-power-off mr-1"></i> EMERGENCY</button>
+              </div>
+              <div class="mt-3 flex items-center justify-between">
+                <button id="send-summary-telegram-btn" class="text-xs font-semibold text-teal-700 hover:text-teal-900 underline"><i class="fa-brands fa-telegram mr-1"></i> Send Batch Summary to Telegram</button>
+                <p id="control-message" class="text-xs text-slate-500"></p>
+              </div>
+            </section>
+
+            <section class="rounded-xl bg-white p-4 shadow-sm">
+              <h2 class="font-bold text-slate-800"><i class="fa-solid fa-sliders mr-2 text-teal-700"></i>Actuators Status & Manual Toggle</h2>
+              <p class="mt-1 text-xs text-slate-500">Toggles provide manual overrides and log events to sensor payloads.</p>
+              <div class="mt-4 space-y-2.5">
+                <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-fan mr-2 text-blue-600"></i>Stirrer Motor</span><input data-actuator="motor" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+                <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-fire-flame-simple mr-2 text-red-600"></i>Heater Element</span><input data-actuator="heater" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+                <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-faucet-drip mr-2 text-teal-600"></i>Catalyst Valve</span><input data-actuator="catalyst_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+                <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-filter mr-2 text-violet-600"></i>Separator Valve</span><input data-actuator="separator_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+              </div>
+            </section>
+          </section>
+        </section>
+
+        <!-- =================================================================== -->
+        <!-- VIEW 2: STOICHIOMETRY & REAGENTS CALCULATOR -->
+        <!-- =================================================================== -->
+        <section id="view-calculator" class="content-view hidden space-y-6">
+          <div class="rounded-2xl bg-white p-6 shadow-sm border border-slate-200/80">
+            <div class="border-b border-slate-100 pb-4 mb-6">
+              <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 place-items-center rounded-xl bg-indigo-100 text-indigo-700 text-xl"><i class="fa-solid fa-calculator"></i></span>
+                <div>
+                  <h2 class="text-lg font-bold text-slate-800">Stoichiometry & Reagents Ratio Calculator</h2>
+                  <p class="text-xs text-slate-500">Calculate 1 : 8 mole ratio (Alcohol : Carboxylic Acid), 4% catalyst volume, and 10% washing water</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-6">
+              <!-- Reactant 1: Alcohol -->
+              <div class="rounded-xl bg-slate-50 p-4 border border-slate-200/80 space-y-3">
+                <div class="flex items-center justify-between">
+                  <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2"><i class="fa-solid fa-wine-bottle text-indigo-600"></i>Reactant 1: Alcohol (Target 1 Mol)</h3>
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">Reagent A</span>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600">Preset or Custom Name</label>
+                  <select id="calc-alc-preset" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold outline-none focus:border-indigo-600">
+                    <option value="isopropanol" data-mw="60.10" data-rho="0.786">Isopropanol (MW: 60.10 g/mol, ρ: 0.786 g/ml)</option>
+                    <option value="methanol" data-mw="32.04" data-rho="0.792">Methanol (MW: 32.04 g/mol, ρ: 0.792 g/ml)</option>
+                    <option value="ethanol" data-mw="46.07" data-rho="0.789">Ethanol (MW: 46.07 g/mol, ρ: 0.789 g/ml)</option>
+                    <option value="butanol" data-mw="74.12" data-rho="0.810">1-Butanol (MW: 74.12 g/mol, ρ: 0.810 g/ml)</option>
+                    <option value="custom">Custom Reagent...</option>
+                  </select>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[11px] font-semibold text-slate-600">Reagent Name</label>
+                    <input id="calc-alc-name" value="Isopropanol" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-indigo-600">
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-semibold text-slate-600">Molecular Weight (g/mol)</label>
+                    <input id="calc-alc-mw" type="number" step="0.01" value="60.10" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-indigo-600">
+                  </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                  <div class="col-span-2">
+                    <label class="block text-[11px] font-semibold text-slate-600">Input Amount</label>
+                    <input id="calc-alc-amount" type="number" step="0.1" value="1000" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-indigo-600">
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-semibold text-slate-600">Unit</label>
+                    <select id="calc-alc-unit" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-indigo-600">
+                      <option value="ml" selected>ml</option>
+                      <option value="l">Liter (L)</option>
+                      <option value="g">gram (g)</option>
+                      <option value="kg">kg</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Reactant 2: Carboxylic Acid -->
+              <div class="rounded-xl bg-slate-50 p-4 border border-slate-200/80 space-y-3">
+                <div class="flex items-center justify-between">
+                  <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2"><i class="fa-solid fa-vial-circle-check text-indigo-600"></i>Reactant 2: Carboxylic Acid (Target 8 Mols)</h3>
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">Reagent B</span>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600">Preset or Custom Name</label>
+                  <select id="calc-acid-preset" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold outline-none focus:border-indigo-600">
+                    <option value="palmitic" data-mw="256.42" data-rho="0.852">Palmitic Acid (MW: 256.42 g/mol, ρ: 0.852 g/ml)</option>
+                    <option value="stearic" data-mw="284.48" data-rho="0.847">Stearic Acid (MW: 284.48 g/mol, ρ: 0.847 g/ml)</option>
+                    <option value="oleic" data-mw="282.46" data-rho="0.895">Oleic Acid (MW: 282.46 g/mol, ρ: 0.895 g/ml)</option>
+                    <option value="lauric" data-mw="200.32" data-rho="0.883">Lauric Acid (MW: 200.32 g/mol, ρ: 0.883 g/ml)</option>
+                    <option value="custom">Custom Reagent...</option>
+                  </select>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[11px] font-semibold text-slate-600">Reagent Name</label>
+                    <input id="calc-acid-name" value="Palmitic Acid" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-indigo-600">
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-semibold text-slate-600">Molecular Weight (g/mol)</label>
+                    <input id="calc-acid-mw" type="number" step="0.01" value="256.42" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-indigo-600">
+                  </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                  <div class="col-span-2">
+                    <label class="block text-[11px] font-semibold text-slate-600">Input Amount</label>
+                    <input id="calc-acid-amount" type="number" step="0.1" value="706" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-indigo-600">
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-semibold text-slate-600">Unit</label>
+                    <select id="calc-acid-unit" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-indigo-600">
+                      <option value="g" selected>gram (g)</option>
+                      <option value="kg">kg</option>
+                      <option value="ml">ml</option>
+                      <option value="l">Liter (L)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Calculation Output & Evaluation Box -->
+            <div class="mt-6 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 p-5 text-white space-y-4">
+              <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-bold text-indigo-400"><i class="fa-solid fa-chart-pie mr-1.5"></i>Stoichiometric Evaluation</span>
+                  <span id="calc-eval-badge" class="rounded-full bg-emerald-500/20 text-emerald-300 px-3 py-0.5 text-xs font-bold border border-emerald-500/40">Checking...</span>
+                </div>
+                <button id="calc-apply-recipe-btn" class="rounded-lg bg-teal-600 px-4 py-2 text-xs font-bold text-white shadow-md transition hover:bg-teal-700 active:scale-[0.98]">
+                  <i class="fa-solid fa-floppy-disk mr-1.5"></i> Apply Recipe to Batch & PDF
+                </button>
+              </div>
+
+              <!-- Metrics Calculation Grid -->
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <div class="rounded-xl bg-slate-800/80 p-3 border border-slate-700">
+                  <span class="text-slate-400">Alcohol Moles:</span>
+                  <p id="calc-res-alc-mols" class="text-base font-bold text-indigo-300 mt-0.5">0.00 mol</p>
+                  <p id="calc-res-alc-mass" class="text-[10px] text-slate-500">Mass: 0 g</p>
+                </div>
+                <div class="rounded-xl bg-slate-800/80 p-3 border border-slate-700">
+                  <span class="text-slate-400">Acid Moles:</span>
+                  <p id="calc-res-acid-mols" class="text-base font-bold text-indigo-300 mt-0.5">0.00 mol</p>
+                  <p id="calc-res-acid-mass" class="text-[10px] text-slate-500">Mass: 0 g</p>
+                </div>
+                <div class="rounded-xl bg-slate-800/80 p-3 border border-slate-700">
+                  <span class="text-slate-400">Actual Molar Ratio:</span>
+                  <p id="calc-res-ratio" class="text-base font-bold text-amber-300 mt-0.5">1 : 0.00</p>
+                  <p class="text-[10px] text-slate-500">Target Ratio: 1 : 8.00</p>
+                </div>
+                <div class="rounded-xl bg-slate-800/80 p-3 border border-slate-700">
+                  <span class="text-slate-400">Est. Reaction Vol:</span>
+                  <p id="calc-res-total-vol" class="text-base font-bold text-emerald-300 mt-0.5">~0.0 ml</p>
+                  <p class="text-[10px] text-slate-500">Reagents Total</p>
+                </div>
+              </div>
+
+              <!-- Recommendation Box if Ratio Mismatch -->
+              <div id="calc-recommendation-box" class="rounded-xl bg-slate-800/90 border border-amber-600/40 p-3 text-xs space-y-1">
+                <span class="font-bold text-amber-400 flex items-center gap-1.5"><i class="fa-solid fa-wand-magic-sparkles"></i>Ratio Recommendation & Balancing:</span>
+                <p id="calc-recommendation-text" class="text-slate-300 text-[11px] leading-relaxed">Calculating balancing recommendations...</p>
+              </div>
+
+              <!-- Catalyst (4%) & Washing Water (10%) Requirements -->
+              <div class="grid md:grid-cols-2 gap-3 pt-2">
+                <div class="rounded-xl bg-slate-800/90 p-3 border border-slate-700 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="font-bold text-xs text-amber-300"><i class="fa-solid fa-droplet mr-1.5"></i>Catalyst Required (4% Volume)</span>
+                    <input id="calc-cat-name" value="H2SO4" class="rounded bg-slate-900 border border-slate-600 px-2 py-0.5 text-xs text-slate-200 font-bold w-24 text-right">
+                  </div>
+                  <p class="text-[11px] text-slate-400">Used for Stage 2 (Add Catalyst) & Stage 3 (Reflux Process):</p>
+                  <p class="text-lg font-bold text-amber-400"><span id="calc-cat-vol">0.0</span> ml <span class="text-xs text-slate-400 font-normal">(4% of total reaction volume)</span></p>
+                </div>
+
+                <div class="rounded-xl bg-slate-800/90 p-3 border border-slate-700 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="font-bold text-xs text-cyan-300"><i class="fa-solid fa-water mr-1.5"></i>Pure Water Required (10% Solution)</span>
+                    <span class="text-[10px] text-slate-400">Aquadest</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400">Used for Stage 4 (Separation & Washing Process):</p>
+                  <p class="text-lg font-bold text-cyan-400"><span id="calc-water-vol">0.0</span> ml <span class="text-xs text-slate-400 font-normal">(10% of total reaction solution)</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================== -->
+        <!-- VIEW 3: ENERGY & POWER MONITOR -->
+        <!-- =================================================================== -->
+        <section id="view-energy" class="content-view hidden space-y-6">
+          <div class="rounded-2xl bg-white p-6 shadow-sm border border-slate-200/80 space-y-6">
+            <div class="border-b border-slate-100 pb-4">
+              <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 place-items-center rounded-xl bg-amber-100 text-amber-700 text-xl"><i class="fa-solid fa-bolt"></i></span>
+                <div>
+                  <h2 class="text-lg font-bold text-slate-800">Energy & Power Consumption Analysis</h2>
+                  <p class="text-xs text-slate-500">Real-time load tracking for 12V 10A DC PSU, Stirrer Motor, Heater, and cumulative electricity cost</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Energy KPI Cards -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <article class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">PSU Specs</span>
+                <p class="mt-1 text-2xl font-bold text-slate-800">12V · 10A</p>
+                <p class="text-[11px] text-slate-500 mt-0.5">Max rated capacity: 120 W</p>
+              </article>
+              <article class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Motor Instant Power</span>
+                <p class="mt-1 text-2xl font-bold text-amber-600"><span id="energy-motor-watts">0.0</span> W</p>
+                <p class="text-[11px] text-slate-500 mt-0.5">P = 12V × Motor Current (A)</p>
+              </article>
+              <article class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Energy Consumed</span>
+                <p class="mt-1 text-2xl font-bold text-indigo-600"><span id="energy-kwh">0.0000</span> kWh</p>
+                <p id="energy-wh-label" class="text-[11px] text-slate-500 mt-0.5">~0.0 Watt-hours</p>
+              </article>
+              <article class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Estimated Electricity Cost</span>
+                <p class="mt-1 text-2xl font-bold text-emerald-600">Rp <span id="energy-cost-idr">0</span></p>
+                <p class="text-[11px] text-slate-500 mt-0.5">Tariff: Rp 1,444.70 / kWh</p>
+              </article>
+            </div>
+
+            <!-- Energy Breakdown Progress Bars -->
+            <div class="rounded-xl border border-slate-200 p-5 space-y-4">
+              <h3 class="font-bold text-sm text-slate-800">Power Distribution Breakdown</h3>
+              <div class="space-y-3 text-xs">
+                <div>
+                  <div class="flex justify-between font-semibold mb-1">
+                    <span>Stirrer Motor Load (12V DC)</span>
+                    <span id="energy-motor-pct">0% of 120W PSU</span>
+                  </div>
+                  <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                    <div id="energy-motor-bar" class="bg-amber-500 h-2.5 rounded-full" style="width: 0%"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between font-semibold mb-1">
+                    <span>Heating Mantle Load (AC Element ~150W)</span>
+                    <span id="energy-heater-status">OFF</span>
+                  </div>
+                  <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                    <div id="energy-heater-bar" class="bg-red-500 h-2.5 rounded-full" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================== -->
+        <!-- VIEW 4: MULTI-BATCH COMPARISON & ANALYTICS -->
+        <!-- =================================================================== -->
+        <section id="view-comparison" class="content-view hidden space-y-6">
+          <div class="rounded-2xl bg-white p-6 shadow-sm border border-slate-200/80 space-y-6">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 place-items-center rounded-xl bg-cyan-100 text-cyan-700 text-xl"><i class="fa-solid fa-chart-line"></i></span>
+                <div>
+                  <h2 class="text-lg font-bold text-slate-800">Multi-Batch Comparison & Analytics</h2>
+                  <p class="text-xs text-slate-500">Compare synthesis trajectories, yield, and parameters across different test batches</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <button id="btn-refresh-compare" class="rounded-lg bg-slate-800 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-900">
+                  <i class="fa-solid fa-arrows-rotate mr-1"></i> Refresh Batches
+                </button>
+              </div>
+            </div>
+
+            <!-- Batch Selector Row -->
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600">Batch A (Primary Reference)</label>
+                <select id="compare-batch-a" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold outline-none focus:border-cyan-600">
+                  <option value="">Select Batch A...</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600">Batch B (Comparison Target)</label>
+                <select id="compare-batch-b" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold outline-none focus:border-cyan-600">
+                  <option value="">Select Batch B...</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Comparative Overlay Charts -->
+            <div class="rounded-xl border border-slate-200 p-4 space-y-3">
+              <h3 class="font-bold text-sm text-slate-800">Temperature & RPM Trajectory Overlay</h3>
+              <div class="h-72 w-full"><canvas id="compare-chart"></canvas></div>
+            </div>
+
+            <!-- Comparative KPI Table -->
+            <div class="overflow-x-auto rounded-xl border border-slate-200">
+              <table class="min-w-full text-left text-xs">
+                <thead class="bg-slate-100 text-[11px] uppercase font-bold text-slate-600">
+                  <tr>
+                    <th class="p-3">Performance Metric</th>
+                    <th class="p-3" id="th-batch-a">Batch A</th>
+                    <th class="p-3" id="th-batch-b">Batch B</th>
+                    <th class="p-3">Variance / Remarks</th>
+                  </tr>
+                </thead>
+                <tbody id="compare-table-body" class="divide-y divide-slate-100">
+                  <tr><td colspan="4" class="p-4 text-center text-slate-400">Select two batches above to view comparative metrics.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================== -->
+        <!-- VIEW 5: DATA LOGS & EXPORT -->
+        <!-- =================================================================== -->
+        <section id="view-logs" class="content-view hidden space-y-6">
+          <div class="rounded-2xl bg-white p-6 shadow-sm border border-slate-200/80 space-y-4">
+            <div class="flex flex-wrap items-end justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <h2 class="font-bold text-base text-slate-800"><i class="fa-solid fa-table mr-2 text-teal-700"></i>Data Logs & Comprehensive Reports</h2>
+                <p class="text-xs text-slate-500">CSV contains raw telemetry; PDF includes formulation recipe, energy consumption, and statistical averages.</p>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <select id="batch-select" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold"><option value="">Active Batch</option></select>
+                <button id="load-batch" class="rounded-lg bg-slate-700 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800">Load</button>
+                <button id="download-csv" class="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700"><i class="fa-solid fa-file-csv mr-1"></i> Export CSV</button>
+                <button id="download-pdf" class="rounded-lg bg-orange-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-orange-700"><i class="fa-solid fa-file-pdf mr-1"></i> Export PDF Report</button>
+              </div>
+            </div>
+            <div class="overflow-x-auto"><table class="min-w-full text-left text-xs"><thead class="border-b bg-slate-50 text-[11px] uppercase text-slate-500"><tr><th class="p-2.5">Time</th><th class="p-2.5">Stage</th><th class="p-2.5">Temperature</th><th class="p-2.5">Speed</th><th class="p-2.5">Volume</th><th class="p-2.5">Current</th><th class="p-2.5">Level</th></tr></thead><tbody id="log-table"><tr><td class="p-3 text-slate-500" colspan="7">No telemetry data recorded yet.</td></tr></tbody></table></div>
+          </div>
+        </section>
+
+      </main>
     </div>
-
-    <main class="mx-auto max-w-7xl space-y-6 p-4 md:p-6">
-      <!-- Anomaly Alert Banner -->
-      <section id="anomaly-banner" class="hidden rounded-xl border-2 border-red-600 bg-red-100 p-4 text-red-900 shadow-lg warning-flash">
-        <div class="flex items-start justify-between gap-3">
-          <div><h2 class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>ANOMALY DETECTED</h2><p id="anomaly-text" class="mt-1 text-sm"></p></div>
-          <button id="hide-anomaly" class="rounded bg-red-700 px-3 py-1 text-xs font-bold text-white transition hover:bg-red-800">Dismiss</button>
-        </div>
-      </section>
-
-      <!-- Key Sensor Metric Cards -->
-      <section class="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <article class="rounded-xl border-l-4 border-red-500 bg-white p-4 shadow-sm">
-          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-wider text-slate-500">Temperature</span><i class="fa-solid fa-temperature-half text-red-500 text-lg"></i></div>
-          <p class="mt-2"><span id="temp-value" class="text-3xl font-extrabold text-slate-800">0.0</span> <span class="text-sm font-semibold text-slate-500">°C</span></p>
-          <p id="temp-subtext" class="mt-1 text-[11px] text-slate-500">Set Point: 60 / 100 / 120 °C (±10%)</p>
-        </article>
-        <article class="rounded-xl border-l-4 border-blue-500 bg-white p-4 shadow-sm">
-          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-wider text-slate-500">Agitation Speed</span><i class="fa-solid fa-arrows-rotate text-blue-500 text-lg"></i></div>
-          <p class="mt-2"><span id="rpm-value" class="text-3xl font-extrabold text-slate-800">0</span> <span class="text-sm font-semibold text-slate-500">RPM</span></p>
-          <p id="rpm-subtext" class="mt-1 text-[11px] text-slate-500">Mixing & Oil Treatment: 250 ±10%</p>
-        </article>
-        <article class="rounded-xl border-l-4 border-amber-500 bg-white p-4 shadow-sm">
-          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-wider text-slate-500">Motor Current</span><i class="fa-solid fa-bolt text-amber-500 text-lg"></i></div>
-          <p class="mt-2"><span id="current-value" class="text-3xl font-extrabold text-slate-800">0.00</span> <span class="text-sm font-semibold text-slate-500">A</span></p>
-          <p id="current-subtext" class="mt-1 text-[11px] text-slate-500">Set Point: 2.0 A (Range: 0.0–3.2 A)</p>
-        </article>
-        <article class="rounded-xl border-l-4 border-emerald-500 bg-white p-4 shadow-sm">
-          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-wider text-slate-500">Liquid Volume</span><i class="fa-solid fa-flask text-emerald-500 text-lg"></i></div>
-          <p class="mt-2"><span id="vol-value" class="text-3xl font-extrabold text-slate-800">0.0</span> <span class="text-sm font-semibold text-slate-500">ml</span></p>
-          <p id="level-text" class="mt-1 text-[11px] text-slate-500">Final level: waiting (≥375 ml)</p>
-        </article>
-        <article class="col-span-2 rounded-xl border-l-4 border-teal-600 bg-white p-4 shadow-sm lg:col-span-1">
-          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-wider text-slate-500">Elapsed Time</span><i class="fa-solid fa-stopwatch text-teal-600 text-lg"></i></div>
-          <p id="elapsed-value" class="mt-2 text-2xl font-extrabold text-slate-800">00:00:00</p>
-          <p id="last-update" class="mt-1 text-[11px] text-slate-500">No data received yet</p>
-        </article>
-      </section>
-
-      <!-- PRODUCTION STAGE TIMELINE -->
-      <section class="rounded-xl bg-white p-5 shadow-sm">
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-          <div>
-            <h2 class="text-base font-bold text-slate-800"><i class="fa-solid fa-timeline mr-2 text-teal-700"></i>Production Stage Timeline</h2>
-            <p id="stage-status" class="text-xs text-slate-500">Waiting for sensor data</p>
-          </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-semibold text-teal-800"><i class="fa-solid fa-circle-info mr-1"></i>Click any stage card to analyze set points & actual averages</span>
-            <span id="batch-label" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">Batch: -</span>
-          </div>
-        </div>
-
-        <!-- 6 Stage Timeline Cards -->
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-6" id="stage-timeline">
-          <!-- Dynamically rendered by renderTimeline() -->
-        </div>
-      </section>
-
-      <!-- 4 SEPARATE PARAMETER CHARTS (2x2 GRID) -->
-      <section class="grid gap-4 md:grid-cols-2">
-        <!-- 1. Temperature Chart -->
-        <article class="flex flex-col rounded-xl bg-white p-4 shadow-sm">
-          <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <span class="grid h-8 w-8 place-items-center rounded-lg bg-red-100 text-red-600"><i class="fa-solid fa-temperature-half"></i></span>
-              <div>
-                <h3 class="font-bold text-slate-800 text-sm">Temperature Chart (°C)</h3>
-                <p class="text-[11px] text-slate-400">Target: 60 / 100 / 120 °C (±10%)</p>
-              </div>
-            </div>
-            <select data-chart="temp" class="chart-filter rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-teal-600">
-              <option value="all">🌐 All Stages (Full Process)</option>
-              <option value="current">📍 Current Active Stage Only</option>
-              <option value="1">Stage 1: Mixing</option>
-              <option value="2">Stage 2: Add Catalyst</option>
-              <option value="3">Stage 3: Reflux</option>
-              <option value="4">Stage 4: Separation</option>
-              <option value="5">Stage 5: Oil Treatment</option>
-              <option value="6">Stage 6: Filtration</option>
-            </select>
-          </div>
-          <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Data window range:</span>
-            <span id="slider-temp-label" class="font-semibold text-teal-700">100 points</span>
-          </div>
-          <input data-chart="temp" type="range" min="20" max="400" value="100" class="chart-slider mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-700">
-          <div class="overflow-x-auto rounded-lg border border-slate-100 p-2">
-            <div class="h-60 min-w-[420px]"><canvas id="chart-temp"></canvas></div>
-          </div>
-        </article>
-
-        <!-- 2. Agitation Speed Chart (RPM) -->
-        <article class="flex flex-col rounded-xl bg-white p-4 shadow-sm">
-          <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <span class="grid h-8 w-8 place-items-center rounded-lg bg-blue-100 text-blue-600"><i class="fa-solid fa-arrows-rotate"></i></span>
-              <div>
-                <h3 class="font-bold text-slate-800 text-sm">Agitation Speed Chart (RPM)</h3>
-                <p class="text-[11px] text-slate-400">Target: 250 RPM (±10%) during stirring</p>
-              </div>
-            </div>
-            <select data-chart="rpm" class="chart-filter rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-teal-600">
-              <option value="all">🌐 All Stages (Full Process)</option>
-              <option value="current">📍 Current Active Stage Only</option>
-              <option value="1">Stage 1: Mixing</option>
-              <option value="2">Stage 2: Add Catalyst</option>
-              <option value="3">Stage 3: Reflux</option>
-              <option value="4">Stage 4: Separation</option>
-              <option value="5">Stage 5: Oil Treatment</option>
-              <option value="6">Stage 6: Filtration</option>
-            </select>
-          </div>
-          <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Data window range:</span>
-            <span id="slider-rpm-label" class="font-semibold text-teal-700">100 points</span>
-          </div>
-          <input data-chart="rpm" type="range" min="20" max="400" value="100" class="chart-slider mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-700">
-          <div class="overflow-x-auto rounded-lg border border-slate-100 p-2">
-            <div class="h-60 min-w-[420px]"><canvas id="chart-rpm"></canvas></div>
-          </div>
-        </article>
-
-        <!-- 3. Motor Current Chart (A) -->
-        <article class="flex flex-col rounded-xl bg-white p-4 shadow-sm">
-          <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <span class="grid h-8 w-8 place-items-center rounded-lg bg-amber-100 text-amber-600"><i class="fa-solid fa-bolt"></i></span>
-              <div>
-                <h3 class="font-bold text-slate-800 text-sm">Motor Current Chart (A)</h3>
-                <p class="text-[11px] text-slate-400">Set Point: 2.0 A (Tolerance: 0.0–3.2 A)</p>
-              </div>
-            </div>
-            <select data-chart="current" class="chart-filter rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-teal-600">
-              <option value="all">🌐 All Stages (Full Process)</option>
-              <option value="current">📍 Current Active Stage Only</option>
-              <option value="1">Stage 1: Mixing</option>
-              <option value="2">Stage 2: Add Catalyst</option>
-              <option value="3">Stage 3: Reflux</option>
-              <option value="4">Stage 4: Separation</option>
-              <option value="5">Stage 5: Oil Treatment</option>
-              <option value="6">Stage 6: Filtration</option>
-            </select>
-          </div>
-          <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Data window range:</span>
-            <span id="slider-current-label" class="font-semibold text-teal-700">100 points</span>
-          </div>
-          <input data-chart="current" type="range" min="20" max="400" value="100" class="chart-slider mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-700">
-          <div class="overflow-x-auto rounded-lg border border-slate-100 p-2">
-            <div class="h-60 min-w-[420px]"><canvas id="chart-current"></canvas></div>
-          </div>
-        </article>
-
-        <!-- 4. Liquid Volume Chart (ml) -->
-        <article class="flex flex-col rounded-xl bg-white p-4 shadow-sm">
-          <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <span class="grid h-8 w-8 place-items-center rounded-lg bg-emerald-100 text-emerald-600"><i class="fa-solid fa-flask"></i></span>
-              <div>
-                <h3 class="font-bold text-slate-800 text-sm">Liquid Volume Chart (ml)</h3>
-                <p class="text-[11px] text-slate-400">Final Filtration Target: ≥375 ml</p>
-              </div>
-            </div>
-            <select data-chart="vol" class="chart-filter rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-teal-600">
-              <option value="all">🌐 All Stages (Full Process)</option>
-              <option value="current">📍 Current Active Stage Only</option>
-              <option value="1">Stage 1: Mixing</option>
-              <option value="2">Stage 2: Add Catalyst</option>
-              <option value="3">Stage 3: Reflux</option>
-              <option value="4">Stage 4: Separation</option>
-              <option value="5">Stage 5: Oil Treatment</option>
-              <option value="6">Stage 6: Filtration</option>
-            </select>
-          </div>
-          <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Data window range:</span>
-            <span id="slider-vol-label" class="font-semibold text-teal-700">100 points</span>
-          </div>
-          <input data-chart="vol" type="range" min="20" max="400" value="100" class="chart-slider mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-700">
-          <div class="overflow-x-auto rounded-lg border border-slate-100 p-2">
-            <div class="h-60 min-w-[420px]"><canvas id="chart-vol"></canvas></div>
-          </div>
-        </article>
-      </section>
-
-      <!-- Process Controls & Actuators -->
-      <section class="grid gap-6 lg:grid-cols-2">
-        <section class="rounded-xl bg-white p-4 shadow-sm">
-          <h2 class="font-bold text-slate-800"><i class="fa-solid fa-gamepad mr-2 text-teal-700"></i>Process Controls</h2>
-          <p class="mt-1 text-xs text-slate-500">Commands are dispatched to the ESP32/simulator via MQTT control topics.</p>
-          <label class="mt-4 block text-sm font-semibold">Batch Code
-            <input id="batch-code-input" placeholder="e.g. BATCH-2026-001" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-teal-600">
-          </label>
-          <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <button data-command="start" class="control-button rounded-lg bg-teal-700 px-3 py-2 text-sm font-bold text-white transition hover:bg-teal-800"><i class="fa-solid fa-play mr-1"></i> Start</button>
-            <button data-command="pause" class="control-button rounded-lg bg-amber-500 px-3 py-2 text-sm font-bold text-slate-900 transition hover:bg-amber-600"><i class="fa-solid fa-pause mr-1"></i> Pause</button>
-            <button data-command="resume" class="control-button rounded-lg bg-cyan-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-cyan-700"><i class="fa-solid fa-play mr-1"></i> Resume</button>
-            <button data-command="restart" class="control-button rounded-lg bg-slate-700 px-3 py-2 text-sm font-bold text-white transition hover:bg-slate-800"><i class="fa-solid fa-rotate-right mr-1"></i> Restart</button>
-            <button data-command="reset_emergency" class="control-button rounded-lg bg-violet-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-violet-700"><i class="fa-solid fa-unlock mr-1"></i> Reset Stop</button>
-            <button id="emergency-button" class="rounded-lg bg-red-700 px-3 py-2 text-sm font-bold text-white transition hover:bg-red-800"><i class="fa-solid fa-power-off mr-1"></i> EMERGENCY</button>
-          </div>
-          <p id="control-message" class="mt-3 min-h-5 text-xs text-slate-500"></p>
-        </section>
-
-        <section class="rounded-xl bg-white p-4 shadow-sm">
-          <h2 class="font-bold text-slate-800"><i class="fa-solid fa-sliders mr-2 text-teal-700"></i>Actuators Status & Manual Toggle</h2>
-          <p class="mt-1 text-xs text-slate-500">Toggles provide manual overrides and log events to sensor payloads.</p>
-          <div class="mt-4 space-y-2.5">
-            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-fan mr-2 text-blue-600"></i>Stirrer Motor</span><input data-actuator="motor" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
-            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-fire-flame-simple mr-2 text-red-600"></i>Heater Element</span><input data-actuator="heater" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
-            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-faucet-drip mr-2 text-teal-600"></i>Catalyst Valve</span><input data-actuator="catalyst_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
-            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-filter mr-2 text-violet-600"></i>Separator Valve</span><input data-actuator="separator_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
-          </div>
-        </section>
-      </section>
-
-      <!-- Historical Data & Export -->
-      <section class="rounded-xl bg-white p-4 shadow-sm">
-        <div class="flex flex-wrap items-end justify-between gap-3">
-          <div><h2 class="font-bold text-slate-800"><i class="fa-solid fa-table mr-2 text-teal-700"></i>Data Logs & Export</h2><p class="text-xs text-slate-500">CSV contains all raw sensor samples; PDF includes statistical averages and latest telemetry.</p></div>
-          <div class="flex flex-wrap gap-2">
-            <select id="batch-select" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold"><option value="">Active Batch</option></select>
-            <button id="load-batch" class="rounded-lg bg-slate-700 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800">Load</button>
-            <button id="download-csv" class="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700"><i class="fa-solid fa-file-csv mr-1"></i> Export CSV</button>
-            <button id="download-pdf" class="rounded-lg bg-orange-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-orange-700"><i class="fa-solid fa-file-pdf mr-1"></i> Export PDF</button>
-          </div>
-        </div>
-        <div class="mt-4 overflow-x-auto"><table class="min-w-full text-left text-xs"><thead class="border-b bg-slate-50 text-[11px] uppercase text-slate-500"><tr><th class="p-2.5">Time</th><th class="p-2.5">Stage</th><th class="p-2.5">Temperature</th><th class="p-2.5">Speed</th><th class="p-2.5">Volume</th><th class="p-2.5">Current</th><th class="p-2.5">Level</th></tr></thead><tbody id="log-table"><tr><td class="p-3 text-slate-500" colspan="7">No telemetry data recorded yet.</td></tr></tbody></table></div>
-      </section>
-    </main>
   </div>
 
   <!-- STAGE COMPARISON & SET POINT MODAL -->
@@ -381,8 +886,11 @@
 
   <div id="toast" class="fixed bottom-5 right-5 z-50 hidden max-w-sm rounded-lg bg-slate-900 px-4 py-3 text-xs text-white shadow-xl"></div>
 
+  <!-- ========================================================================= -->
+  <!-- 3. JAVASCRIPT APPLICATION LOGIC -->
+  <!-- ========================================================================= -->
   <script>
-    // Configuration & URL Params
+    // Configuration & Demo Query Check
     const urlParams = new URLSearchParams(window.location.search);
     const isExplicitDemo = urlParams.has('demo') || urlParams.has('mode') && ['demo', 'sim', 'simulation', 'guest'].includes(urlParams.get('mode'));
     let isDemoMode = isExplicitDemo || sessionStorage.getItem('reactor_demo_mode') === 'true';
@@ -405,18 +913,36 @@
     let currentLogs = [];
     let activeModalStage = null;
     let demoInterval = null;
+    let cumulativeWattHours = 0;
 
     // Filters per chart & window slider
     const chartFilters = { temp: 'all', rpm: 'all', current: 'all', vol: 'all' };
     const chartWindows = { temp: 100, rpm: 100, current: 100, vol: 100 };
 
     const stageMeta = {
-      1: { name: 'Mixing', label: '1. Mixing', icon: 'fa-blender', duration: '30 mins', setPointTemp: 60, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 2.0, minCurrent: 0.0, maxCurrent: 3.2, actuators: 'Motor ON | Heater ON' },
-      2: { name: 'Add Catalyst', label: '2. Add Catalyst', icon: 'fa-faucet-drip', duration: 'Momentary', setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Catalyst Valve ON' },
-      3: { name: 'Reflux', label: '3. Reflux', icon: 'fa-fire-burner', duration: '5 hours', setPointTemp: 100, tolTemp: 0.10, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Heater ON (Motor OFF)' },
-      4: { name: 'Separation', label: '4. Separation', icon: 'fa-hourglass-half', duration: '12 hours', setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'All Actuators OFF' },
-      5: { name: 'Oil Treatment', label: '5. Oil Treatment', icon: 'fa-droplet', duration: '1 hour', setPointTemp: 120, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 2.0, minCurrent: 0.0, maxCurrent: 3.2, actuators: 'Motor ON | Heater ON' },
-      6: { name: 'Filtration', label: '6. Filtration', icon: 'fa-filter', duration: 'Est. 2 hours', setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, targetVol: 375, actuators: 'Separator Valve ON' }
+      1: { name: 'Mixing', label: '1. Mixing', icon: 'fa-blender', duration: '30 mins', targetSeconds: 1800, setPointTemp: 60, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 2.0, minCurrent: 0.0, maxCurrent: 3.2, actuators: 'Motor ON | Heater ON' },
+      2: { name: 'Add Catalyst', label: '2. Add Catalyst', icon: 'fa-faucet-drip', duration: 'Momentary', targetSeconds: 60, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Catalyst Valve ON' },
+      3: { name: 'Reflux', label: '3. Reflux', icon: 'fa-fire-burner', duration: '5 hours', targetSeconds: 18000, setPointTemp: 100, tolTemp: 0.10, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Heater ON (Motor OFF)' },
+      4: { name: 'Separation', label: '4. Separation', icon: 'fa-hourglass-half', duration: '12 hours', targetSeconds: 43200, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'All Actuators OFF' },
+      5: { name: 'Oil Treatment', label: '5. Oil Treatment', icon: 'fa-droplet', duration: '1 hour', targetSeconds: 3600, setPointTemp: 120, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 2.0, minCurrent: 0.0, maxCurrent: 3.2, actuators: 'Motor ON | Heater ON' },
+      6: { name: 'Filtration', label: '6. Filtration', icon: 'fa-filter', duration: 'Est. 2 hours', targetSeconds: 7200, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, targetVol: 375, actuators: 'Separator Valve ON' }
+    };
+
+    let activeRecipe = {
+      alcoholName: 'Isopropanol',
+      alcoholAmount: 1000,
+      alcoholUnit: 'ml',
+      alcoholMW: 60.10,
+      alcoholDensity: 0.786,
+      acidName: 'Palmitic Acid',
+      acidAmount: 706,
+      acidUnit: 'g',
+      acidMW: 256.42,
+      acidDensity: 0.852,
+      targetRatio: 8,
+      catalystName: 'H2SO4',
+      catalystVol: 40,
+      waterVol: 100
     };
 
     // Helper functions
@@ -424,6 +950,35 @@
     function formatElapsed(seconds = 0) { seconds = Math.max(0, Math.floor(Number(seconds) || 0)); return [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), seconds % 60].map(v => String(v).padStart(2, '0')).join(':'); }
     function text(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
     function showToast(message, kind = 'info') { const node = document.getElementById('toast'); node.textContent = message; node.className = 'fixed bottom-5 right-5 z-50 max-w-sm rounded-lg px-4 py-3 text-xs text-white shadow-xl ' + (kind === 'error' ? 'bg-red-700' : kind === 'success' ? 'bg-teal-700' : 'bg-slate-900'); node.classList.remove('hidden'); clearTimeout(showToast.timer); showToast.timer = setTimeout(() => node.classList.add('hidden'), 4500); }
+
+    // Navigation Switcher
+    document.querySelectorAll('.nav-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const view = btn.dataset.view;
+        document.querySelectorAll('.nav-item').forEach(b => {
+          b.className = 'nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition';
+        });
+        btn.className = 'nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold bg-teal-800 text-white shadow-sm transition';
+        
+        document.querySelectorAll('.content-view').forEach(v => v.classList.add('hidden'));
+        document.getElementById(`view-${view}`).classList.remove('hidden');
+
+        // Close mobile drawer if open
+        document.getElementById('sidebar-menu').classList.add('-translate-x-full');
+        document.getElementById('sidebar-backdrop').classList.add('hidden');
+
+        if (view === 'comparison') loadBatchesForComparison();
+      });
+    });
+
+    document.getElementById('sidebar-toggle-btn').addEventListener('click', () => {
+      document.getElementById('sidebar-menu').classList.toggle('-translate-x-full');
+      document.getElementById('sidebar-backdrop').classList.toggle('hidden');
+    });
+    document.getElementById('sidebar-backdrop').addEventListener('click', () => {
+      document.getElementById('sidebar-menu').classList.add('-translate-x-full');
+      document.getElementById('sidebar-backdrop').classList.add('hidden');
+    });
 
     // Initialize 4 Separate Charts
     const chartConfigs = {
@@ -450,6 +1005,21 @@
         }
       });
     }
+
+    // Comparison Chart
+    const compareChart = new Chart(document.getElementById('compare-chart'), {
+      type: 'line',
+      data: { labels: [], datasets: [] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: { ticks: { font: { size: 10 } } },
+          y: { title: { display: true, text: 'Temperature (°C) / RPM' } }
+        }
+      }
+    });
 
     // API Helper
     async function api(path, options = {}) {
@@ -491,11 +1061,12 @@
       }
     }
 
-    // RENDER TIMELINE
+    // RENDER TIMELINE WITH LIVE COUNTDOWN & OVERTIME
     function renderTimeline() {
       const container = document.getElementById('stage-timeline');
       const activeStage = currentState?.currentStageId || 0;
       const runStatus = (currentState?.runStatus || 'standby').toLowerCase();
+      const elapsed = currentState?.latestData?.elapsedSeconds || 0;
 
       let html = '';
       for (let i = 1; i <= 6; i++) {
@@ -542,6 +1113,109 @@
         `;
       }
       container.innerHTML = html;
+
+      // Update Active Stage Progress Bar & Countdown Card
+      if (activeStage >= 1 && activeStage <= 6) {
+        const currentMeta = stageMeta[activeStage];
+        const targetSec = currentMeta.targetSeconds;
+        const progressPct = Math.min(100, Math.round((elapsed / targetSec) * 100));
+
+        document.getElementById('active-stage-countdown-title').textContent = `Stage ${activeStage}/6: ${currentMeta.name} Progress`;
+        document.getElementById('active-stage-countdown-time').textContent = `${formatElapsed(elapsed)} / ${formatElapsed(targetSec)} (${progressPct}%)`;
+        document.getElementById('active-stage-progress-bar').style.width = `${progressPct}%`;
+
+        if (elapsed > targetSec) {
+          const overtimeSec = elapsed - targetSec;
+          document.getElementById('active-stage-eta').textContent = `Set Point Exceeded (Normal Synthesis Ongoing)`;
+          document.getElementById('active-stage-overtime').textContent = `+${formatElapsed(overtimeSec)} Overtime`;
+        } else {
+          const remainingSec = targetSec - elapsed;
+          document.getElementById('active-stage-eta').textContent = `ETA: ~${formatElapsed(remainingSec)} remaining`;
+          document.getElementById('active-stage-overtime').textContent = '';
+        }
+      }
+    }
+
+    // UPDATE 2D DIGITAL TWIN SCHEMATIC
+    function updateDigitalTwin(data) {
+      if (!data) return;
+      const stageId = data.stageId || 1;
+      const meta = stageMeta[stageId];
+
+      document.getElementById('dt-stage-pill').textContent = `Stage ${stageId}: ${meta.name}`;
+      
+      const motorCurrent = Number(data.current || 0);
+      const motorWatts = 12 * motorCurrent;
+      document.getElementById('dt-power-pill').textContent = `${motorWatts.toFixed(1)} W (12V)`;
+      document.getElementById('dt-rpm').textContent = `${Math.round(data.rpm)} RPM`;
+      document.getElementById('dt-temp').textContent = `${number(data.temp)} °C`;
+      document.getElementById('dt-vol').textContent = `${number(data.vol)} ml`;
+      document.getElementById('dt-current').textContent = `${number(motorCurrent, 2)} A`;
+
+      // Actuator LEDs in Digital Twin
+      const isMotor = Boolean(data.act?.motor);
+      const isHeater = Boolean(data.act?.heater);
+      const isCat = Boolean(data.act?.catalyst_valve);
+      const isSep = Boolean(data.act?.separator_valve);
+
+      document.getElementById('led-motor').className = `h-2.5 w-2.5 rounded-full ${isMotor ? 'bg-emerald-400 shadow-sm animate-pulse' : 'bg-slate-600'}`;
+      document.getElementById('led-heater').className = `h-2.5 w-2.5 rounded-full ${isHeater ? 'bg-red-500 shadow-sm animate-pulse' : 'bg-slate-600'}`;
+      document.getElementById('led-catalyst').className = `h-2.5 w-2.5 rounded-full ${isCat ? 'bg-teal-400 shadow-sm animate-pulse' : 'bg-slate-600'}`;
+      document.getElementById('led-separator').className = `h-2.5 w-2.5 rounded-full ${isSep ? 'bg-purple-400 shadow-sm animate-pulse' : 'bg-slate-600'}`;
+
+      // SVG Elements
+      const impeller = document.getElementById('svg-impeller-group');
+      if (isMotor && data.rpm > 10) {
+        impeller.className.baseVal = data.rpm > 200 ? 'animate-spin-fast' : 'animate-spin-impeller';
+        document.getElementById('svg-motor-led').setAttribute('fill', '#10b981');
+      } else {
+        impeller.className.baseVal = '';
+        document.getElementById('svg-motor-led').setAttribute('fill', '#ef4444');
+      }
+
+      const heaterJacket = document.getElementById('svg-heater-jacket');
+      if (isHeater) {
+        heaterJacket.className.baseVal = 'heating-glow';
+        heaterJacket.setAttribute('opacity', '0.9');
+      } else {
+        heaterJacket.className.baseVal = '';
+        heaterJacket.setAttribute('opacity', '0.2');
+      }
+
+      // Valve flow paths
+      document.getElementById('svg-flow-cat').className.baseVal = isCat ? 'flow-active' : '';
+      document.getElementById('svg-val-cat').setAttribute('fill', isCat ? '#10b981' : '#ef4444');
+
+      document.getElementById('svg-flow-sep').className.baseVal = isSep ? 'flow-active' : '';
+      document.getElementById('svg-val-sep').setAttribute('fill', isSep ? '#10b981' : '#ef4444');
+    }
+
+    // UPDATE ENERGY CONSUMPTION VIEW
+    function updateEnergyView(data) {
+      if (!data) return;
+      const current = Number(data.current || 0);
+      const isHeater = Boolean(data.act?.heater);
+      const motorWatts = 12 * current;
+      const heaterWatts = isHeater ? 150 : 0;
+      const totalWatts = motorWatts + heaterWatts;
+
+      // Cumulative energy estimation
+      cumulativeWattHours += (totalWatts * 2) / 3600; // 2 sec interval
+      const totalKWh = cumulativeWattHours / 1000;
+      const costIdr = totalKWh * 1444.70;
+
+      document.getElementById('energy-motor-watts').textContent = motorWatts.toFixed(1);
+      document.getElementById('energy-kwh').textContent = totalKWh.toFixed(4);
+      document.getElementById('energy-wh-label').textContent = `~${cumulativeWattHours.toFixed(1)} Watt-hours`;
+      document.getElementById('energy-cost-idr').textContent = Math.round(costIdr).toLocaleString('id-ID');
+
+      // Progress bars
+      const motorPct = Math.min(100, Math.round((motorWatts / 120) * 100));
+      document.getElementById('energy-motor-pct').textContent = `${motorWatts.toFixed(1)}W (${motorPct}% of 120W PSU)`;
+      document.getElementById('energy-motor-bar').style.width = `${motorPct}%`;
+
+      document.getElementById('energy-heater-status').textContent = isHeater ? 'ON (~150W)' : 'OFF (0W)';
+      document.getElementById('energy-heater-bar').style.width = isHeater ? '100%' : '0%';
     }
 
     // OPEN STAGE MODAL
@@ -656,17 +1330,270 @@
       activeModalStage = null;
     }
 
+    // =========================================================================
+    // STOICHIOMETRY CALCULATOR LOGIC
+    // =========================================================================
+    function calculateStoichiometry() {
+      const alcMw = Number(document.getElementById('calc-alc-mw').value) || 60.1;
+      const alcAmount = Number(document.getElementById('calc-alc-amount').value) || 0;
+      const alcUnit = document.getElementById('calc-alc-unit').value;
+      const alcRho = Number(document.getElementById('calc-alc-preset').selectedOptions[0]?.dataset.rho || 0.786);
+
+      const acidMw = Number(document.getElementById('calc-acid-mw').value) || 256.42;
+      const acidAmount = Number(document.getElementById('calc-acid-amount').value) || 0;
+      const acidUnit = document.getElementById('calc-acid-unit').value;
+      const acidRho = Number(document.getElementById('calc-acid-preset').selectedOptions[0]?.dataset.rho || 0.852);
+
+      // Convert Alcohol input to grams and ml
+      let alcMassG = alcAmount;
+      let alcVolMl = alcAmount;
+      if (alcUnit === 'l') { alcVolMl = alcAmount * 1000; alcMassG = alcVolMl * alcRho; }
+      else if (alcUnit === 'ml') { alcVolMl = alcAmount; alcMassG = alcVolMl * alcRho; }
+      else if (alcUnit === 'kg') { alcMassG = alcAmount * 1000; alcVolMl = alcMassG / alcRho; }
+      else if (alcUnit === 'g') { alcMassG = alcAmount; alcVolMl = alcMassG / alcRho; }
+
+      // Convert Acid input to grams and ml
+      let acidMassG = acidAmount;
+      let acidVolMl = acidAmount;
+      if (acidUnit === 'kg') { acidMassG = acidAmount * 1000; acidVolMl = acidMassG / acidRho; }
+      else if (acidUnit === 'g') { acidMassG = acidAmount; acidVolMl = acidMassG / acidRho; }
+      else if (acidUnit === 'l') { acidVolMl = acidAmount * 1000; acidMassG = acidVolMl * acidRho; }
+      else if (acidUnit === 'ml') { acidVolMl = acidAmount; acidMassG = acidVolMl * acidRho; }
+
+      const alcMols = alcMassG > 0 ? (alcMassG / alcMw) : 0;
+      const acidMols = acidMassG > 0 ? (acidMassG / acidMw) : 0;
+      const ratioVal = alcMols > 0 ? (acidMols / alcMols) : 0;
+
+      document.getElementById('calc-res-alc-mols').textContent = `${alcMols.toFixed(3)} mol`;
+      document.getElementById('calc-res-alc-mass').textContent = `Mass: ${alcMassG.toFixed(1)} g (~${alcVolMl.toFixed(1)} ml)`;
+      document.getElementById('calc-res-acid-mols').textContent = `${acidMols.toFixed(3)} mol`;
+      document.getElementById('calc-res-acid-mass').textContent = `Mass: ${acidMassG.toFixed(1)} g (~${acidVolMl.toFixed(1)} ml)`;
+      document.getElementById('calc-res-ratio').textContent = `1 : ${ratioVal.toFixed(2)}`;
+
+      const totalRxnVol = alcVolMl + acidVolMl;
+      document.getElementById('calc-res-total-vol').textContent = `~${totalRxnVol.toFixed(1)} ml`;
+
+      // Catalyst = 4% of total reaction volume
+      const catVol = totalRxnVol * 0.04;
+      document.getElementById('calc-cat-vol').textContent = catVol.toFixed(1);
+
+      // Water = 10% of total reaction solution
+      const waterVol = totalRxnVol * 0.10;
+      document.getElementById('calc-water-vol').textContent = waterVol.toFixed(1);
+
+      // Evaluation & Recommendation
+      const badge = document.getElementById('calc-eval-badge');
+      const recText = document.getElementById('calc-recommendation-text');
+      const isTargetRatio = Math.abs(ratioVal - 8.0) <= 0.3;
+
+      if (isTargetRatio) {
+        badge.className = 'rounded-full bg-emerald-500/20 text-emerald-300 px-3 py-0.5 text-xs font-bold border border-emerald-500/40';
+        badge.textContent = '✅ Correct 1:8 Stoichiometric Ratio';
+        recText.innerHTML = `Great! The molar ratio of <b>${alcMols.toFixed(2)} mol Alcohol : ${acidMols.toFixed(2)} mol Carboxylic Acid</b> precisely matches the stoichiometric target of <b>1 : 8</b>. Total solution volume is ~<b>${totalRxnVol.toFixed(0)} ml</b>. Add <b>${catVol.toFixed(1)} ml Catalyst (4%)</b> during reflux and <b>${waterVol.toFixed(1)} ml Pure Water (10%)</b> during separation.`;
+      } else {
+        badge.className = 'rounded-full bg-amber-500/20 text-amber-300 px-3 py-0.5 text-xs font-bold border border-amber-500/40';
+        badge.textContent = `⚠️ Ratio Deviation (1 : ${ratioVal.toFixed(2)})`;
+
+        // Recommendation Options
+        const neededAcidMols = alcMols * 8;
+        const neededAcidG = neededAcidMols * acidMw;
+        const neededAcidMl = neededAcidG / acidRho;
+
+        const neededAlcMols = acidMols / 8;
+        const neededAlcG = neededAlcMols * alcMw;
+        const neededAlcMl = neededAlcG / alcRho;
+
+        recText.innerHTML = `
+          The current ratio is <b>1 : ${ratioVal.toFixed(2)}</b> (Target is <b>1 : 8.00</b>). To achieve an exact 1:8 ratio, choose one option:<br>
+          • <b>Option A (Keep Alcohol at ${alcAmount} ${alcUnit}):</b> Adjust Carboxylic Acid to <b>${neededAcidG.toFixed(1)} g</b> (~${neededAcidMl.toFixed(1)} ml).<br>
+          • <b>Option B (Keep Acid at ${acidAmount} ${acidUnit}):</b> Adjust Alcohol to <b>${neededAlcMl.toFixed(1)} ml</b> (~${neededAlcG.toFixed(1)} g).
+        `;
+      }
+
+      // Update Sidebar Preview
+      activeRecipe.alcoholName = document.getElementById('calc-alc-name').value;
+      activeRecipe.alcoholAmount = alcAmount;
+      activeRecipe.alcoholUnit = alcUnit;
+      activeRecipe.acidName = document.getElementById('calc-acid-name').value;
+      activeRecipe.acidAmount = acidAmount;
+      activeRecipe.acidUnit = acidUnit;
+      activeRecipe.catalystName = document.getElementById('calc-cat-name').value;
+      activeRecipe.catalystVol = Number(catVol.toFixed(1));
+      activeRecipe.waterVol = Number(waterVol.toFixed(1));
+
+      document.getElementById('sb-alc-val').textContent = `${activeRecipe.alcoholName} (${alcAmount} ${alcUnit})`;
+      document.getElementById('sb-acid-val').textContent = `${activeRecipe.acidName} (${acidAmount} ${acidUnit})`;
+      document.getElementById('sb-cat-val').textContent = `${activeRecipe.catalystName} (~${catVol.toFixed(0)} ml)`;
+      document.getElementById('sb-water-val').textContent = `Pure Water (~${waterVol.toFixed(0)} ml)`;
+    }
+
+    // Presets Handlers
+    document.getElementById('calc-alc-preset').addEventListener('change', e => {
+      const opt = e.target.selectedOptions[0];
+      if (opt.value !== 'custom') {
+        document.getElementById('calc-alc-name').value = opt.text.split(' (')[0];
+        document.getElementById('calc-alc-mw').value = opt.dataset.mw;
+      }
+      calculateStoichiometry();
+    });
+
+    document.getElementById('calc-acid-preset').addEventListener('change', e => {
+      const opt = e.target.selectedOptions[0];
+      if (opt.value !== 'custom') {
+        document.getElementById('calc-acid-name').value = opt.text.split(' (')[0];
+        document.getElementById('calc-acid-mw').value = opt.dataset.mw;
+      }
+      calculateStoichiometry();
+    });
+
+    ['calc-alc-amount', 'calc-alc-mw', 'calc-alc-unit', 'calc-alc-name', 'calc-acid-amount', 'calc-acid-mw', 'calc-acid-unit', 'calc-acid-name', 'calc-cat-name'].forEach(id => {
+      document.getElementById(id).addEventListener('input', calculateStoichiometry);
+      document.getElementById(id).addEventListener('change', calculateStoichiometry);
+    });
+
+    document.getElementById('calc-apply-recipe-btn').addEventListener('click', async () => {
+      calculateStoichiometry();
+      if (!isDemoMode && session.token) {
+        try {
+          await api('/api/recipe', { method: 'POST', body: JSON.stringify(activeRecipe) });
+        } catch (err) {
+          console.warn('Could not sync recipe to backend:', err.message);
+        }
+      }
+      showToast('Formulation recipe applied successfully! Included in batch logs & PDF.', 'success');
+    });
+
+    // =========================================================================
+    // MULTI-BATCH COMPARISON LOGIC
+    // =========================================================================
+    let availableBatches = [];
+
+    async function loadBatchesForComparison() {
+      if (isDemoMode) {
+        availableBatches = [
+          { batchId: 'DEMO-BATCH-001', batchCode: 'EXHIBITION-TRIAL-1', latestAt: new Date().toISOString() },
+          { batchId: 'DEMO-BATCH-002', batchCode: 'OPTIMAL-YIELD-PILOT', latestAt: new Date(Date.now() - 86400000).toISOString() }
+        ];
+      } else {
+        try {
+          availableBatches = await api('/api/batches');
+        } catch (err) {
+          console.warn('Failed to load batches:', err.message);
+        }
+      }
+
+      const selectA = document.getElementById('compare-batch-a');
+      const selectB = document.getElementById('compare-batch-b');
+      const optionsHtml = '<option value="">Select a batch...</option>' + availableBatches.map(b => `<option value="${text(b.batchId)}">${text(b.batchCode || b.batchId)} — ${new Date(b.latestAt).toLocaleDateString()}</option>`).join('');
+      
+      selectA.innerHTML = optionsHtml;
+      selectB.innerHTML = optionsHtml;
+
+      if (availableBatches.length >= 2) {
+        selectA.value = availableBatches[0].batchId;
+        selectB.value = availableBatches[1].batchId;
+        renderComparison();
+      }
+    }
+
+    async function renderComparison() {
+      const bIdA = document.getElementById('compare-batch-a').value;
+      const bIdB = document.getElementById('compare-batch-b').value;
+      if (!bIdA || !bIdB) return;
+
+      document.getElementById('th-batch-a').textContent = document.getElementById('compare-batch-a').selectedOptions[0]?.text.split(' —')[0] || 'Batch A';
+      document.getElementById('th-batch-b').textContent = document.getElementById('compare-batch-b').selectedOptions[0]?.text.split(' —')[0] || 'Batch B';
+
+      let logsA = [];
+      let logsB = [];
+
+      if (isDemoMode) {
+        logsA = currentLogs;
+        logsB = currentLogs.map(r => ({ ...r, temp: Number(r.temp) - 2.5, rpm: Number(r.rpm) + 5, vol: Number(r.vol) * 0.95 }));
+      } else {
+        try {
+          [logsA, logsB] = await Promise.all([
+            api(`/api/logs?batchId=${encodeURIComponent(bIdA)}&limit=500`),
+            api(`/api/logs?batchId=${encodeURIComponent(bIdB)}&limit=500`)
+          ]);
+        } catch (err) {
+          showToast('Failed to load batch logs for comparison: ' + err.message, 'error');
+          return;
+        }
+      }
+
+      const nA = logsA.length || 1;
+      const nB = logsB.length || 1;
+
+      const avgA = {
+        temp: logsA.reduce((s, r) => s + Number(r.temp || 0), 0) / nA,
+        rpm: logsA.reduce((s, r) => s + Number(r.rpm || 0), 0) / nA,
+        current: logsA.reduce((s, r) => s + Number(r.current || 0), 0) / nA,
+        finalVol: logsA[logsA.length - 1]?.vol || 0,
+        samples: logsA.length
+      };
+
+      const avgB = {
+        temp: logsB.reduce((s, r) => s + Number(r.temp || 0), 0) / nB,
+        rpm: logsB.reduce((s, r) => s + Number(r.rpm || 0), 0) / nB,
+        current: logsB.reduce((s, r) => s + Number(r.current || 0), 0) / nB,
+        finalVol: logsB[logsB.length - 1]?.vol || 0,
+        samples: logsB.length
+      };
+
+      const yieldA = Math.min(100, Math.max(0, (avgA.finalVol / 500) * 100));
+      const yieldB = Math.min(100, Math.max(0, (avgB.finalVol / 500) * 100));
+
+      const rows = [
+        { name: 'Total Sample Count', valA: `${avgA.samples} samples`, valB: `${avgB.samples} samples`, diff: `${Math.abs(avgA.samples - avgB.samples)} variance` },
+        { name: 'Average Temperature', valA: `${number(avgA.temp)} °C`, valB: `${number(avgB.temp)} °C`, diff: `Δ ${(avgA.temp - avgB.temp).toFixed(1)} °C` },
+        { name: 'Average Agitation Speed', valA: `${Math.round(avgA.rpm)} RPM`, valB: `${Math.round(avgB.rpm)} RPM`, diff: `Δ ${Math.round(avgA.rpm - avgB.rpm)} RPM` },
+        { name: 'Average Motor Current', valA: `${number(avgA.current, 2)} A`, valB: `${number(avgB.current, 2)} A`, diff: `Δ ${(avgA.current - avgB.current).toFixed(2)} A` },
+        { name: 'Final Product Volume', valA: `${number(avgA.finalVol)} ml`, valB: `${number(avgB.finalVol)} ml`, diff: `Δ ${(avgA.finalVol - avgB.finalVol).toFixed(1)} ml` },
+        { name: 'Reaction Yield %', valA: `<span class="font-bold text-emerald-600">${yieldA.toFixed(1)}%</span>`, valB: `<span class="font-bold text-emerald-600">${yieldB.toFixed(1)}%</span>`, diff: `${(yieldA - yieldB).toFixed(1)}% delta` }
+      ];
+
+      document.getElementById('compare-table-body').innerHTML = rows.map(r => `
+        <tr class="hover:bg-slate-50">
+          <td class="p-3 font-semibold text-slate-800">${r.name}</td>
+          <td class="p-3 font-bold text-slate-700">${r.valA}</td>
+          <td class="p-3 font-bold text-slate-700">${r.valB}</td>
+          <td class="p-3 text-slate-500">${r.diff}</td>
+        </tr>
+      `).join('');
+
+      // Overlay Chart
+      const maxPts = 60;
+      const sA = logsA.slice(-maxPts);
+      const sB = logsB.slice(-maxPts);
+
+      compareChart.data.labels = Array.from({ length: Math.max(sA.length, sB.length) }, (_, i) => `Point ${i + 1}`);
+      compareChart.data.datasets = [
+        { label: 'Batch A — Temp (°C)', data: sA.map(r => Number(r.temp)), borderColor: '#ef4444', backgroundColor: 'transparent', tension: 0.2 },
+        { label: 'Batch B — Temp (°C)', data: sB.map(r => Number(r.temp)), borderColor: '#f97316', borderDash: [4, 4], backgroundColor: 'transparent', tension: 0.2 },
+        { label: 'Batch A — RPM', data: sA.map(r => Number(r.rpm)), borderColor: '#2563eb', backgroundColor: 'transparent', tension: 0.2 },
+        { label: 'Batch B — RPM', data: sB.map(r => Number(r.rpm)), borderColor: '#06b6d4', borderDash: [4, 4], backgroundColor: 'transparent', tension: 0.2 }
+      ];
+      compareChart.update();
+    }
+
+    document.getElementById('compare-batch-a').addEventListener('change', renderComparison);
+    document.getElementById('compare-batch-b').addEventListener('change', renderComparison);
+    document.getElementById('btn-refresh-compare').addEventListener('click', loadBatchesForComparison);
+
     // Apply Live / Simulated State
     function applyState(state) {
       currentState = state;
       const data = state.latestData;
+      if (state.recipe) activeRecipe = { ...activeRecipe, ...state.recipe };
+
       document.getElementById('batch-label').textContent = `Batch: ${state.batchCode || state.batchId || '-'}`;
       document.getElementById('stage-status').textContent = state.currentStageId ? `Stage ${state.currentStageId}/6 — ${state.currentStageName}` : 'Waiting for sensor telemetry';
 
       const run = String(state.runStatus || 'standby').toUpperCase();
       const badge = document.getElementById('run-badge');
       badge.textContent = run;
-      badge.className = `rounded-full px-3 py-1.5 font-bold ${run === 'RUNNING' ? 'bg-emerald-600 text-white' : run === 'EMERGENCY' ? 'bg-red-700 text-white' : run === 'PAUSED' ? 'bg-amber-500 text-slate-950' : 'bg-slate-700 text-white'}`;
+      badge.className = `rounded-full px-2.5 py-1 text-[11px] font-bold ${run === 'RUNNING' ? 'bg-emerald-600 text-white' : run === 'EMERGENCY' ? 'bg-red-700 text-white' : run === 'PAUSED' ? 'bg-amber-500 text-slate-950' : 'bg-slate-700 text-white'}`;
 
       if (data) {
         document.getElementById('temp-value').textContent = number(data.temp);
@@ -697,6 +1624,8 @@
 
         renderLogs(currentLogs);
         updateCharts();
+        updateDigitalTwin(data);
+        updateEnergyView(data);
       }
 
       renderTimeline();
@@ -772,12 +1701,15 @@
       }
     }
 
+    // PDF & CSV EXPORT WITH RECIPE & ENERGY
     function downloadFile(content, name, type) { const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([content], { type })); link.download = name; link.click(); URL.revokeObjectURL(link.href); }
     function csvEscape(value) { const valueText = String(value ?? ''); return /[",\n]/.test(valueText) ? `"${valueText.replaceAll('"', '""')}"` : valueText; }
+    
     function downloadCsv() {
       const rows = [['Batch ID', 'Batch Code', 'Date', 'Local Time', 'Stage', 'Process Name', 'Temperature °C', 'Agitation RPM', 'Volume ml', 'Current A', 'Level Detected', 'Actuators Payload'], ...currentLogs.map(row => [row.batch_id, row.batch_code, row.tanggal, row.waktu_lokal, row.stage, stageMeta[row.stage]?.name || '', row.temp, row.rpm, row.vol, row.current, row.level_detected, JSON.stringify(row.sensor_payload || {})])];
       downloadFile(rows.map(row => row.map(csvEscape).join(',')).join('\n'), 'Reactor_Data.csv', 'text/csv;charset=utf-8');
     }
+
     function downloadPdf() {
       if (!window.jspdf) return showToast('PDF library failed to load. Please check internet connection.', 'error');
       const { jsPDF } = window.jspdf;
@@ -789,27 +1721,75 @@
         vol: currentLogs.reduce((sum, row) => sum + Number(row.vol || 0), 0) / n,
         current: currentLogs.reduce((sum, row) => sum + Number(row.current || 0), 0) / n
       };
+
+      const finalVol = currentLogs[currentLogs.length - 1]?.vol || 0;
+      const yieldPct = Math.min(100, Math.max(0, (finalVol / 500) * 100));
+      const totalKWh = cumulativeWattHours / 1000;
+      const costIdr = Math.round(totalKWh * 1444.70);
+
+      // Title & Header
       doc.setFontSize(16);
-      doc.text('Esterification Reactor Batch Report', 14, 18);
-      doc.setFontSize(10);
-      doc.text(`Batch: ${currentState?.batchCode || currentLogs[0]?.batch_code || '-'}`, 14, 26);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 32);
+      doc.setTextColor(15, 118, 110);
+      doc.text('Esterification Reactor Synthesis Report', 14, 18);
+      
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Batch Code: ${currentState?.batchCode || currentLogs[0]?.batch_code || 'BATCH-2026-001'}`, 14, 25);
+      doc.text(`Report Generated: ${new Date().toLocaleString()}`, 14, 30);
+      doc.text(`Supervisory System: IoT ESP32 with 12V 10A PSU & MQTT`, 14, 35);
+
+      // Table 1: Formulation Recipe
       doc.autoTable({
-        startY: 38,
-        head: [['Total Samples', 'Average Temperature', 'Average Agitation Speed', 'Average Volume', 'Average Current']],
-        body: [[currentLogs.length, `${number(averages.temp)} °C`, `${Math.round(averages.rpm)} RPM`, `${number(averages.vol)} ml`, `${number(averages.current, 2)} A`]],
+        startY: 40,
+        head: [['Reagents & Formulation Recipe', 'Amount / Specification', 'Mole / Stoichiometry', 'Process Target']],
+        body: [
+          ['Alcohol (Reagent A)', `${activeRecipe.alcoholName} (${activeRecipe.alcoholAmount} ${activeRecipe.alcoholUnit})`, '1.00 Mol Base', 'Mixing & Reflux'],
+          ['Carboxylic Acid (Reagent B)', `${activeRecipe.acidName} (${activeRecipe.acidAmount} ${activeRecipe.acidUnit})`, '8.00 Mols (1:8 Ratio)', 'Stoichiometric Excess'],
+          ['Catalyst (4% Vol)', `${activeRecipe.catalystName} (~${activeRecipe.catalystVol} ml)`, '4% of Reaction Volume', 'Reflux Catalyst Valve'],
+          ['Washing Water (10% Vol)', `Pure Water / Aquadest (~${activeRecipe.waterVol} ml)`, '10% of Reaction Solution', 'Stage 4 Separation']
+        ],
         theme: 'grid',
-        headStyles: { fillColor: [15, 118, 110] }
+        headStyles: { fillColor: [15, 118, 110] },
+        styles: { fontSize: 8 }
       });
+
+      // Table 2: Production Performance & Energy
       doc.autoTable({
-        startY: 60,
-        head: [['Time', 'Stage', 'Temperature', 'RPM', 'Volume', 'Current', 'Level']],
-        body: currentLogs.slice(-100).map(row => [`${row.tanggal || ''} ${row.waktu_lokal || ''}`, `${row.stage} - ${stageMeta[row.stage]?.name || ''}`, `${number(row.temp)} °C`, row.rpm, `${number(row.vol)} ml`, `${number(row.current, 2)} A`, row.level_detected ? 'Yes' : 'No']),
+        startY: doc.lastAutoTable.finalY + 6,
+        head: [['Recorded Samples', 'Avg Temp', 'Avg Agitation', 'Avg Current', 'Energy (kWh)', 'Est. Cost', 'Final Yield']],
+        body: [[
+          currentLogs.length,
+          `${number(averages.temp)} °C`,
+          `${Math.round(averages.rpm)} RPM`,
+          `${number(averages.current, 2)} A`,
+          `${totalKWh.toFixed(4)} kWh`,
+          `Rp ${costIdr.toLocaleString('id-ID')}`,
+          `${yieldPct.toFixed(1)}%`
+        ]],
+        theme: 'grid',
+        headStyles: { fillColor: [30, 41, 59] },
+        styles: { fontSize: 8 }
+      });
+
+      // Table 3: Raw Telemetry Log Snippet
+      doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 6,
+        head: [['Time', 'Stage', 'Temperature', 'RPM', 'Volume', 'Current', 'Level Sensor']],
+        body: currentLogs.slice(-80).map(row => [
+          `${row.tanggal || ''} ${row.waktu_lokal || ''}`,
+          `${row.stage} - ${stageMeta[row.stage]?.name || ''}`,
+          `${number(row.temp)} °C`,
+          row.rpm,
+          `${number(row.vol)} ml`,
+          `${number(row.current, 2)} A`,
+          row.level_detected ? 'Reached (≥375ml)' : 'No'
+        ]),
         theme: 'striped',
         styles: { fontSize: 7 },
         headStyles: { fillColor: [15, 118, 110] }
       });
-      doc.save('Reactor_Batch_Report.pdf');
+
+      doc.save('Reactor_Synthesis_Report.pdf');
     }
 
     function startEvents() {
@@ -852,13 +1832,12 @@
       isDemoMode = true;
       sessionStorage.setItem('reactor_demo_mode', 'true');
 
-      // Update UI for Demo Mode
       document.getElementById('login-page').classList.add('hidden');
       document.getElementById('dashboard').classList.remove('hidden');
       document.getElementById('demo-banner').classList.remove('hidden');
       document.getElementById('mode-badge').textContent = 'DEMO SIMULATION';
-      document.getElementById('mode-badge').className = 'rounded-full bg-purple-600 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white animate-pulse';
-      document.getElementById('mqtt-badge').innerHTML = '<i class="fa-solid fa-bolt mr-1.5 text-purple-300"></i> Mock Telemetry: Active';
+      document.getElementById('mode-badge').className = 'rounded-full bg-purple-600 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-white animate-pulse';
+      document.getElementById('mqtt-badge').innerHTML = '<i class="fa-solid fa-bolt mr-1 text-purple-300"></i> Mock Telemetry: Active';
       document.getElementById('user-display').textContent = 'Guest Visitor';
       document.getElementById('logout-text').textContent = 'Exit Demo';
       document.getElementById('batch-code-input').value = 'DEMO-EXHIBITION-001';
@@ -869,7 +1848,6 @@
       demoSimState.sampleCount = 0;
       demoSimState.runStatus = 'running';
 
-      // Start internal 2-second simulation tick
       if (demoInterval) clearInterval(demoInterval);
       demoInterval = setInterval(tickDemoSimulation, 2000);
       tickDemoSimulation();
@@ -882,15 +1860,14 @@
       demoSimState.sampleCount += 1;
       demoSimState.elapsedSeconds += 2;
 
-      // Auto cycle stages every 8 samples (~16 seconds) in demo mode so visitors experience all 6 stages
-      if (demoSimState.sampleCount % 8 === 0) {
+      // Auto advance stages every 10 samples (~20s) in demo
+      if (demoSimState.sampleCount % 10 === 0) {
         demoSimState.stageId = demoSimState.stageId >= 6 ? 1 : demoSimState.stageId + 1;
       }
 
       const stageId = demoSimState.stageId;
       const meta = stageMeta[stageId];
 
-      // Actuators
       const isMotorOn = stageId === 1 || stageId === 5;
       const isHeaterOn = stageId === 1 || stageId === 3 || stageId === 5;
       const isCatalyst = stageId === 2;
@@ -903,12 +1880,11 @@
         separator_valve: isSeparator
       };
 
-      // Physics values with realistic noise
       let targetTemp = isHeaterOn ? (meta.setPointTemp || 60) : 28.5;
       let temp = Math.max(20, targetTemp + (Math.random() * 3 - 1.5));
       let rpm = isMotorOn ? Math.round(250 + (Math.random() * 8 - 4)) : 0;
       let current = isMotorOn ? Number((2.0 + (Math.random() * 0.15 - 0.08)).toFixed(2)) : 0.0;
-      let volume = stageId === 6 ? Math.min(500, 320 + (demoSimState.sampleCount % 8) * 22) : (500 + (Math.random() * 4 - 2));
+      let volume = stageId === 6 ? Math.min(500, 320 + (demoSimState.sampleCount % 10) * 18) : (500 + (Math.random() * 4 - 2));
 
       const levelDetected = stageId === 6 && volume >= 375;
 
@@ -931,6 +1907,7 @@
         runStatus: demoSimState.runStatus,
         anomalyCount: 0,
         latestData: demoPayload,
+        recipe: activeRecipe,
         updatedAt: new Date().toISOString()
       });
     }
@@ -973,6 +1950,19 @@
       showToast(`Fast-forwarded to Stage ${demoSimState.stageId}: ${stageMeta[demoSimState.stageId].name}`, 'info');
     });
 
+    document.getElementById('send-summary-telegram-btn').addEventListener('click', async () => {
+      if (isDemoMode) {
+        showToast('Telegram summary sent in simulation mode.', 'success');
+        return;
+      }
+      try {
+        const res = await api('/api/summary', { method: 'POST', body: JSON.stringify({ reason: 'Manual request from dashboard' }) });
+        showToast(res.message || 'Summary sent to Telegram!', 'success');
+      } catch (err) {
+        showToast('Failed to send Telegram summary: ' + err.message, 'error');
+      }
+    });
+
     document.getElementById('login-form').addEventListener('submit', async event => {
       event.preventDefault();
       const button = document.getElementById('login-button');
@@ -1001,7 +1991,7 @@
         document.getElementById('dashboard').classList.remove('hidden');
         document.getElementById('demo-banner').classList.add('hidden');
         document.getElementById('mode-badge').textContent = 'LIVE PRODUCTION';
-        document.getElementById('mode-badge').className = 'rounded-full bg-emerald-600 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white';
+        document.getElementById('mode-badge').className = 'rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-white';
         await Promise.all([loadLogs(), loadBatches()]);
         const state = await api('/api/state');
         applyState(state);
@@ -1050,6 +2040,7 @@
 
     // Auto initialization / session check
     (async function initApp() {
+      calculateStoichiometry();
       if (isDemoMode) {
         startDemoMode();
         return;

@@ -1,118 +1,104 @@
-'use strict';
-
 require('dotenv').config();
-
 const path = require('node:path');
 const express = require('express');
 const mqtt = require('mqtt');
 const { createClient } = require('@supabase/supabase-js');
 
-const requiredEnvironment = [
-    'SUPABASE_URL',
-    'SUPABASE_SERVICE_ROLE_KEY',
-    'TELEGRAM_BOT_TOKEN',
-    'TELEGRAM_CHAT_IDS'
-];
-
-const missingEnvironment = requiredEnvironment.filter((key) => !process.env[key]);
-if (missingEnvironment.length) {
-    throw new Error(`Variabel .env belum diisi: ${missingEnvironment.join(', ')}`);
+// Sanitasi URL Supabase agar tidak ada duplikasi '/rest/v1' jika URL env menyertakannya
+function cleanSupabaseUrl(url) {
+    if (!url) return '';
+    return url.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
 }
 
-const config = Object.freeze({
-    port: Number(process.env.PORT || 3000),
-    frontendOrigin: process.env.FRONTEND_ORIGIN || '',
-    mqttUrl: process.env.MQTT_URL || 'mqtt://broker.hivemq.com:1883',
-    sensorTopic: process.env.MQTT_SENSOR_TOPIC || 'ta/reaktor/data_sensor',
-    controlTopic: process.env.MQTT_CONTROL_TOPIC || 'ta/reaktor/control',
-    anomalyCooldownMs: Number(process.env.ANOMALY_COOLDOWN_MS || 60_000),
-    telegramToken: process.env.TELEGRAM_BOT_TOKEN,
-    telegramChatIds: process.env.TELEGRAM_CHAT_IDS.split(',').map((id) => id.trim()).filter(Boolean),
-    batchCodeColumn: process.env.REACTOR_BATCH_CODE_COLUMN || 'batch_code'
+const config = {
+    port: Number(process.env.PORT) || 3000,
+    mqttUrl: process.env.MQTT_URL || 'mqtt://broker.emqx.io:1883',
+    sensorTopic: process.env.MQTT_SENSOR_TOPIC || 'reactor/telemetry',
+    controlTopic: process.env.MQTT_CONTROL_TOPIC || 'reactor/control',
+    frontendOrigin: process.env.FRONTEND_ORIGIN || '*',
+    telegramToken: process.env.TELEGRAM_BOT_TOKEN || '',
+    supabaseUrl: cleanSupabaseUrl(process.env.SUPABASE_URL),
+    supabaseServiceRole: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
+    batchCodeColumn: process.env.SUPABASE_BATCH_CODE_COLUMN || 'batch_code',
+    anomalyCooldownMs: 60_000
+};
+
+// Supabase client dengan service_role untuk operasi admin
+const supabase = createClient(config.supabaseUrl, config.supabaseServiceRole, {
+    auth: { autoRefreshToken: false, persistSession: false }
 });
 
-const supabaseUrl = (process.env.SUPABASE_URL || '').replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const supabase = createClient(supabaseUrl, supabaseKey, {
-    auth: { persistSession: false, autoRefreshToken: false }
-});
-
+// Helper untuk membuat user client sementara menggunakan access_token user
 function createUserClient(accessToken) {
-    return createClient(supabaseUrl, supabaseKey, {
+    return createClient(config.supabaseUrl, config.supabaseAnonKey || config.supabaseServiceRole, {
         global: { headers: { Authorization: `Bearer ${accessToken}` } },
-        auth: { persistSession: false, autoRefreshToken: false }
+        auth: { autoRefreshToken: false, persistSession: false }
     });
 }
 
-
-
-// Nilai proses yang dinilai. Temp null = sensor tetap dicatat, tetapi tidak dibandingkan
-// dengan 0 °C karena heater memang dimatikan pada tahap tersebut.
-const stages = Object.freeze({
-    1: {
-        id: 1, name: 'Mixing', durationLabel: '30 menit',
-        temp: { target: 60, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 },
-        current: { target: 2, min: 0, max: 3.2 },
-        actuators: 'Motor ON | Heater ON | Valve katalis OFF | Valve pemisah OFF'
-    },
-    2: {
-        id: 2, name: 'Add Catalyst', durationLabel: 'Momentary (timer batch tetap berjalan)',
-        temp: null, rpm: { min: 0, max: 0 }, current: { min: 0, max: 0 },
-        actuators: 'Motor OFF | Heater OFF | Valve katalis ON | Valve pemisah OFF'
-    },
-    3: {
-        id: 3, name: 'Reflux', durationLabel: '5 jam',
-        temp: { target: 100, tolerance: 0.10 }, rpm: { min: 0, max: 0 }, current: { min: 0, max: 0 },
-        actuators: 'Motor OFF | Heater ON | Valve katalis OFF | Valve pemisah OFF'
-    },
-    4: {
-        id: 4, name: 'Separation', durationLabel: '12 jam',
-        temp: null, rpm: { min: 0, max: 0 }, current: { min: 0, max: 0 },
-        actuators: 'Motor OFF | Heater OFF | Semua valve OFF'
-    },
-    5: {
-        id: 5, name: 'Oil Treatment', durationLabel: '1 jam',
-        temp: { target: 120, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 },
-        current: { target: 2, min: 0, max: 3.2 },
-        actuators: 'Motor ON | Heater ON | Semua valve OFF'
-    },
-    6: {
-        id: 6, name: 'Filtration', durationLabel: 'Estimasi 2 jam (timer batch tetap berjalan)',
-        temp: null, rpm: { min: 0, max: 0 }, current: { min: 0, max: 0 }, levelThresholdMl: 375,
-        actuators: 'Motor OFF | Heater OFF | Valve pemisah ON'
-    }
-});
+const stages = {
+    1: { id: 1, name: 'Mixing', durationLabel: '30 menit', targetSeconds: 1800, temp: { target: 60, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 2, min: 0, max: 3.2 }, actuators: 'Motor ON | Heater ON' },
+    2: { id: 2, name: 'Add Catalyst', durationLabel: 'Momentary', targetSeconds: 60, temp: null, rpm: null, current: null, actuators: 'Valve Katalis ON' },
+    3: { id: 3, name: 'Reflux', durationLabel: '5 jam', targetSeconds: 18000, temp: { target: 100, tolerance: 0.10 }, rpm: { target: 0, min: 0, max: 10 }, current: null, actuators: 'Heater ON (Motor OFF)' },
+    4: { id: 4, name: 'Separation', durationLabel: '12 jam', targetSeconds: 43200, temp: null, rpm: null, current: null, actuators: 'Semua Aktuator OFF' },
+    5: { id: 5, name: 'Oil Treatment', durationLabel: '1 jam', targetSeconds: 3600, temp: { target: 120, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 2, min: 0, max: 3.2 }, actuators: 'Motor ON | Heater ON' },
+    6: { id: 6, name: 'Filtration', durationLabel: 'Level ≥375 ml', targetSeconds: 7200, temp: null, rpm: null, current: null, actuators: 'Valve Pemisah ON' }
+};
 
 const processState = {
     batchId: null,
     batchCode: null,
     currentStageId: null,
     stageStartedAt: null,
+    batchStartedAt: null,
     stageStats: null,
+    batchStats: { count: 0, sumTemp: 0, sumRpm: 0, sumVol: 0, sumCurrent: 0 },
+    runStatus: 'standby',
     anomalyCount: 0,
     stageAnomalyCount: 0,
     lastAlertAt: new Map(),
-    levelReachedNotified: false,
+    notificationChatIds: new Set(),
     latestData: null,
-    runStatus: 'standby', // standby | running | paused | emergency
-    notificationChatIds: new Set(config.telegramChatIds)
+    levelReachedNotified: false,
+    batchCompletedNotified: false,
+    recipe: {
+        alcoholName: 'Isopropanol',
+        alcoholAmount: 1000,
+        alcoholUnit: 'ml',
+        alcoholMW: 60.1,
+        alcoholDensity: 0.786,
+        acidName: 'Palmitic Acid',
+        acidAmount: 706,
+        acidUnit: 'g',
+        acidMW: 256.42,
+        acidDensity: 0.852,
+        targetRatio: 8,
+        catalystName: 'H2SO4',
+        catalystPercent: 4,
+        waterPercent: 10
+    }
 };
 
 const sseClients = new Set();
-let client;
+let client = null;
 
 function indonesiaParts(date = new Date()) {
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
-    });
-    const parts = Object.fromEntries(formatter.formatToParts(date)
-        .filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23'
+    }).formatToParts(date);
+    const get = (type) => parts.find((p) => p.type === type)?.value || '00';
     return {
-        date: `${parts.year}-${parts.month}-${parts.day}`,
-        time: `${parts.hour}:${parts.minute}:${parts.second}`,
-        display: `${parts.day}/${parts.month}/${parts.year} ${parts.hour}:${parts.minute}:${parts.second} WIB`
+        date: `${get('year')}-${get('month')}-${get('day')}`,
+        time: `${get('hour')}:${get('minute')}:${get('second')}`,
+        display: `${get('day')}/${get('month')}/${get('year')} ${get('hour')}:${get('minute')}:${get('second')} WIB`
     };
 }
 
@@ -121,32 +107,43 @@ function createAutomaticBatchId() {
     return `BATCH-${now.date.replaceAll('-', '')}-${now.time.replaceAll(':', '')}`;
 }
 
-function getStageId(value) {
-    const numeric = Number(value);
-    if (Number.isInteger(numeric) && stages[numeric]) return numeric;
-    const label = String(value ?? '').trim().toLowerCase();
-    return Object.values(stages).find((stage) => stage.name.toLowerCase() === label)?.id || null;
+function toFiniteNumber(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
 }
 
-function toFiniteNumber(value) {
-    const result = Number(value);
-    return Number.isFinite(result) ? result : null;
+function getStageId(rawStage) {
+    if (typeof rawStage === 'number' && Number.isInteger(rawStage) && rawStage >= 1 && rawStage <= 6) {
+        return rawStage;
+    }
+    const text = String(rawStage ?? '').toLowerCase().trim();
+    if (/^[1-6]$/.test(text)) return Number(text);
+    if (text.includes('mix')) return 1;
+    if (text.includes('catalyst') || text.includes('katalis')) return 2;
+    if (text.includes('reflux')) return 3;
+    if (text.includes('separat') || text.includes('pisah')) return 4;
+    if (text.includes('oil') || text.includes('treatment') || text.includes('minyak')) return 5;
+    if (text.includes('filtr') || text.includes('saring')) return 6;
+    return null;
 }
 
 function isActiveSignal(value) {
-    return value === true || value === 1 || ['true', '1', 'on', 'active'].includes(String(value).toLowerCase());
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value === 1;
+    const text = String(value ?? '').trim().toLowerCase();
+    return ['1', 'true', 'on', 'active', 'aktif'].includes(text);
 }
 
-function normaliseActuators(rawAct = {}) {
-    const source = rawAct && typeof rawAct === 'object' ? rawAct : {};
+function normaliseActuators(rawActuators) {
+    const source = rawActuators && typeof rawActuators === 'object' ? rawActuators : {};
     const catalystValve = isActiveSignal(source.catalyst_valve ?? source.catalystValve);
     const separatorValve = isActiveSignal(source.separator_valve ?? source.separatorValve);
     return {
-        motor: isActiveSignal(source.motor),
+        motor: isActiveSignal(source.motor ?? source.stirrer),
         heater: isActiveSignal(source.heater),
         catalyst_valve: catalystValve,
         separator_valve: separatorValve,
-        // valve dipertahankan agar payload ESP32 versi lama tetap terbaca.
         valve: isActiveSignal(source.valve) || catalystValve || separatorValve
     };
 }
@@ -230,11 +227,14 @@ function resetForNewBatch(batchId, batchCode = batchId) {
     processState.batchCode = batchCode || batchId;
     processState.currentStageId = null;
     processState.stageStartedAt = null;
+    processState.batchStartedAt = Date.now();
     processState.stageStats = null;
+    processState.batchStats = createEmptyStats();
     processState.anomalyCount = 0;
     processState.stageAnomalyCount = 0;
     processState.lastAlertAt.clear();
     processState.levelReachedNotified = false;
+    processState.batchCompletedNotified = false;
 }
 
 function getPublicState() {
@@ -246,6 +246,7 @@ function getPublicState() {
         runStatus: processState.runStatus,
         anomalyCount: processState.anomalyCount,
         latestData: processState.latestData,
+        recipe: processState.recipe,
         updatedAt: new Date().toISOString()
     };
 }
@@ -308,6 +309,49 @@ function buildStageCompleteMessage(stage, stats, durationSeconds) {
         `Rata-rata volume: ${formatNumber(stats.sumVol / divisor)} ml`,
         `Rata-rata arus: ${formatNumber(stats.sumCurrent / divisor, 2)} A`,
         `Anomali tahap/batch: ${processState.stageAnomalyCount}/${processState.anomalyCount}`
+    ].join('\n');
+}
+
+function buildBatchSummaryMessage(reason = 'Tahap 6 / Filtrasi selesai') {
+    const bStats = processState.batchStats || createEmptyStats();
+    const divisor = bStats.count || 1;
+    const recipe = processState.recipe || {};
+    const totalDurationSeconds = processState.batchStartedAt ? Math.round((Date.now() - processState.batchStartedAt) / 1000) : 0;
+    
+    // Perhitungan energi listrik (12V PSU motor load + estimasi heater)
+    const avgCurrent = bStats.sumCurrent / divisor;
+    const motorWatts = 12 * avgCurrent;
+    const avgTotalWatts = motorWatts + (avgCurrent > 0.1 ? 150 : 0);
+    const totalKWh = (avgTotalWatts * (totalDurationSeconds / 3600)) / 1000;
+    const totalCostIdr = totalKWh * 1444.70;
+
+    const finalVol = processState.latestData?.vol || 0;
+    const initialVol = 500;
+    const yieldPct = Math.min(100, Math.max(0, (finalVol / initialVol) * 100));
+
+    return [
+        '📋 REAKTOR — RINGKASAN AKHIR BATCH',
+        `Batch Code: ${processState.batchCode || processState.batchId}`,
+        `Waktu Selesai: ${indonesiaParts().display}`,
+        `Status: ${reason}`,
+        `Total Durasi: ${formatDuration(totalDurationSeconds)} (${bStats.count} sampel)`,
+        '',
+        '🧪 FORMULASI REAKTAN & KATALIS:',
+        `• Alkohol: ${recipe.alcoholName || 'Isopropanol'} (${recipe.alcoholAmount || 1000} ${recipe.alcoholUnit || 'ml'})`,
+        `• Asam Karboksilat: ${recipe.acidName || 'Palmitic Acid'} (${recipe.acidAmount || 706} ${recipe.acidUnit || 'g'})`,
+        `• Rasio Mol: 1 (Alkohol) : ${recipe.targetRatio || 8} (Asam)`,
+        `• Katalis: ${recipe.catalystName || 'H2SO4'} (4% Vol)`,
+        `• Air Pencucian: 10% Vol Larutan`,
+        '',
+        '📊 HASIL & PERFORMA PRODUKSI:',
+        `• Volume Produk Akhir: ${formatNumber(finalVol)} ml (Yield: ${formatNumber(yieldPct)}%)`,
+        `• Rata-rata Suhu: ${formatNumber(bStats.sumTemp / divisor)} °C`,
+        `• Rata-rata RPM: ${Math.round(bStats.sumRpm / divisor)} RPM`,
+        `• Rata-rata Arus Motor: ${formatNumber(avgCurrent, 2)} A (Daya PSU 12V: ${formatNumber(motorWatts, 1)} W)`,
+        `• Total Konsumsi Energi: ${formatNumber(totalKWh, 4)} kWh (Est. Biaya: Rp ${Math.round(totalCostIdr).toLocaleString('id-ID')})`,
+        `• Total Anomali: ${processState.anomalyCount} kali`,
+        '',
+        'Data batch lengkap telah tersimpan di Supabase dan dapat diunduh dalam format PDF/CSV melalui dashboard.'
     ].join('\n');
 }
 
@@ -378,6 +422,7 @@ function toDatabaseRow(data, event = null) {
             ...data.rawPayload,
             act: data.act,
             event,
+            recipe: processState.recipe,
             received_at: recordedAt,
             backend_run_status: processState.runStatus
         }
@@ -428,11 +473,20 @@ async function processSensorData(rawPayload) {
     processState.runStatus = String(rawPayload.machine_status ?? rawPayload.run_status ?? processState.runStatus).toLowerCase();
     if (!['standby', 'running', 'paused', 'emergency'].includes(processState.runStatus)) processState.runStatus = 'running';
     processState.latestData = data;
+    
+    // Stage stats
     processState.stageStats.count += 1;
     processState.stageStats.sumTemp += data.temp;
     processState.stageStats.sumRpm += data.rpm;
     processState.stageStats.sumVol += data.vol;
     processState.stageStats.sumCurrent += data.current;
+
+    // Batch cumulative stats
+    processState.batchStats.count += 1;
+    processState.batchStats.sumTemp += data.temp;
+    processState.batchStats.sumRpm += data.rpm;
+    processState.batchStats.sumVol += data.vol;
+    processState.batchStats.sumCurrent += data.current;
 
     try {
         await storeLog(data);
@@ -441,8 +495,6 @@ async function processSensorData(rawPayload) {
     }
 
     const stage = stages[data.stageId];
-    // Saat PAUSE atau EMERGENCY, pembacaan tetap direkam tetapi tidak dianggap sebagai
-    // kegagalan set point proses karena aktuator memang sengaja dihentikan.
     const anomalies = processState.runStatus === 'running' ? getAnomalies(data, stage) : [];
     broadcastState();
     if (anomalies.length) {
@@ -463,6 +515,12 @@ async function processSensorData(rawPayload) {
     if (stage.id === 6 && data.levelDetected && !processState.levelReachedNotified) {
         processState.levelReachedNotified = true;
         await notifyTelegram(buildLevelReachedMessage(data));
+        
+        // Auto kirim Post-Batch Summary Report saat level akhir filtrasi tercapai
+        if (!processState.batchCompletedNotified) {
+            processState.batchCompletedNotified = true;
+            await notifyTelegram(buildBatchSummaryMessage('Filtrasi Selesai (Level ≥375 ml Tercapai)'));
+        }
     }
 }
 
@@ -549,7 +607,6 @@ app.post('/api/auth/login', async (request, response) => {
     const telegramChatId = String(telegramId).trim();
     const userClient = createUserClient(data.session.access_token);
 
-    // 1. Coba baca profil: coba dengan supabase admin, lalu userClient jika gagal RLS
     let profile = null;
     let { data: pData, error: profileError } = await supabase
         .from('profiles').select('telegram_chat_id').eq('id', data.user.id).maybeSingle();
@@ -561,15 +618,12 @@ app.post('/api/auth/login', async (request, response) => {
             profileError = null;
         }
     }
-    if (pData) {
-        profile = pData;
-    }
+    if (pData) profile = pData;
 
     if (profile?.telegram_chat_id && profile.telegram_chat_id !== telegramChatId) {
         return response.status(403).json({ error: 'Telegram Chat ID tidak sesuai dengan profil akun ini.' });
     }
 
-    // 2. Upsert profil: coba admin client terlebih dahulu, jika kena RLS fallback ke user client
     const profilePayload = {
         id: data.user.id,
         telegram_chat_id: telegramChatId,
@@ -596,6 +650,20 @@ app.post('/api/auth/login', async (request, response) => {
 
 app.get('/api/state', requireUser, (_request, response) => response.json(getPublicState()));
 
+app.post('/api/recipe', requireUser, (request, response) => {
+    const newRecipe = request.body || {};
+    processState.recipe = { ...processState.recipe, ...newRecipe };
+    broadcastState();
+    return response.json({ ok: true, recipe: processState.recipe });
+});
+
+app.post('/api/summary', requireUser, async (request, response) => {
+    const reason = request.body?.reason || 'Permintaan manual operator dari dashboard';
+    const message = buildBatchSummaryMessage(reason);
+    await notifyTelegram(message);
+    return response.json({ ok: true, message: 'Laporan ringkasan batch telah dikirim ke Telegram.' });
+});
+
 app.get('/api/events', requireUser, (request, response) => {
     response.status(200).set({
         'Content-Type': 'text/event-stream',
@@ -614,7 +682,7 @@ app.get('/api/events', requireUser, (request, response) => {
 });
 
 app.get('/api/logs', requireUser, async (request, response) => {
-    const limit = Math.min(Math.max(Number(request.query.limit) || 300, 1), 2_000);
+    const limit = Math.min(Math.max(Number(request.query.limit) || 500, 1), 2_000);
     let query = supabase.from('reactor_logs').select('*').order('recorded_at', { ascending: false }).limit(limit);
     if (request.query.batchId) query = query.eq('batch_id', String(request.query.batchId));
     const { data, error } = await query;
@@ -643,7 +711,7 @@ app.get('/api/batches', requireUser, async (_request, response) => {
 
 app.post('/api/control', requireUser, async (request, response) => {
     const body = request.body || {};
-    const allowedActions = new Set(['start', 'pause', 'resume', 'restart', 'emergency_stop', 'reset_emergency', 'set_actuator']);
+    const allowedActions = new Set(['start', 'pause', 'resume', 'restart', 'emergency_stop', 'reset_emergency', 'set_actuator', 'complete_batch']);
     if (!allowedActions.has(body.action)) return response.status(400).json({ error: 'Aksi kontrol tidak dikenal.' });
     if (body.action === 'set_actuator' && !['motor', 'heater', 'catalyst_valve', 'separator_valve'].includes(body.actuator)) {
         return response.status(400).json({ error: 'Aktuator tidak dikenal.' });
@@ -651,6 +719,14 @@ app.post('/api/control', requireUser, async (request, response) => {
 
     const batchId = String(body.batch_id || processState.batchId || createAutomaticBatchId()).trim();
     const batchCode = String(body.batch_code || processState.batchCode || batchId).trim();
+    
+    if (body.action === 'complete_batch') {
+        await notifyTelegram(buildBatchSummaryMessage('Dihentikan / Selesai Manual oleh Operator'));
+        processState.runStatus = 'standby';
+        broadcastState();
+        return response.json({ ok: true, state: getPublicState() });
+    }
+
     const command = {
         action: body.action,
         batch_id: batchId,
@@ -723,4 +799,3 @@ if (keepAliveUrl && keepAliveUrl.startsWith('http')) {
 app.listen(config.port, '0.0.0.0', () => {
     console.log(`[HTTP] Dashboard/API siap di http://localhost:${config.port}`);
 });
-

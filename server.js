@@ -24,12 +24,10 @@ const config = {
     anomalyCooldownMs: 60_000
 };
 
-// Supabase client dengan service_role untuk operasi admin
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceRole, {
     auth: { autoRefreshToken: false, persistSession: false }
 });
 
-// Helper untuk membuat user client sementara menggunakan access_token user
 function createUserClient(accessToken) {
     return createClient(config.supabaseUrl, config.supabaseAnonKey || config.supabaseServiceRole, {
         global: { headers: { Authorization: `Bearer ${accessToken}` } },
@@ -38,11 +36,11 @@ function createUserClient(accessToken) {
 }
 
 const stages = {
-    1: { id: 1, name: 'Mixing', durationLabel: '30 menit', targetSeconds: 1800, temp: { target: 60, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 2, min: 0, max: 3.2 }, actuators: 'Motor ON | Heater ON' },
+    1: { id: 1, name: 'Mixing', durationLabel: '30 menit', targetSeconds: 1800, temp: { target: 60, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON (12V 280RPM) | Heater ON (12V 2x40W)' },
     2: { id: 2, name: 'Add Catalyst', durationLabel: 'Momentary', targetSeconds: 60, temp: null, rpm: null, current: null, actuators: 'Valve Katalis ON' },
-    3: { id: 3, name: 'Reflux', durationLabel: '5 jam', targetSeconds: 18000, temp: { target: 100, tolerance: 0.10 }, rpm: { target: 0, min: 0, max: 10 }, current: null, actuators: 'Heater ON (Motor OFF)' },
+    3: { id: 3, name: 'Reflux', durationLabel: '5 jam', targetSeconds: 18000, temp: { target: 100, tolerance: 0.10 }, rpm: { target: 0, min: 0, max: 10 }, current: null, actuators: 'Heater ON (12V 2x40W, Motor OFF)' },
     4: { id: 4, name: 'Separation', durationLabel: '12 jam', targetSeconds: 43200, temp: null, rpm: null, current: null, actuators: 'Semua Aktuator OFF' },
-    5: { id: 5, name: 'Oil Treatment', durationLabel: '1 jam', targetSeconds: 3600, temp: { target: 120, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 2, min: 0, max: 3.2 }, actuators: 'Motor ON | Heater ON' },
+    5: { id: 5, name: 'Oil Treatment', durationLabel: '1 jam', targetSeconds: 3600, temp: { target: 120, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON | Heater ON | Bentonit 0.2g' },
     6: { id: 6, name: 'Filtration', durationLabel: 'Level ≥375 ml', targetSeconds: 7200, temp: null, rpm: null, current: null, actuators: 'Valve Pemisah ON' }
 };
 
@@ -64,19 +62,18 @@ const processState = {
     batchCompletedNotified: false,
     recipe: {
         alcoholName: 'Isopropanol',
-        alcoholAmount: 1000,
+        alcoholAmount: 40.5,
         alcoholUnit: 'ml',
-        alcoholMW: 60.1,
-        alcoholDensity: 0.786,
         acidName: 'Palmitic Acid',
-        acidAmount: 706,
+        acidAmount: 110.8,
         acidUnit: 'g',
-        acidMW: 256.42,
-        acidDensity: 0.852,
         targetRatio: 8,
         catalystName: 'H2SO4',
-        catalystPercent: 4,
-        waterPercent: 10
+        catalystVol: 6.8,
+        waterVol: 17.1,
+        bentoniteAmount: '0.2 g / 10 ml',
+        estimatedTotalVol: 170.6,
+        estimatedYieldPct: 91.5
     }
 };
 
@@ -156,7 +153,7 @@ function normalisePayload(rawPayload) {
     const vol = toFiniteNumber(rawPayload.vol ?? rawPayload.volume);
     const act = normaliseActuators(rawPayload.act ?? rawPayload.actuators);
     const current = toFiniteNumber(rawPayload.current ?? rawPayload.current_a ?? rawPayload.ampere)
-        ?? (act.motor ? 2 : 0);
+        ?? (act.motor ? 0.35 : 0);
 
     if (!stageId || temp === null || rpm === null || vol === null) return null;
 
@@ -318,12 +315,12 @@ function buildBatchSummaryMessage(reason = 'Tahap 6 / Filtrasi selesai') {
     const recipe = processState.recipe || {};
     const totalDurationSeconds = processState.batchStartedAt ? Math.round((Date.now() - processState.batchStartedAt) / 1000) : 0;
     
-    // Perhitungan energi listrik (12V PSU motor load + estimasi heater)
+    // Perhitungan energi listrik untuk 2 komponen (DC 12V 2x40W Heater + DC 12V 280RPM Motor)
     const avgCurrent = bStats.sumCurrent / divisor;
     const motorWatts = 12 * avgCurrent;
-    const avgTotalWatts = motorWatts + (avgCurrent > 0.1 ? 150 : 0);
-    const totalKWh = (avgTotalWatts * (totalDurationSeconds / 3600)) / 1000;
-    const totalCostIdr = totalKWh * 1444.70;
+    const heaterAvgWatts = 45.0; // estimasi rata-rata siklus heater 2x40W (max 80W)
+    const totalWatts = motorWatts + heaterAvgWatts;
+    const totalKWh = (totalWatts * (totalDurationSeconds / 3600)) / 1000;
 
     const finalVol = processState.latestData?.vol || 0;
     const initialVol = 500;
@@ -337,18 +334,20 @@ function buildBatchSummaryMessage(reason = 'Tahap 6 / Filtrasi selesai') {
         `Total Durasi: ${formatDuration(totalDurationSeconds)} (${bStats.count} sampel)`,
         '',
         '🧪 FORMULASI REAKTAN & KATALIS:',
-        `• Alkohol: ${recipe.alcoholName || 'Isopropanol'} (${recipe.alcoholAmount || 1000} ${recipe.alcoholUnit || 'ml'})`,
-        `• Asam Karboksilat: ${recipe.acidName || 'Palmitic Acid'} (${recipe.acidAmount || 706} ${recipe.acidUnit || 'g'})`,
+        `• Alkohol: ${recipe.alcoholName || 'Isopropanol'} (${recipe.alcoholAmount || 40.5} ${recipe.alcoholUnit || 'ml'})`,
+        `• Asam Karboksilat: ${recipe.acidName || 'Palmitic Acid'} (${recipe.acidAmount || 110.8} ${recipe.acidUnit || 'g'})`,
         `• Rasio Mol: 1 (Alkohol) : ${recipe.targetRatio || 8} (Asam)`,
-        `• Katalis: ${recipe.catalystName || 'H2SO4'} (4% Vol)`,
-        `• Air Pencucian: 10% Vol Larutan`,
+        `• Katalis: ${recipe.catalystName || 'H2SO4'} (4% Vol ~${recipe.catalystVol || 6.8} ml)`,
+        `• Air Pencucian: 10% Vol Larutan (~${recipe.waterVol || 17.1} ml)`,
+        `• Adsorben Bentonit: 0.2 g (~10 ml)`,
         '',
         '📊 HASIL & PERFORMA PRODUKSI:',
         `• Volume Produk Akhir: ${formatNumber(finalVol)} ml (Yield: ${formatNumber(yieldPct)}%)`,
         `• Rata-rata Suhu: ${formatNumber(bStats.sumTemp / divisor)} °C`,
         `• Rata-rata RPM: ${Math.round(bStats.sumRpm / divisor)} RPM`,
-        `• Rata-rata Arus Motor: ${formatNumber(avgCurrent, 2)} A (Daya PSU 12V: ${formatNumber(motorWatts, 1)} W)`,
-        `• Total Konsumsi Energi: ${formatNumber(totalKWh, 4)} kWh (Est. Biaya: Rp ${Math.round(totalCostIdr).toLocaleString('id-ID')})`,
+        `• Daya Motor DC 12V 280RPM: ${formatNumber(motorWatts, 1)} W (${formatNumber(avgCurrent, 2)} A)`,
+        `• Daya Heater DC 12V 2x40W (Max 80W): ~${formatNumber(heaterAvgWatts, 1)} W (~3.75 A)`,
+        `• Total Energi Terpakai: ${formatNumber(totalKWh, 4)} kWh (${formatNumber(totalKWh * 1000, 1)} Wh)`,
         `• Total Anomali: ${processState.anomalyCount} kali`,
         '',
         'Data batch lengkap telah tersimpan di Supabase dan dapat diunduh dalam format PDF/CSV melalui dashboard.'
@@ -589,6 +588,7 @@ app.use((request, response, next) => {
     return next();
 });
 app.use(express.json({ limit: '100kb' }));
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 app.get('/health', (_request, response) => {
     response.json({ status: 'ok', mqttConnected: Boolean(client?.connected), ...getPublicState() });
@@ -775,11 +775,10 @@ client.on('message', (_topic, message) => {
         .catch((error) => console.error('[MQTT] Pesan gagal diproses:', error.message));
 });
 
-// Keep-Alive Self Pinger untuk menjaga server Render tetap aktif 24 jam tanpa tidur
 const keepAliveUrl = process.env.KEEP_ALIVE_URL
     || process.env.RENDER_EXTERNAL_URL
     || (process.env.NODE_ENV === 'production' ? 'https://dashboard-reaktor-ta.onrender.com' : '');
-const keepAliveIntervalMs = Math.max(60_000, Number(process.env.KEEP_ALIVE_INTERVAL_MS || 10 * 60 * 1000)); // 10 menit
+const keepAliveIntervalMs = Math.max(60_000, Number(process.env.KEEP_ALIVE_INTERVAL_MS || 10 * 60 * 1000));
 
 if (keepAliveUrl && keepAliveUrl.startsWith('http')) {
     const target = `${keepAliveUrl.replace(/\/+$/, '')}/health`;

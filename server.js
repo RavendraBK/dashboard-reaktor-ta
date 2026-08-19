@@ -699,6 +699,28 @@ client.on('message', (_topic, message) => {
         .catch((error) => console.error('[MQTT] Pesan gagal diproses:', error.message));
 });
 
+// Keep-Alive Self Pinger untuk menjaga server Render tetap aktif 24 jam tanpa tidur
+const keepAliveUrl = process.env.KEEP_ALIVE_URL
+    || process.env.RENDER_EXTERNAL_URL
+    || (process.env.NODE_ENV === 'production' ? 'https://dashboard-reaktor-ta.onrender.com' : '');
+const keepAliveIntervalMs = Math.max(60_000, Number(process.env.KEEP_ALIVE_INTERVAL_MS || 10 * 60 * 1000)); // 10 menit
+
+if (keepAliveUrl && keepAliveUrl.startsWith('http')) {
+    const target = `${keepAliveUrl.replace(/\/+$/, '')}/health`;
+    console.log(`[KEEP-ALIVE] Auto-pinger aktif menuju ${target} setiap ${Math.round(keepAliveIntervalMs / 60_000)} menit.`);
+    setInterval(async () => {
+        try {
+            const res = await fetch(target, { signal: AbortSignal.timeout(15_000) });
+            if (res.ok) {
+                console.log(`[KEEP-ALIVE] Ping sukses ke ${target} pada ${indonesiaParts().display}`);
+            }
+        } catch (err) {
+            console.warn(`[KEEP-ALIVE] Ping warning: ${err.message}`);
+        }
+    }, keepAliveIntervalMs);
+}
+
 app.listen(config.port, '0.0.0.0', () => {
     console.log(`[HTTP] Dashboard/API siap di http://localhost:${config.port}`);
 });
+

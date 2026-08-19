@@ -12,18 +12,22 @@
   <style>
     @keyframes warningFlash { 0%,100%{opacity:.92} 50%{opacity:.55} }
     .warning-flash { animation: warningFlash .8s infinite; }
-    .stage-active { border-color:#0f766e!important; box-shadow:0 0 0 3px rgba(13,148,136,.2); }
     .switch:checked + .switch-track { background:#0f766e; }
     .switch:checked + .switch-track:after { transform:translateX(1.25rem); }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { height: 6px; width: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   </style>
 </head>
-<body class="min-h-screen bg-slate-100 font-sans text-slate-800">
-  <!-- Login -->
+<body class="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased">
+  <!-- Login Page -->
   <main id="login-page" class="min-h-screen bg-gradient-to-br from-teal-800 to-cyan-700 flex items-center justify-center p-5">
     <section class="w-full max-w-md rounded-2xl bg-white p-7 shadow-2xl">
       <div class="mb-7 text-center">
         <div class="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-teal-100 text-3xl text-teal-700"><i class="fa-solid fa-flask-vial"></i></div>
-        <h1 class="text-2xl font-bold">Esterification Reactor</h1>
+        <h1 class="text-2xl font-bold text-slate-800">Esterification Reactor</h1>
         <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-teal-700">Monitoring monoester secara real-time</p>
       </div>
       <form id="login-form" class="space-y-4">
@@ -45,97 +49,302 @@
     </section>
   </main>
 
-  <!-- Dashboard -->
+  <!-- Dashboard Page -->
   <div id="dashboard" class="hidden">
     <header class="sticky top-0 z-30 bg-teal-800 text-white shadow-lg">
       <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div class="flex items-center gap-3">
-          <i class="fa-solid fa-flask-vial text-3xl"></i>
+          <i class="fa-solid fa-flask-vial text-3xl text-teal-300"></i>
           <div><h1 class="font-bold">Esterification Reactor</h1><p class="text-xs text-teal-100">IoT monitoring — Monoester</p></div>
         </div>
         <div class="flex flex-wrap items-center gap-2 text-xs">
           <span id="mqtt-badge" class="rounded-full bg-slate-700 px-3 py-1.5"><i class="fa-solid fa-circle mr-1 text-slate-400"></i> MQTT: checking</span>
-          <span id="run-badge" class="rounded-full bg-slate-700 px-3 py-1.5">STANDBY</span>
+          <span id="run-badge" class="rounded-full bg-slate-700 px-3 py-1.5 font-bold">STANDBY</span>
           <span id="user-display" class="rounded-full bg-teal-950 px-3 py-1.5"></span>
-          <button id="logout-button" class="rounded-md bg-slate-900 px-3 py-1.5 hover:bg-slate-950"><i class="fa-solid fa-right-from-bracket"></i> Keluar</button>
+          <button id="logout-button" class="rounded-md bg-slate-900 px-3 py-1.5 transition hover:bg-slate-950"><i class="fa-solid fa-right-from-bracket mr-1"></i> Keluar</button>
         </div>
       </div>
     </header>
 
     <main class="mx-auto max-w-7xl space-y-6 p-4 md:p-6">
+      <!-- Banner Anomali -->
       <section id="anomaly-banner" class="hidden rounded-xl border-2 border-red-600 bg-red-100 p-4 text-red-900 shadow-lg warning-flash">
         <div class="flex items-start justify-between gap-3">
           <div><h2 class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>ANOMALI TERDETEKSI</h2><p id="anomaly-text" class="mt-1 text-sm"></p></div>
-          <button id="hide-anomaly" class="rounded bg-red-700 px-3 py-1 text-xs font-bold text-white">Tutup</button>
+          <button id="hide-anomaly" class="rounded bg-red-700 px-3 py-1 text-xs font-bold text-white transition hover:bg-red-800">Tutup</button>
         </div>
       </section>
 
+      <!-- Ringkasan Nilai Sensor Utama -->
       <section class="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <article class="rounded-xl border-l-4 border-red-500 bg-white p-4 shadow-sm"><i class="fa-solid fa-temperature-half text-red-500"></i><p class="mt-2 text-xs font-bold uppercase text-slate-500">Suhu</p><p><span id="temp-value" class="text-3xl font-bold">0.0</span> °C</p><p class="text-[11px] text-slate-500">Aktif: 60 / 100 / 120 °C ±10%</p></article>
-        <article class="rounded-xl border-l-4 border-blue-500 bg-white p-4 shadow-sm"><i class="fa-solid fa-arrows-rotate text-blue-500"></i><p class="mt-2 text-xs font-bold uppercase text-slate-500">Kecepatan</p><p><span id="rpm-value" class="text-3xl font-bold">0</span> RPM</p><p class="text-[11px] text-slate-500">Mixing & oil treatment: 250 ±10%</p></article>
-        <article class="rounded-xl border-l-4 border-emerald-500 bg-white p-4 shadow-sm"><i class="fa-solid fa-flask text-emerald-500"></i><p class="mt-2 text-xs font-bold uppercase text-slate-500">Volume</p><p><span id="vol-value" class="text-3xl font-bold">0.0</span> ml</p><p id="level-text" class="text-[11px] text-slate-500">Level akhir: menunggu (≥375 ml)</p></article>
-        <article class="rounded-xl border-l-4 border-amber-500 bg-white p-4 shadow-sm"><i class="fa-solid fa-bolt text-amber-500"></i><p class="mt-2 text-xs font-bold uppercase text-slate-500">Arus motor</p><p><span id="current-value" class="text-3xl font-bold">0.00</span> A</p><p class="text-[11px] text-slate-500">Set point 2 A · batas 0–3,2 A</p></article>
-        <article class="col-span-2 rounded-xl border-l-4 border-teal-600 bg-white p-4 shadow-sm lg:col-span-1"><i class="fa-solid fa-stopwatch text-teal-600"></i><p class="mt-2 text-xs font-bold uppercase text-slate-500">Waktu proses</p><p id="elapsed-value" class="text-2xl font-bold">00:00:00</p><p id="last-update" class="text-[11px] text-slate-500">Belum ada data</p></article>
+        <article class="rounded-xl border-l-4 border-red-500 bg-white p-4 shadow-sm">
+          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase text-slate-500">Suhu</span><i class="fa-solid fa-temperature-half text-red-500 text-lg"></i></div>
+          <p class="mt-2"><span id="temp-value" class="text-3xl font-extrabold text-slate-800">0.0</span> <span class="text-sm font-semibold text-slate-500">°C</span></p>
+          <p id="temp-subtext" class="mt-1 text-[11px] text-slate-500">Set Point: 60 / 100 / 120 °C (±10%)</p>
+        </article>
+        <article class="rounded-xl border-l-4 border-blue-500 bg-white p-4 shadow-sm">
+          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase text-slate-500">Kecepatan</span><i class="fa-solid fa-arrows-rotate text-blue-500 text-lg"></i></div>
+          <p class="mt-2"><span id="rpm-value" class="text-3xl font-extrabold text-slate-800">0</span> <span class="text-sm font-semibold text-slate-500">RPM</span></p>
+          <p id="rpm-subtext" class="mt-1 text-[11px] text-slate-500">Mixing & Oil Treatment: 250 ±10%</p>
+        </article>
+        <article class="rounded-xl border-l-4 border-amber-500 bg-white p-4 shadow-sm">
+          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase text-slate-500">Arus Motor</span><i class="fa-solid fa-bolt text-amber-500 text-lg"></i></div>
+          <p class="mt-2"><span id="current-value" class="text-3xl font-extrabold text-slate-800">0.00</span> <span class="text-sm font-semibold text-slate-500">A</span></p>
+          <p id="current-subtext" class="mt-1 text-[11px] text-slate-500">Set Point: 2.0 A (Batas: 0–3.2 A)</p>
+        </article>
+        <article class="rounded-xl border-l-4 border-emerald-500 bg-white p-4 shadow-sm">
+          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase text-slate-500">Volume</span><i class="fa-solid fa-flask text-emerald-500 text-lg"></i></div>
+          <p class="mt-2"><span id="vol-value" class="text-3xl font-extrabold text-slate-800">0.0</span> <span class="text-sm font-semibold text-slate-500">ml</span></p>
+          <p id="level-text" class="mt-1 text-[11px] text-slate-500">Level akhir: menunggu (≥375 ml)</p>
+        </article>
+        <article class="col-span-2 rounded-xl border-l-4 border-teal-600 bg-white p-4 shadow-sm lg:col-span-1">
+          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase text-slate-500">Waktu Proses</span><i class="fa-solid fa-stopwatch text-teal-600 text-lg"></i></div>
+          <p id="elapsed-value" class="mt-2 text-2xl font-extrabold text-slate-800">00:00:00</p>
+          <p id="last-update" class="mt-1 text-[11px] text-slate-500">Belum ada data</p>
+        </article>
       </section>
 
-      <section class="rounded-xl bg-white p-4 shadow-sm">
-        <div class="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h2 class="font-bold">Tahap Produksi</h2><p id="stage-status" class="text-sm text-slate-500">Menunggu data sensor</p></div><span id="batch-label" class="rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-800">Batch: -</span></div>
-        <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" id="stage-list">
-          <article data-stage="1" class="stage-card rounded-lg border-2 border-slate-200 p-3"><b>1. Mixing</b><p>60 °C · 250 RPM · 30 menit</p></article>
-          <article data-stage="2" class="stage-card rounded-lg border-2 border-slate-200 p-3"><b>2. Add Catalyst</b><p>Valve katalis · momentary</p></article>
-          <article data-stage="3" class="stage-card rounded-lg border-2 border-slate-200 p-3"><b>3. Reflux</b><p>100 °C · 0 RPM · 5 jam</p></article>
-          <article data-stage="4" class="stage-card rounded-lg border-2 border-slate-200 p-3"><b>4. Separation</b><p>Aktuator OFF · 12 jam</p></article>
-          <article data-stage="5" class="stage-card rounded-lg border-2 border-slate-200 p-3"><b>5. Oil Treatment</b><p>120 °C · 250 RPM · 1 jam</p></article>
-          <article data-stage="6" class="stage-card rounded-lg border-2 border-slate-200 p-3"><b>6. Filtration</b><p>Valve pemisah · level ≥375 ml</p></article>
+      <!-- TIMELINE TAHAP PRODUKSI -->
+      <section class="rounded-xl bg-white p-5 shadow-sm">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <h2 class="text-base font-bold text-slate-800"><i class="fa-solid fa-timeline mr-2 text-teal-700"></i>Timeline Tahap Produksi</h2>
+            <p id="stage-status" class="text-xs text-slate-500">Menunggu data sensor</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-semibold text-teal-800"><i class="fa-solid fa-circle-info mr-1"></i>Klik kotak tahap untuk melihat perbandingan set point & rata-rata</span>
+            <span id="batch-label" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">Batch: -</span>
+          </div>
+        </div>
+
+        <!-- 6 Stage Timeline Cards -->
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-6" id="stage-timeline">
+          <!-- Di-render dinamis oleh renderTimeline() -->
         </div>
       </section>
 
-      <section class="grid gap-6 lg:grid-cols-3">
-        <div class="rounded-xl bg-white p-4 shadow-sm lg:col-span-2">
-          <h2 class="mb-3 font-bold">Grafik Suhu, RPM, dan Arus</h2><div class="h-72"><canvas id="main-chart"></canvas></div>
-        </div>
-        <div class="rounded-xl bg-white p-4 shadow-sm"><h2 class="mb-3 font-bold">Grafik Volume</h2><div class="h-72"><canvas id="volume-chart"></canvas></div></div>
+      <!-- 4 GRAFIK PARAMETER TERPISAH (2x2 GRID) -->
+      <section class="grid gap-4 md:grid-cols-2">
+        <!-- 1. Grafik Suhu -->
+        <article class="flex flex-col rounded-xl bg-white p-4 shadow-sm">
+          <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="grid h-8 w-8 place-items-center rounded-lg bg-red-100 text-red-600"><i class="fa-solid fa-temperature-half"></i></span>
+              <div>
+                <h3 class="font-bold text-slate-800 text-sm">Grafik Suhu (°C)</h3>
+                <p class="text-[11px] text-slate-400">Target: 60 / 100 / 120 °C (±10%)</p>
+              </div>
+            </div>
+            <select data-chart="temp" class="chart-filter rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-teal-600">
+              <option value="all">🌐 Semua Proses</option>
+              <option value="current">📍 Hanya Tahap Berjalan</option>
+              <option value="1">Tahap 1: Mixing</option>
+              <option value="2">Tahap 2: Add Catalyst</option>
+              <option value="3">Tahap 3: Reflux</option>
+              <option value="4">Tahap 4: Separation</option>
+              <option value="5">Tahap 5: Oil Treatment</option>
+              <option value="6">Tahap 6: Filtration</option>
+            </select>
+          </div>
+          <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Slide rentang data:</span>
+            <span id="slider-temp-label" class="font-semibold text-teal-700">100 poin</span>
+          </div>
+          <input data-chart="temp" type="range" min="20" max="400" value="100" class="chart-slider mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-700">
+          <div class="overflow-x-auto rounded-lg border border-slate-100 p-2">
+            <div class="h-60 min-w-[420px]"><canvas id="chart-temp"></canvas></div>
+          </div>
+        </article>
+
+        <!-- 2. Grafik Kecepatan Putar (RPM) -->
+        <article class="flex flex-col rounded-xl bg-white p-4 shadow-sm">
+          <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="grid h-8 w-8 place-items-center rounded-lg bg-blue-100 text-blue-600"><i class="fa-solid fa-arrows-rotate"></i></span>
+              <div>
+                <h3 class="font-bold text-slate-800 text-sm">Grafik Kecepatan (RPM)</h3>
+                <p class="text-[11px] text-slate-400">Target: 250 RPM (±10%) saat pengadukan</p>
+              </div>
+            </div>
+            <select data-chart="rpm" class="chart-filter rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-teal-600">
+              <option value="all">🌐 Semua Proses</option>
+              <option value="current">📍 Hanya Tahap Berjalan</option>
+              <option value="1">Tahap 1: Mixing</option>
+              <option value="2">Tahap 2: Add Catalyst</option>
+              <option value="3">Tahap 3: Reflux</option>
+              <option value="4">Tahap 4: Separation</option>
+              <option value="5">Tahap 5: Oil Treatment</option>
+              <option value="6">Tahap 6: Filtration</option>
+            </select>
+          </div>
+          <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Slide rentang data:</span>
+            <span id="slider-rpm-label" class="font-semibold text-teal-700">100 poin</span>
+          </div>
+          <input data-chart="rpm" type="range" min="20" max="400" value="100" class="chart-slider mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-700">
+          <div class="overflow-x-auto rounded-lg border border-slate-100 p-2">
+            <div class="h-60 min-w-[420px]"><canvas id="chart-rpm"></canvas></div>
+          </div>
+        </article>
+
+        <!-- 3. Grafik Arus Motor (A) -->
+        <article class="flex flex-col rounded-xl bg-white p-4 shadow-sm">
+          <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="grid h-8 w-8 place-items-center rounded-lg bg-amber-100 text-amber-600"><i class="fa-solid fa-bolt"></i></span>
+              <div>
+                <h3 class="font-bold text-slate-800 text-sm">Grafik Arus Motor (A)</h3>
+                <p class="text-[11px] text-slate-400">Set Point: 2.0 A (Batas: 0.0 – 3.2 A)</p>
+              </div>
+            </div>
+            <select data-chart="current" class="chart-filter rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-teal-600">
+              <option value="all">🌐 Semua Proses</option>
+              <option value="current">📍 Hanya Tahap Berjalan</option>
+              <option value="1">Tahap 1: Mixing</option>
+              <option value="2">Tahap 2: Add Catalyst</option>
+              <option value="3">Tahap 3: Reflux</option>
+              <option value="4">Tahap 4: Separation</option>
+              <option value="5">Tahap 5: Oil Treatment</option>
+              <option value="6">Tahap 6: Filtration</option>
+            </select>
+          </div>
+          <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Slide rentang data:</span>
+            <span id="slider-current-label" class="font-semibold text-teal-700">100 poin</span>
+          </div>
+          <input data-chart="current" type="range" min="20" max="400" value="100" class="chart-slider mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-700">
+          <div class="overflow-x-auto rounded-lg border border-slate-100 p-2">
+            <div class="h-60 min-w-[420px]"><canvas id="chart-current"></canvas></div>
+          </div>
+        </article>
+
+        <!-- 4. Grafik Volume Cairan (ml) -->
+        <article class="flex flex-col rounded-xl bg-white p-4 shadow-sm">
+          <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="grid h-8 w-8 place-items-center rounded-lg bg-emerald-100 text-emerald-600"><i class="fa-solid fa-flask"></i></span>
+              <div>
+                <h3 class="font-bold text-slate-800 text-sm">Grafik Volume (ml)</h3>
+                <p class="text-[11px] text-slate-400">Target Filtrasi Akhir: ≥375 ml</p>
+              </div>
+            </div>
+            <select data-chart="vol" class="chart-filter rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-teal-600">
+              <option value="all">🌐 Semua Proses</option>
+              <option value="current">📍 Hanya Tahap Berjalan</option>
+              <option value="1">Tahap 1: Mixing</option>
+              <option value="2">Tahap 2: Add Catalyst</option>
+              <option value="3">Tahap 3: Reflux</option>
+              <option value="4">Tahap 4: Separation</option>
+              <option value="5">Tahap 5: Oil Treatment</option>
+              <option value="6">Tahap 6: Filtration</option>
+            </select>
+          </div>
+          <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Slide rentang data:</span>
+            <span id="slider-vol-label" class="font-semibold text-teal-700">100 poin</span>
+          </div>
+          <input data-chart="vol" type="range" min="20" max="400" value="100" class="chart-slider mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-700">
+          <div class="overflow-x-auto rounded-lg border border-slate-100 p-2">
+            <div class="h-60 min-w-[420px]"><canvas id="chart-vol"></canvas></div>
+          </div>
+        </article>
       </section>
 
+      <!-- Kontrol & Sakelar Aktuator -->
       <section class="grid gap-6 lg:grid-cols-2">
         <section class="rounded-xl bg-white p-4 shadow-sm">
-          <h2 class="font-bold">Kontrol Proses</h2><p class="mt-1 text-sm text-slate-500">Perintah diteruskan backend ke ESP32/simulator melalui topik kontrol MQTT.</p>
+          <h2 class="font-bold text-slate-800"><i class="fa-solid fa-gamepad mr-2 text-teal-700"></i>Kontrol Proses</h2>
+          <p class="mt-1 text-xs text-slate-500">Perintah diteruskan backend ke ESP32/simulator melalui topik kontrol MQTT.</p>
           <label class="mt-4 block text-sm font-semibold">Kode batch
             <input id="batch-code-input" placeholder="Contoh: UJI-001" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-teal-600">
           </label>
           <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <button data-command="start" class="control-button rounded-lg bg-teal-700 px-3 py-2 font-bold text-white hover:bg-teal-800"><i class="fa-solid fa-play mr-1"></i> Mulai</button>
-            <button data-command="pause" class="control-button rounded-lg bg-amber-500 px-3 py-2 font-bold text-slate-900 hover:bg-amber-600"><i class="fa-solid fa-pause mr-1"></i> Pause</button>
-            <button data-command="resume" class="control-button rounded-lg bg-cyan-600 px-3 py-2 font-bold text-white hover:bg-cyan-700"><i class="fa-solid fa-play mr-1"></i> Resume</button>
-            <button data-command="restart" class="control-button rounded-lg bg-slate-700 px-3 py-2 font-bold text-white hover:bg-slate-800"><i class="fa-solid fa-rotate-right mr-1"></i> Restart</button>
-            <button data-command="reset_emergency" class="control-button rounded-lg bg-violet-600 px-3 py-2 font-bold text-white hover:bg-violet-700"><i class="fa-solid fa-unlock mr-1"></i> Reset stop</button>
-            <button id="emergency-button" class="rounded-lg bg-red-700 px-3 py-2 font-bold text-white hover:bg-red-800"><i class="fa-solid fa-power-off mr-1"></i> EMERGENCY</button>
+            <button data-command="start" class="control-button rounded-lg bg-teal-700 px-3 py-2 text-sm font-bold text-white transition hover:bg-teal-800"><i class="fa-solid fa-play mr-1"></i> Mulai</button>
+            <button data-command="pause" class="control-button rounded-lg bg-amber-500 px-3 py-2 text-sm font-bold text-slate-900 transition hover:bg-amber-600"><i class="fa-solid fa-pause mr-1"></i> Pause</button>
+            <button data-command="resume" class="control-button rounded-lg bg-cyan-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-cyan-700"><i class="fa-solid fa-play mr-1"></i> Resume</button>
+            <button data-command="restart" class="control-button rounded-lg bg-slate-700 px-3 py-2 text-sm font-bold text-white transition hover:bg-slate-800"><i class="fa-solid fa-rotate-right mr-1"></i> Restart</button>
+            <button data-command="reset_emergency" class="control-button rounded-lg bg-violet-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-violet-700"><i class="fa-solid fa-unlock mr-1"></i> Reset Stop</button>
+            <button id="emergency-button" class="rounded-lg bg-red-700 px-3 py-2 text-sm font-bold text-white transition hover:bg-red-800"><i class="fa-solid fa-power-off mr-1"></i> EMERGENCY</button>
           </div>
-          <p id="control-message" class="mt-3 min-h-5 text-sm text-slate-500"></p>
+          <p id="control-message" class="mt-3 min-h-5 text-xs text-slate-500"></p>
         </section>
 
         <section class="rounded-xl bg-white p-4 shadow-sm">
-          <h2 class="font-bold">Status & Toggle Aktuator</h2><p class="mt-1 text-sm text-slate-500">Toggle merupakan perintah manual dan setiap aksi disimpan ke sensor_payload pada reactor_logs.</p>
-          <div class="mt-4 space-y-3">
-            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-3"><span><i class="fa-solid fa-fan mr-2 text-blue-600"></i>Motor pengaduk</span><input data-actuator="motor" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
-            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-3"><span><i class="fa-solid fa-fire-flame-simple mr-2 text-red-600"></i>Heater</span><input data-actuator="heater" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
-            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-3"><span><i class="fa-solid fa-faucet-drip mr-2 text-teal-600"></i>Valve katalis</span><input data-actuator="catalyst_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
-            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-3"><span><i class="fa-solid fa-filter mr-2 text-violet-600"></i>Valve pemisah</span><input data-actuator="separator_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+          <h2 class="font-bold text-slate-800"><i class="fa-solid fa-sliders mr-2 text-teal-700"></i>Status & Toggle Aktuator</h2>
+          <p class="mt-1 text-xs text-slate-500">Toggle merupakan perintah manual dan setiap aksi disimpan ke sensor_payload pada reactor_logs.</p>
+          <div class="mt-4 space-y-2.5">
+            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-fan mr-2 text-blue-600"></i>Motor pengaduk</span><input data-actuator="motor" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-fire-flame-simple mr-2 text-red-600"></i>Heater</span><input data-actuator="heater" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-faucet-drip mr-2 text-teal-600"></i>Valve katalis</span><input data-actuator="catalyst_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-filter mr-2 text-violet-600"></i>Valve pemisah</span><input data-actuator="separator_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
           </div>
         </section>
       </section>
 
+      <!-- Rekap & Unduh Data -->
       <section class="rounded-xl bg-white p-4 shadow-sm">
-        <div class="flex flex-wrap items-end justify-between gap-3"><div><h2 class="font-bold">Rekap dan Unduh Data</h2><p class="text-sm text-slate-500">CSV berisi semua sampel batch; PDF berisi ringkasan rata-rata dan sampel terbaru.</p></div><div class="flex flex-wrap gap-2"><select id="batch-select" class="rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="">Batch aktif</option></select><button id="load-batch" class="rounded-lg bg-slate-700 px-3 py-2 text-sm font-bold text-white">Muat</button><button id="download-csv" class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-bold text-white"><i class="fa-solid fa-file-csv mr-1"></i>CSV</button><button id="download-pdf" class="rounded-lg bg-orange-600 px-3 py-2 text-sm font-bold text-white"><i class="fa-solid fa-file-pdf mr-1"></i>PDF</button></div></div>
-        <div class="mt-4 overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="border-b bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="p-2">Waktu</th><th class="p-2">Tahap</th><th class="p-2">Suhu</th><th class="p-2">RPM</th><th class="p-2">Volume</th><th class="p-2">Arus</th><th class="p-2">Level</th></tr></thead><tbody id="log-table"><tr><td class="p-3 text-slate-500" colspan="7">Belum ada data untuk ditampilkan.</td></tr></tbody></table></div>
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div><h2 class="font-bold text-slate-800"><i class="fa-solid fa-table mr-2 text-teal-700"></i>Rekap dan Unduh Data</h2><p class="text-xs text-slate-500">CSV berisi semua sampel batch; PDF berisi ringkasan rata-rata dan sampel terbaru.</p></div>
+          <div class="flex flex-wrap gap-2">
+            <select id="batch-select" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold"><option value="">Batch aktif</option></select>
+            <button id="load-batch" class="rounded-lg bg-slate-700 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800">Muat</button>
+            <button id="download-csv" class="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700"><i class="fa-solid fa-file-csv mr-1"></i>CSV</button>
+            <button id="download-pdf" class="rounded-lg bg-orange-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-orange-700"><i class="fa-solid fa-file-pdf mr-1"></i>PDF</button>
+          </div>
+        </div>
+        <div class="mt-4 overflow-x-auto"><table class="min-w-full text-left text-xs"><thead class="border-b bg-slate-50 text-[11px] uppercase text-slate-500"><tr><th class="p-2.5">Waktu</th><th class="p-2.5">Tahap</th><th class="p-2.5">Suhu</th><th class="p-2.5">RPM</th><th class="p-2.5">Volume</th><th class="p-2.5">Arus</th><th class="p-2.5">Level</th></tr></thead><tbody id="log-table"><tr><td class="p-3 text-slate-500" colspan="7">Belum ada data untuk ditampilkan.</td></tr></tbody></table></div>
       </section>
     </main>
   </div>
 
-  <div id="toast" class="fixed bottom-5 right-5 hidden max-w-sm rounded-lg bg-slate-900 px-4 py-3 text-sm text-white shadow-xl"></div>
+  <!-- MODAL DETAIL & PERBANDINGAN SET POINT TAHAP -->
+  <div id="stage-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+    <div class="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl transition-all">
+      <div class="flex items-start justify-between border-b border-slate-100 pb-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <span id="modal-stage-num" class="grid h-7 w-7 place-items-center rounded-full bg-teal-100 text-xs font-bold text-teal-800">1</span>
+            <h3 id="modal-stage-title" class="text-lg font-bold text-slate-800">Tahap 1: Mixing</h3>
+          </div>
+          <p id="modal-stage-desc" class="mt-0.5 text-xs text-slate-500">Target durasi: 30 menit · Motor & Heater ON</p>
+        </div>
+        <button id="close-modal" class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div class="my-4 grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3 text-center text-xs">
+        <div><span class="text-slate-400">Status Tahap</span><p id="modal-status-badge" class="mt-0.5 font-bold text-slate-700">-</p></div>
+        <div><span class="text-slate-400">Jumlah Sampel Log</span><p id="modal-sample-count" class="mt-0.5 font-bold text-slate-700">0 data</p></div>
+        <div><span class="text-slate-400">Durasi Berjalan</span><p id="modal-elapsed" class="mt-0.5 font-bold text-slate-700">00:00:00</p></div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-left text-xs">
+          <thead class="border-b bg-slate-100 text-[11px] uppercase text-slate-600">
+            <tr>
+              <th class="p-2.5 font-bold">Parameter</th>
+              <th class="p-2.5 font-bold">Set Point</th>
+              <th class="p-2.5 font-bold">Batas Toleransi</th>
+              <th class="p-2.5 font-bold">Rata-rata Aktual</th>
+              <th class="p-2.5 font-bold">Evaluasi</th>
+            </tr>
+          </thead>
+          <tbody id="modal-table-body" class="divide-y divide-slate-100">
+            <!-- Diisi secara dinamis oleh openStageModal() -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
+        <span>* Toleransi Suhu & RPM adalah ±10%. Arus motor normal 0.0 – 3.2 A (Set Point 2.0 A).</span>
+        <button id="close-modal-btn" class="rounded-lg bg-teal-700 px-4 py-2 font-bold text-white transition hover:bg-teal-800">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden max-w-sm rounded-lg bg-slate-900 px-4 py-3 text-xs text-white shadow-xl"></div>
 
   <script>
-    // Bila dashboard di-host terpisah dari server.js (misalnya Vercel), URL backend dapat disesuaikan otomatis
+    // Konfigurasi API
     const isLocal = ['localhost', '127.0.0.1', '0.0.0.0', ''].includes(window.location.hostname);
     const defaultApiBase = isLocal
       ? window.location.origin
@@ -143,92 +352,504 @@
           ? 'https://dashboard-reaktor-ta.onrender.com'
           : window.location.origin);
     const API_BASE = ((window.REACTOR_CONFIG && window.REACTOR_CONFIG.apiBaseUrl) || defaultApiBase).replace(/\/+$/, '');
+    
     const session = {
       token: sessionStorage.getItem('reactor_access_token') || '',
       user: JSON.parse(sessionStorage.getItem('reactor_user') || 'null'),
       events: null
     };
+
     let currentState = null;
     let currentLogs = [];
-    let lastSampleKey = '';
-    const displayStage = { 1:'Mixing', 2:'Add Catalyst', 3:'Reflux', 4:'Separation', 5:'Oil Treatment', 6:'Filtration' };
+    let activeModalStage = null;
 
-    const mainChart = new Chart(document.getElementById('main-chart'), { type:'line', data:{ labels:[], datasets:[
-      { label:'Suhu (°C)', data:[], borderColor:'#ef4444', backgroundColor:'#ef4444', yAxisID:'temperature', tension:.25 },
-      { label:'RPM', data:[], borderColor:'#2563eb', backgroundColor:'#2563eb', yAxisID:'rpm', tension:.25 },
-      { label:'Arus (A)', data:[], borderColor:'#d97706', backgroundColor:'#d97706', yAxisID:'current', tension:.25 }
-    ]}, options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false}, scales:{ temperature:{position:'left', title:{display:true,text:'°C'}}, rpm:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'RPM'}}, current:{position:'right',offset:true,grid:{drawOnChartArea:false},title:{display:true,text:'A'}} } } });
-    const volumeChart = new Chart(document.getElementById('volume-chart'), { type:'line', data:{labels:[],datasets:[{label:'Volume (ml)',data:[],borderColor:'#059669',backgroundColor:'rgba(5,150,105,.12)',fill:true,tension:.25}]}, options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,title:{display:true,text:'ml'}}}} });
+    // Filter per grafik ('all', 'current', atau '1'..'6') & window slider
+    const chartFilters = { temp: 'all', rpm: 'all', current: 'all', vol: 'all' };
+    const chartWindows = { temp: 100, rpm: 100, current: 100, vol: 100 };
 
-    function number(value, digits=1) { const parsed = Number(value); return Number.isFinite(parsed) ? parsed.toFixed(digits) : (0).toFixed(digits); }
-    function formatElapsed(seconds=0) { seconds=Math.max(0,Math.floor(Number(seconds)||0)); return [Math.floor(seconds/3600),Math.floor((seconds%3600)/60),seconds%60].map(v=>String(v).padStart(2,'0')).join(':'); }
-    function text(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])); }
-    function showToast(message, kind='info') { const node=document.getElementById('toast'); node.textContent=message; node.className=`fixed bottom-5 right-5 max-w-sm rounded-lg px-4 py-3 text-sm text-white shadow-xl ${kind==='error'?'bg-red-700':kind==='success'?'bg-teal-700':'bg-slate-900'}`; node.classList.remove('hidden'); clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>node.classList.add('hidden'),4500); }
+    const stageMeta = {
+      1: { name: 'Mixing', label: '1. Mixing', icon: 'fa-blender', duration: '30 menit', setPointTemp: 60, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 2.0, minCurrent: 0.0, maxCurrent: 3.2, actuators: 'Motor ON | Heater ON' },
+      2: { name: 'Add Catalyst', label: '2. Add Catalyst', icon: 'fa-faucet-drip', duration: 'Momentary', setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Valve Katalis ON' },
+      3: { name: 'Reflux', label: '3. Reflux', icon: 'fa-fire-burner', duration: '5 jam', setPointTemp: 100, tolTemp: 0.10, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Heater ON (Motor OFF)' },
+      4: { name: 'Separation', label: '4. Separation', icon: 'fa-hourglass-half', duration: '12 jam', setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Semua Aktuator OFF' },
+      5: { name: 'Oil Treatment', label: '5. Oil Treatment', icon: 'fa-droplet', duration: '1 jam', setPointTemp: 120, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 2.0, minCurrent: 0.0, maxCurrent: 3.2, actuators: 'Motor ON | Heater ON' },
+      6: { name: 'Filtration', label: '6. Filtration', icon: 'fa-filter', duration: 'Estimasi 2 jam', setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, targetVol: 375, actuators: 'Valve Pemisah ON' }
+    };
 
-    async function api(path, options={}) {
-      const headers = { ...(options.body ? {'Content-Type':'application/json'} : {}), ...(options.headers || {}) };
-      if (session.token) headers.Authorization=`Bearer ${session.token}`;
-      const response=await fetch(`${API_BASE}${path}`, {...options, headers});
-      const body=await response.json().catch(()=>({error:'Respons server tidak valid.'}));
-      if (response.status===401 && session.token) logout();
+    // Helper format
+    function number(value, digits = 1) { const parsed = Number(value); return Number.isFinite(parsed) ? parsed.toFixed(digits) : (0).toFixed(digits); }
+    function formatElapsed(seconds = 0) { seconds = Math.max(0, Math.floor(Number(seconds) || 0)); return [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), seconds % 60].map(v => String(v).padStart(2, '0')).join(':'); }
+    function text(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
+    function showToast(message, kind = 'info') { const node = document.getElementById('toast'); node.textContent = message; node.className = 'fixed bottom-5 right-5 z-50 max-w-sm rounded-lg px-4 py-3 text-xs text-white shadow-xl ' + (kind === 'error' ? 'bg-red-700' : kind === 'success' ? 'bg-teal-700' : 'bg-slate-900'); node.classList.remove('hidden'); clearTimeout(showToast.timer); showToast.timer = setTimeout(() => node.classList.add('hidden'), 4500); }
+
+    // Inisialisasi 4 Chart Terpisah
+    const chartConfigs = {
+      temp: { ctx: 'chart-temp', color: '#ef4444', fill: 'rgba(239,68,68,0.1)', label: 'Suhu (°C)', unit: '°C' },
+      rpm: { ctx: 'chart-rpm', color: '#2563eb', fill: 'rgba(37,99,235,0.1)', label: 'Kecepatan (RPM)', unit: 'RPM' },
+      current: { ctx: 'chart-current', color: '#d97706', fill: 'rgba(217,119,6,0.1)', label: 'Arus Motor (A)', unit: 'A' },
+      vol: { ctx: 'chart-vol', color: '#059669', fill: 'rgba(5,150,105,0.1)', label: 'Volume (ml)', unit: 'ml' }
+    };
+
+    const charts = {};
+    for (const [key, cfg] of Object.entries(chartConfigs)) {
+      charts[key] = new Chart(document.getElementById(cfg.ctx), {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: cfg.label, data: [], borderColor: cfg.color, backgroundColor: cfg.fill, fill: true, tension: 0.25, pointRadius: 2 }] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+          scales: {
+            x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8, font: { size: 10 } } },
+            y: { beginAtZero: key !== 'temp', title: { display: true, text: cfg.unit, font: { size: 10 } }, ticks: { font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    // API Helper
+    async function api(path, options = {}) {
+      const headers = { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) };
+      if (session.token) headers.Authorization = `Bearer ${session.token}`;
+      const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+      const body = await response.json().catch(() => ({ error: 'Respons server tidak valid.' }));
+      if (response.status === 401 && session.token) logout();
       if (!response.ok) throw new Error(body.error || 'Permintaan gagal.');
       return body;
     }
 
-    function addChartPoint(data, label) {
-      const key=`${data.batchId||''}-${data.elapsedSeconds||data.elapsed_seconds||''}-${data.temp}-${data.rpm}-${data.current}`;
-      if (key===lastSampleKey) return;
-      lastSampleKey=key;
-      const chartLabel=label || new Date().toLocaleTimeString('id-ID');
-      mainChart.data.labels.push(chartLabel); volumeChart.data.labels.push(chartLabel);
-      mainChart.data.datasets[0].data.push(Number(data.temp)); mainChart.data.datasets[1].data.push(Number(data.rpm)); mainChart.data.datasets[2].data.push(Number(data.current)); volumeChart.data.datasets[0].data.push(Number(data.vol));
-      if (mainChart.data.labels.length>60) { mainChart.data.labels.shift(); mainChart.data.datasets.forEach(set=>set.data.shift()); volumeChart.data.labels.shift(); volumeChart.data.datasets[0].data.shift(); }
-      mainChart.update('none'); volumeChart.update('none');
+    // Update grafik berdasarkan filter scope dan window slider
+    function updateCharts() {
+      if (!currentLogs.length) return;
+      const currentStage = currentState?.currentStageId || 1;
+
+      for (const [key, chart] of Object.entries(charts)) {
+        const filter = chartFilters[key];
+        const maxPoints = chartWindows[key];
+
+        let filtered = currentLogs;
+        if (filter === 'current') {
+          filtered = currentLogs.filter(row => Number(row.stage) === Number(currentStage));
+        } else if (filter !== 'all') {
+          filtered = currentLogs.filter(row => Number(row.stage) === Number(filter));
+        }
+
+        const sliced = filtered.slice(-maxPoints);
+        chart.data.labels = sliced.map(r => r.waktu_lokal || new Date(r.recorded_at || Date.now()).toLocaleTimeString('id-ID'));
+        chart.data.datasets[0].data = sliced.map(r => {
+          if (key === 'temp') return Number(r.temp);
+          if (key === 'rpm') return Number(r.rpm);
+          if (key === 'current') return Number(r.current);
+          return Number(r.vol);
+        });
+        chart.update('none');
+      }
     }
 
+    // RENDER TIMELINE TAHAP PRODUKSI
+    function renderTimeline() {
+      const container = document.getElementById('stage-timeline');
+      const activeStage = currentState?.currentStageId || 0;
+      const runStatus = (currentState?.runStatus || 'standby').toLowerCase();
+
+      let html = '';
+      for (let i = 1; i <= 6; i++) {
+        const s = stageMeta[i];
+        const isPast = activeStage > i || (activeStage === 6 && currentState?.latestData?.levelDetected);
+        const isCurrent = activeStage === i;
+        const isFuture = activeStage < i;
+
+        let cardStyle = 'border-slate-200 bg-slate-50/70 text-slate-500 opacity-75';
+        let badgeStyle = 'bg-slate-200 text-slate-600';
+        let badgeText = '○ Belum';
+        let iconBg = 'bg-slate-200 text-slate-500';
+
+        if (isPast) {
+          cardStyle = 'border-emerald-400 bg-emerald-50/50 text-emerald-950 shadow-sm';
+          badgeStyle = 'bg-emerald-100 text-emerald-800 font-bold';
+          badgeText = '✓ Selesai';
+          iconBg = 'bg-emerald-600 text-white';
+        } else if (isCurrent) {
+          const isPaused = runStatus === 'paused';
+          cardStyle = 'border-teal-600 bg-teal-50/90 text-teal-950 shadow-md ring-2 ring-teal-500/30 scale-[1.02]';
+          badgeStyle = isPaused ? 'bg-amber-200 text-amber-900 font-bold animate-pulse' : 'bg-teal-600 text-white font-bold animate-pulse';
+          badgeText = isPaused ? '⏸️ Dijeda' : '● Berjalan';
+          iconBg = 'bg-teal-700 text-white';
+        }
+
+        html += `
+          <article onclick="openStageModal(${i})" class="cursor-pointer rounded-xl border-2 p-3 transition-all hover:scale-[1.02] active:scale-[0.98] ${cardStyle}">
+            <div class="flex items-center justify-between">
+              <span class="grid h-7 w-7 place-items-center rounded-lg text-xs font-bold ${iconBg}"><i class="fa-solid ${s.icon}"></i></span>
+              <span class="rounded-full px-2 py-0.5 text-[10px] ${badgeStyle}">${badgeText}</span>
+            </div>
+            <h4 class="mt-2.5 font-bold text-xs">${s.label}</h4>
+            <p class="text-[10px] text-slate-500 mt-0.5">${s.duration}</p>
+            <div class="mt-2 flex items-center justify-between border-t border-slate-200/60 pt-1.5 text-[10px] text-teal-700 font-semibold">
+              <span>Detail & Nilai</span>
+              <i class="fa-solid fa-chevron-right text-[9px]"></i>
+            </div>
+          </article>
+        `;
+      }
+      container.innerHTML = html;
+    }
+
+    // BUKA MODAL PERBANDINGAN SET POINT
+    function openStageModal(stageId) {
+      activeModalStage = stageId;
+      const s = stageMeta[stageId];
+      const activeStage = currentState?.currentStageId || 0;
+      const stageLogs = currentLogs.filter(row => Number(row.stage) === stageId);
+      const count = stageLogs.length;
+
+      document.getElementById('modal-stage-num').textContent = stageId;
+      document.getElementById('modal-stage-title').textContent = s.label;
+      document.getElementById('modal-stage-desc').textContent = `Target durasi: ${s.duration} · ${s.actuators}`;
+      document.getElementById('modal-sample-count').textContent = `${count} sampel`;
+
+      const statusBadge = document.getElementById('modal-status-badge');
+      if (activeStage > stageId) {
+        statusBadge.innerHTML = '<span class="text-emerald-700 font-bold">✓ Selesai Dilalui</span>';
+      } else if (activeStage === stageId) {
+        statusBadge.innerHTML = '<span class="text-teal-700 font-bold animate-pulse">● Sedang Berjalan</span>';
+      } else {
+        statusBadge.innerHTML = '<span class="text-slate-500">○ Belum Dilakukan</span>';
+      }
+
+      // Hitung durasi tahap
+      if (activeStage === stageId && currentState?.latestData?.elapsedSeconds) {
+        document.getElementById('modal-elapsed').textContent = formatElapsed(currentState.latestData.elapsedSeconds);
+      } else {
+        document.getElementById('modal-elapsed').textContent = count ? formatElapsed(count * 2) : '-';
+      }
+
+      // Hitung Rata-rata
+      const avg = count ? {
+        temp: stageLogs.reduce((sum, r) => sum + Number(r.temp || 0), 0) / count,
+        rpm: stageLogs.reduce((sum, r) => sum + Number(r.rpm || 0), 0) / count,
+        current: stageLogs.reduce((sum, r) => sum + Number(r.current || 0), 0) / count,
+        vol: stageLogs.reduce((sum, r) => sum + Number(r.vol || 0), 0) / count
+      } : null;
+
+      // Evaluasi toleransi
+      function evalParam(actual, target, tol, unit) {
+        if (!count || actual === null || target === null) return { avgText: '-', status: '<span class="text-slate-400">-</span>' };
+        const min = target * (1 - tol);
+        const max = target * (1 + tol);
+        const isOk = actual >= min && actual <= max;
+        const avgText = `${number(actual)} ${unit}`;
+        const status = isOk
+          ? `<span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">🟢 Sesuai (±10%)</span>`
+          : `<span class="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800">🔴 Di Luar Batas</span>`;
+        return { avgText, status };
+      }
+
+      function evalCurrent(actual) {
+        if (!count) return { avgText: '-', status: '<span class="text-slate-400">-</span>' };
+        if (!s.setCurrent) return { avgText: `${number(actual, 2)} A`, status: '<span class="text-slate-500">Motor OFF</span>' };
+        const isOk = actual >= s.minCurrent && actual <= s.maxCurrent;
+        const avgText = `${number(actual, 2)} A`;
+        const status = isOk
+          ? `<span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">🟢 Sesuai (0–3.2 A)</span>`
+          : `<span class="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800">🔴 Di Luar Batas</span>`;
+        return { avgText, status };
+      }
+
+      const evalT = evalParam(avg?.temp ?? null, s.setPointTemp, s.tolTemp, '°C');
+      const evalR = evalParam(avg?.rpm ?? null, s.setPointRpm || null, s.tolRpm, 'RPM');
+      const evalC = evalCurrent(avg?.current ?? null);
+
+      const tableRows = [
+        {
+          name: '<i class="fa-solid fa-temperature-half mr-1.5 text-red-500"></i>Suhu',
+          setPoint: s.setPointTemp ? `${s.setPointTemp} °C` : '- (Heater OFF)',
+          tol: s.setPointTemp ? `${(s.setPointTemp * 0.9).toFixed(1)} – ${(s.setPointTemp * 1.1).toFixed(1)} °C (±10%)` : '-',
+          avg: evalT.avgText,
+          eval: evalT.status
+        },
+        {
+          name: '<i class="fa-solid fa-arrows-rotate mr-1.5 text-blue-500"></i>Kecepatan (RPM)',
+          setPoint: s.setPointRpm ? `${s.setPointRpm} RPM` : '- (Motor OFF)',
+          tol: s.setPointRpm ? `${Math.round(s.setPointRpm * 0.9)} – ${Math.round(s.setPointRpm * 1.1)} RPM (±10%)` : '-',
+          avg: evalR.avgText,
+          eval: s.setPointRpm ? evalR.status : (count ? '<span class="text-slate-500">Motor OFF</span>' : '-')
+        },
+        {
+          name: '<i class="fa-solid fa-bolt mr-1.5 text-amber-500"></i>Arus Motor',
+          setPoint: s.setCurrent ? '2.00 A' : '- (Motor OFF)',
+          tol: s.setCurrent ? 'Batas: 0.00 – 3.20 A' : '-',
+          avg: evalC.avgText,
+          eval: evalC.status
+        },
+        {
+          name: '<i class="fa-solid fa-flask mr-1.5 text-emerald-500"></i>Volume Cairan',
+          setPoint: stageId === 6 ? '≥ 375 ml' : '500 ml',
+          tol: stageId === 6 ? 'Wadah akhir: ≥ 375 ml (75%)' : 'Volume reaktor: ~500 ml',
+          avg: count ? `${number(avg.vol)} ml` : '-',
+          eval: count ? (stageId === 6 ? (avg.vol >= 375 ? '<span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">🟢 Level Tercapai</span>' : '<span class="text-amber-700 font-bold">Mengalir...</span>') : '<span class="text-slate-500">Normal</span>') : '-'
+        }
+      ];
+
+      const tbody = document.getElementById('modal-table-body');
+      tbody.innerHTML = tableRows.map(r => `
+        <tr class="hover:bg-slate-50">
+          <td class="p-2.5 font-semibold text-slate-800">${r.name}</td>
+          <td class="p-2.5 text-slate-700">${r.setPoint}</td>
+          <td class="p-2.5 text-slate-500">${r.tol}</td>
+          <td class="p-2.5 font-bold text-slate-900">${r.avg}</td>
+          <td class="p-2.5">${r.eval}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('stage-modal').classList.remove('hidden');
+    }
+
+    function closeStageModal() {
+      document.getElementById('stage-modal').classList.add('hidden');
+      activeModalStage = null;
+    }
+
+    // Terapkan data state live dari server
     function applyState(state) {
-      currentState=state;
-      const data=state.latestData;
-      document.getElementById('batch-label').textContent=`Batch: ${state.batchCode || state.batchId || '-'}`;
-      document.getElementById('stage-status').textContent=state.currentStageId ? `Tahap ${state.currentStageId}/6 — ${state.currentStageName}` : 'Menunggu data sensor';
-      document.querySelectorAll('.stage-card').forEach(card=>card.classList.toggle('stage-active', Number(card.dataset.stage)===Number(state.currentStageId)));
-      const run=String(state.runStatus || 'standby').toUpperCase(); const badge=document.getElementById('run-badge'); badge.textContent=run; badge.className=`rounded-full px-3 py-1.5 ${run==='RUNNING'?'bg-emerald-600':run==='EMERGENCY'?'bg-red-700':run==='PAUSED'?'bg-amber-500 text-slate-950':'bg-slate-700'}`;
-      if (!data) return;
-      document.getElementById('temp-value').textContent=number(data.temp); document.getElementById('rpm-value').textContent=Math.round(Number(data.rpm)||0); document.getElementById('vol-value').textContent=number(data.vol); document.getElementById('current-value').textContent=number(data.current,2); document.getElementById('elapsed-value').textContent=formatElapsed(data.elapsedSeconds); document.getElementById('last-update').textContent=`Update: ${new Date().toLocaleTimeString('id-ID')}`;
-      document.getElementById('level-text').textContent=data.levelDetected ? '✓ Level akhir terdeteksi (≥375 ml)' : 'Level akhir: menunggu (≥375 ml)';
-      document.querySelectorAll('[data-actuator]').forEach(toggle => { toggle.checked=Boolean(data.act?.[toggle.dataset.actuator]); });
-      addChartPoint({ ...data, batchId:state.batchId }, new Date().toLocaleTimeString('id-ID'));
+      currentState = state;
+      const data = state.latestData;
+      document.getElementById('batch-label').textContent = `Batch: ${state.batchCode || state.batchId || '-'}`;
+      document.getElementById('stage-status').textContent = state.currentStageId ? `Tahap ${state.currentStageId}/6 — ${state.currentStageName}` : 'Menunggu data sensor';
+
+      const run = String(state.runStatus || 'standby').toUpperCase();
+      const badge = document.getElementById('run-badge');
+      badge.textContent = run;
+      badge.className = `rounded-full px-3 py-1.5 font-bold ${run === 'RUNNING' ? 'bg-emerald-600 text-white' : run === 'EMERGENCY' ? 'bg-red-700 text-white' : run === 'PAUSED' ? 'bg-amber-500 text-slate-950' : 'bg-slate-700 text-white'}`;
+
+      if (data) {
+        document.getElementById('temp-value').textContent = number(data.temp);
+        document.getElementById('rpm-value').textContent = Math.round(Number(data.rpm) || 0);
+        document.getElementById('vol-value').textContent = number(data.vol);
+        document.getElementById('current-value').textContent = number(data.current, 2);
+        document.getElementById('elapsed-value').textContent = formatElapsed(data.elapsedSeconds);
+        document.getElementById('last-update').textContent = `Update: ${new Date().toLocaleTimeString('id-ID')}`;
+        document.getElementById('level-text').textContent = data.levelDetected ? '✓ Level akhir terdeteksi (≥375 ml)' : 'Level akhir: menunggu (≥375 ml)';
+
+        document.querySelectorAll('[data-actuator]').forEach(toggle => {
+          toggle.checked = Boolean(data.act?.[toggle.dataset.actuator]);
+        });
+
+        // Tambahkan ke log aktif jika belum ada
+        currentLogs.push({
+          batch_id: state.batchId,
+          batch_code: state.batchCode,
+          stage: data.stageId,
+          temp: data.temp,
+          rpm: data.rpm,
+          vol: data.vol,
+          current: data.current,
+          level_detected: data.levelDetected,
+          waktu_lokal: new Date().toLocaleTimeString('id-ID'),
+          tanggal: new Date().toISOString().split('T')[0],
+          recorded_at: new Date().toISOString()
+        });
+
+        renderLogs(currentLogs);
+        updateCharts();
+      }
+
+      renderTimeline();
+      if (activeModalStage) openStageModal(activeModalStage);
     }
 
-    function showAnomaly(payload) { const summary=(payload.anomalies||[]).map(item=>`${item.label}: ${item.value} (${item.setPoint})`).join(' | ') || 'Parameter melebihi batas aman.'; document.getElementById('anomaly-text').textContent=`${payload.stageName || 'Proses'} — ${summary}`; const banner=document.getElementById('anomaly-banner'); banner.classList.remove('hidden'); clearTimeout(showAnomaly.timer); showAnomaly.timer=setTimeout(()=>banner.classList.add('hidden'),12000); }
+    function showAnomaly(payload) {
+      const summary = (payload.anomalies || []).map(item => `${item.label}: ${item.value} (${item.setPoint})`).join(' | ') || 'Parameter melebihi batas aman.';
+      document.getElementById('anomaly-text').textContent = `${payload.stageName || 'Proses'} — ${summary}`;
+      const banner = document.getElementById('anomaly-banner');
+      banner.classList.remove('hidden');
+      clearTimeout(showAnomaly.timer);
+      showAnomaly.timer = setTimeout(() => banner.classList.add('hidden'), 12000);
+    }
 
     function renderLogs(logs) {
-      const rows=logs.slice(-20).reverse(); const body=document.getElementById('log-table');
-      body.innerHTML=rows.length ? rows.map(row=>`<tr class="border-b border-slate-100"><td class="p-2">${text(row.tanggal || '')} ${text(row.waktu_lokal || '')}</td><td class="p-2">${text(row.stage)} — ${text(displayStage[row.stage]||'-')}</td><td class="p-2">${number(row.temp)} °C</td><td class="p-2">${Math.round(Number(row.rpm)||0)}</td><td class="p-2">${number(row.vol)} ml</td><td class="p-2">${number(row.current,2)} A</td><td class="p-2">${row.level_detected ? 'Terdeteksi' : '-'}</td></tr>`).join('') : '<tr><td class="p-3 text-slate-500" colspan="7">Belum ada data untuk ditampilkan.</td></tr>';
+      const rows = logs.slice(-20).reverse();
+      const body = document.getElementById('log-table');
+      body.innerHTML = rows.length ? rows.map(row => `
+        <tr class="border-b border-slate-100 hover:bg-slate-50">
+          <td class="p-2.5">${text(row.tanggal || '')} ${text(row.waktu_lokal || '')}</td>
+          <td class="p-2.5 font-semibold">${text(row.stage)} — ${text(stageMeta[row.stage]?.name || '-')}</td>
+          <td class="p-2.5 font-bold text-red-600">${number(row.temp)} °C</td>
+          <td class="p-2.5 font-bold text-blue-600">${Math.round(Number(row.rpm) || 0)}</td>
+          <td class="p-2.5 font-bold text-emerald-600">${number(row.vol)} ml</td>
+          <td class="p-2.5 font-bold text-amber-600">${number(row.current, 2)} A</td>
+          <td class="p-2.5">${row.level_detected ? '<span class="text-emerald-600 font-bold">✓ Terdeteksi</span>' : '-'}</td>
+        </tr>
+      `).join('') : '<tr><td class="p-3 text-slate-500" colspan="7">Belum ada data untuk ditampilkan.</td></tr>';
     }
 
-    async function loadLogs(batchId='') { currentLogs=await api(`/api/logs?limit=2000${batchId ? `&batchId=${encodeURIComponent(batchId)}` : ''}`); renderLogs(currentLogs); return currentLogs; }
-    async function loadBatches() { const batches=await api('/api/batches'); const select=document.getElementById('batch-select'); const selected=select.value; select.innerHTML='<option value="">Batch aktif</option>'+batches.map(item=>`<option value="${text(item.batchId)}">${text(item.batchCode || item.batchId)} — ${new Date(item.latestAt).toLocaleString('id-ID')}</option>`).join(''); select.value=selected; }
-
-    async function sendControl(action, extras={}) {
-      if (action==='emergency_stop' && !confirm('Yakin melakukan EMERGENCY STOP? Semua aktuator akan diperintahkan OFF.')) return;
-      const code=document.getElementById('batch-code-input').value.trim(); const payload={action,...extras}; if (code) { payload.batch_id=code; payload.batch_code=code; }
-      document.getElementById('control-message').textContent='Mengirim perintah...';
-      try { const result=await api('/api/control',{method:'POST',body:JSON.stringify(payload)}); applyState(result.state); document.getElementById('control-message').textContent=`Perintah ${action} berhasil dikirim ke MQTT.`; showToast('Perintah berhasil dikirim.','success'); } catch(error) { document.getElementById('control-message').textContent=error.message; showToast(error.message,'error'); }
+    async function loadLogs(batchId = '') {
+      currentLogs = await api(`/api/logs?limit=2000${batchId ? `&batchId=${encodeURIComponent(batchId)}` : ''}`);
+      renderLogs(currentLogs);
+      updateCharts();
+      renderTimeline();
+      return currentLogs;
     }
 
-    function downloadFile(content, name, type) { const link=document.createElement('a'); link.href=URL.createObjectURL(new Blob([content],{type})); link.download=name; link.click(); URL.revokeObjectURL(link.href); }
-    function csvEscape(value) { const valueText=String(value ?? ''); return /[",\n]/.test(valueText) ? `"${valueText.replaceAll('"','""')}"` : valueText; }
-    function downloadCsv() { const rows=[['Batch ID','Batch Code','Tanggal','Waktu Lokal','Stage','Proses','Suhu °C','RPM','Volume ml','Arus A','Level Terdeteksi','Aktuator / Payload'],...currentLogs.map(row=>[row.batch_id,row.batch_code,row.tanggal,row.waktu_lokal,row.stage,displayStage[row.stage]||'',row.temp,row.rpm,row.vol,row.current,row.level_detected,JSON.stringify(row.sensor_payload||{})])]; downloadFile(rows.map(row=>row.map(csvEscape).join(',')).join('\n'),'Reactor_Data.csv','text/csv;charset=utf-8'); }
-    function downloadPdf() { if (!window.jspdf) return showToast('Library PDF belum dimuat. Periksa koneksi internet.','error'); const {jsPDF}=window.jspdf; const doc=new jsPDF(); const n=currentLogs.length||1; const averages={temp:currentLogs.reduce((sum,row)=>sum+Number(row.temp||0),0)/n,rpm:currentLogs.reduce((sum,row)=>sum+Number(row.rpm||0),0)/n,vol:currentLogs.reduce((sum,row)=>sum+Number(row.vol||0),0)/n,current:currentLogs.reduce((sum,row)=>sum+Number(row.current||0),0)/n}; doc.setFontSize(16); doc.text('Laporan Batch Reaktor Esterifikasi',14,18); doc.setFontSize(10); doc.text(`Batch: ${currentState?.batchCode || currentLogs[0]?.batch_code || '-'}`,14,26); doc.text(`Dibuat: ${new Date().toLocaleString('id-ID')}`,14,32); doc.autoTable({startY:38,head:[['Jumlah Sampel','Rata-rata Suhu','Rata-rata RPM','Rata-rata Volume','Rata-rata Arus']],body:[[currentLogs.length,`${number(averages.temp)} °C`,`${Math.round(averages.rpm)} RPM`,`${number(averages.vol)} ml`,`${number(averages.current,2)} A`]],theme:'grid',headStyles:{fillColor:[15,118,110]}}); doc.autoTable({startY:60,head:[['Waktu','Stage','Suhu','RPM','Volume','Arus','Level']],body:currentLogs.slice(-100).map(row=>[`${row.tanggal||''} ${row.waktu_lokal||''}`,`${row.stage} - ${displayStage[row.stage]||''}`,`${number(row.temp)} °C`,row.rpm,`${number(row.vol)} ml`,`${number(row.current,2)} A`,row.level_detected?'Ya':'Tidak']),theme:'striped',styles:{fontSize:7},headStyles:{fillColor:[15,118,110]}}); doc.save('Reactor_Laporan_Batch.pdf'); }
+    async function loadBatches() {
+      const batches = await api('/api/batches');
+      const select = document.getElementById('batch-select');
+      const selected = select.value;
+      select.innerHTML = '<option value="">Batch aktif</option>' + batches.map(item => `<option value="${text(item.batchId)}">${text(item.batchCode || item.batchId)} — ${new Date(item.latestAt).toLocaleString('id-ID')}</option>`).join('');
+      select.value = selected;
+    }
 
-    function startEvents() { session.events?.close(); session.events=new EventSource(`${API_BASE}/api/events?token=${encodeURIComponent(session.token)}`); session.events.addEventListener('state',event=>applyState(JSON.parse(event.data))); session.events.addEventListener('anomaly',event=>showAnomaly(JSON.parse(event.data))); session.events.onerror=()=>{ document.getElementById('mqtt-badge').innerHTML='<i class="fa-solid fa-circle mr-1 text-amber-400"></i> Realtime reconnecting'; }; document.getElementById('mqtt-badge').innerHTML='<i class="fa-solid fa-circle mr-1 text-emerald-400"></i> Realtime connected'; }
-    function logout() { session.events?.close(); sessionStorage.removeItem('reactor_access_token'); sessionStorage.removeItem('reactor_user'); session.token=''; session.user=null; document.getElementById('dashboard').classList.add('hidden'); document.getElementById('login-page').classList.remove('hidden'); }
+    async function sendControl(action, extras = {}) {
+      if (action === 'emergency_stop' && !confirm('Yakin melakukan EMERGENCY STOP? Semua aktuator akan diperintahkan OFF.')) return;
+      const code = document.getElementById('batch-code-input').value.trim();
+      const payload = { action, ...extras };
+      if (code) { payload.batch_id = code; payload.batch_code = code; }
+      document.getElementById('control-message').textContent = 'Mengirim perintah...';
+      try {
+        const result = await api('/api/control', { method: 'POST', body: JSON.stringify(payload) });
+        applyState(result.state);
+        document.getElementById('control-message').textContent = `Perintah ${action} berhasil dikirim ke MQTT.`;
+        showToast('Perintah berhasil dikirim.', 'success');
+      } catch (error) {
+        document.getElementById('control-message').textContent = error.message;
+        showToast(error.message, 'error');
+      }
+    }
 
-    document.getElementById('login-form').addEventListener('submit',async event=>{ event.preventDefault(); const button=document.getElementById('login-button'); const errorNode=document.getElementById('login-error'); button.disabled=true; button.textContent='Memeriksa akun...'; errorNode.classList.add('hidden'); try { const response=await fetch(`${API_BASE}/api/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('email').value.trim(),password:document.getElementById('password').value,telegramId:document.getElementById('telegram-id').value.trim()})}); const body=await response.json(); if (!response.ok) throw new Error(body.error||'Login gagal.'); session.token=body.accessToken; session.user=body.user; sessionStorage.setItem('reactor_access_token',session.token); sessionStorage.setItem('reactor_user',JSON.stringify(body.user)); document.getElementById('user-display').textContent=body.user.email; document.getElementById('login-page').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden'); await Promise.all([loadLogs(),loadBatches()]); const state=await api('/api/state'); applyState(state); startEvents(); } catch(error) { errorNode.textContent=error.message; errorNode.classList.remove('hidden'); } finally { button.disabled=false; button.textContent='Masuk ke Dashboard'; }});
-    document.getElementById('logout-button').addEventListener('click',logout); document.getElementById('hide-anomaly').addEventListener('click',()=>document.getElementById('anomaly-banner').classList.add('hidden')); document.querySelectorAll('.control-button').forEach(button=>button.addEventListener('click',()=>sendControl(button.dataset.command))); document.getElementById('emergency-button').addEventListener('click',()=>sendControl('emergency_stop')); document.querySelectorAll('[data-actuator]').forEach(toggle=>toggle.addEventListener('change',()=>sendControl('set_actuator',{actuator:toggle.dataset.actuator,enabled:toggle.checked}))); document.getElementById('load-batch').addEventListener('click',async()=>{ try { await loadLogs(document.getElementById('batch-select').value); showToast('Data batch dimuat.','success'); } catch(error) { showToast(error.message,'error'); } }); document.getElementById('batch-select').addEventListener('change',event=>{ if (event.target.value) document.getElementById('batch-code-input').value=event.target.value; }); document.getElementById('download-csv').addEventListener('click',downloadCsv); document.getElementById('download-pdf').addEventListener('click',downloadPdf);
+    function downloadFile(content, name, type) { const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([content], { type })); link.download = name; link.click(); URL.revokeObjectURL(link.href); }
+    function csvEscape(value) { const valueText = String(value ?? ''); return /[",\n]/.test(valueText) ? `"${valueText.replaceAll('"', '""')}"` : valueText; }
+    function downloadCsv() {
+      const rows = [['Batch ID', 'Batch Code', 'Tanggal', 'Waktu Lokal', 'Stage', 'Proses', 'Suhu °C', 'RPM', 'Volume ml', 'Arus A', 'Level Terdeteksi', 'Aktuator / Payload'], ...currentLogs.map(row => [row.batch_id, row.batch_code, row.tanggal, row.waktu_lokal, row.stage, stageMeta[row.stage]?.name || '', row.temp, row.rpm, row.vol, row.current, row.level_detected, JSON.stringify(row.sensor_payload || {})])];
+      downloadFile(rows.map(row => row.map(csvEscape).join(',')).join('\n'), 'Reactor_Data.csv', 'text/csv;charset=utf-8');
+    }
+    function downloadPdf() {
+      if (!window.jspdf) return showToast('Library PDF belum dimuat. Periksa koneksi internet.', 'error');
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const n = currentLogs.length || 1;
+      const averages = {
+        temp: currentLogs.reduce((sum, row) => sum + Number(row.temp || 0), 0) / n,
+        rpm: currentLogs.reduce((sum, row) => sum + Number(row.rpm || 0), 0) / n,
+        vol: currentLogs.reduce((sum, row) => sum + Number(row.vol || 0), 0) / n,
+        current: currentLogs.reduce((sum, row) => sum + Number(row.current || 0), 0) / n
+      };
+      doc.setFontSize(16);
+      doc.text('Laporan Batch Reaktor Esterifikasi', 14, 18);
+      doc.setFontSize(10);
+      doc.text(`Batch: ${currentState?.batchCode || currentLogs[0]?.batch_code || '-'}`, 14, 26);
+      doc.text(`Dibuat: ${new Date().toLocaleString('id-ID')}`, 14, 32);
+      doc.autoTable({
+        startY: 38,
+        head: [['Jumlah Sampel', 'Rata-rata Suhu', 'Rata-rata RPM', 'Rata-rata Volume', 'Rata-rata Arus']],
+        body: [[currentLogs.length, `${number(averages.temp)} °C`, `${Math.round(averages.rpm)} RPM`, `${number(averages.vol)} ml`, `${number(averages.current, 2)} A`]],
+        theme: 'grid',
+        headStyles: { fillColor: [15, 118, 110] }
+      });
+      doc.autoTable({
+        startY: 60,
+        head: [['Waktu', 'Stage', 'Suhu', 'RPM', 'Volume', 'Arus', 'Level']],
+        body: currentLogs.slice(-100).map(row => [`${row.tanggal || ''} ${row.waktu_lokal || ''}`, `${row.stage} - ${stageMeta[row.stage]?.name || ''}`, `${number(row.temp)} °C`, row.rpm, `${number(row.vol)} ml`, `${number(row.current, 2)} A`, row.level_detected ? 'Ya' : 'Tidak']),
+        theme: 'striped',
+        styles: { fontSize: 7 },
+        headStyles: { fillColor: [15, 118, 110] }
+      });
+      doc.save('Reactor_Laporan_Batch.pdf');
+    }
 
-    // Auto restore session jika user sudah pernah login sebelumnya
+    function startEvents() {
+      session.events?.close();
+      session.events = new EventSource(`${API_BASE}/api/events?token=${encodeURIComponent(session.token)}`);
+      session.events.addEventListener('state', event => applyState(JSON.parse(event.data)));
+      session.events.addEventListener('anomaly', event => showAnomaly(JSON.parse(event.data)));
+      session.events.onerror = () => { document.getElementById('mqtt-badge').innerHTML = '<i class="fa-solid fa-circle mr-1 text-amber-400"></i> Realtime reconnecting'; };
+      document.getElementById('mqtt-badge').innerHTML = '<i class="fa-solid fa-circle mr-1 text-emerald-400"></i> Realtime connected';
+    }
+
+    function logout() {
+      session.events?.close();
+      sessionStorage.removeItem('reactor_access_token');
+      sessionStorage.removeItem('reactor_user');
+      session.token = '';
+      session.user = null;
+      document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('login-page').classList.remove('hidden');
+    }
+
+    // Event Listeners
+    document.getElementById('login-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const button = document.getElementById('login-button');
+      const errorNode = document.getElementById('login-error');
+      button.disabled = true;
+      button.textContent = 'Memeriksa akun...';
+      errorNode.classList.add('hidden');
+      try {
+        const response = await fetch(`${API_BASE}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('email').value.trim(),
+            password: document.getElementById('password').value,
+            telegramId: document.getElementById('telegram-id').value.trim()
+          })
+        });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || 'Login gagal.');
+        session.token = body.accessToken;
+        session.user = body.user;
+        sessionStorage.setItem('reactor_access_token', session.token);
+        sessionStorage.setItem('reactor_user', JSON.stringify(body.user));
+        document.getElementById('user-display').textContent = body.user.email;
+        document.getElementById('login-page').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        await Promise.all([loadLogs(), loadBatches()]);
+        const state = await api('/api/state');
+        applyState(state);
+        startEvents();
+      } catch (error) {
+        errorNode.textContent = error.message;
+        errorNode.classList.remove('hidden');
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Masuk ke Dashboard';
+      }
+    });
+
+    document.getElementById('logout-button').addEventListener('click', logout);
+    document.getElementById('hide-anomaly').addEventListener('click', () => document.getElementById('anomaly-banner').classList.add('hidden'));
+    document.querySelectorAll('.control-button').forEach(button => button.addEventListener('click', () => sendControl(button.dataset.command)));
+    document.getElementById('emergency-button').addEventListener('click', () => sendControl('emergency_stop'));
+    document.querySelectorAll('[data-actuator]').forEach(toggle => toggle.addEventListener('change', () => sendControl('set_actuator', { actuator: toggle.dataset.actuator, enabled: toggle.checked })));
+    document.getElementById('load-batch').addEventListener('click', async () => { try { await loadLogs(document.getElementById('batch-select').value); showToast('Data batch dimuat.', 'success'); } catch (error) { showToast(error.message, 'error'); } });
+    document.getElementById('batch-select').addEventListener('change', event => { if (event.target.value) document.getElementById('batch-code-input').value = event.target.value; });
+    document.getElementById('download-csv').addEventListener('click', downloadCsv);
+    document.getElementById('download-pdf').addEventListener('click', downloadPdf);
+
+    // Modal controls
+    document.getElementById('close-modal').addEventListener('click', closeStageModal);
+    document.getElementById('close-modal-btn').addEventListener('click', closeStageModal);
+    document.getElementById('stage-modal').addEventListener('click', event => { if (event.target === document.getElementById('stage-modal')) closeStageModal(); });
+
+    // Chart filter dropdowns & sliders
+    document.querySelectorAll('.chart-filter').forEach(select => {
+      select.addEventListener('change', event => {
+        const key = event.target.dataset.chart;
+        chartFilters[key] = event.target.value;
+        updateCharts();
+      });
+    });
+
+    document.querySelectorAll('.chart-slider').forEach(slider => {
+      slider.addEventListener('input', event => {
+        const key = event.target.dataset.chart;
+        chartWindows[key] = Number(event.target.value);
+        document.getElementById(`slider-${key}-label`).textContent = `${event.target.value} poin`;
+        updateCharts();
+      });
+    });
+
+    // Auto restore session
     (async function initSession() {
       if (!session.token) return;
       try {
@@ -244,7 +865,6 @@
         logout();
       }
     })();
-
   </script>
 </body>
 </html>

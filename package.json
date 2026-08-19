@@ -16,6 +16,7 @@
     "@supabase/supabase-js": "^2.43.4",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "jsdom": "^30.0.1",
     "mqtt": "^5.7.0",
     "pdfkit": "^0.19.1"
   }

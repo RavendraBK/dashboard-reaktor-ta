@@ -2486,20 +2486,24 @@
       actuators: { motor: true, heater: true, catalyst_valve: false, separator_valve: false, servo: false }
     };
 
-        function startDemoMode(customName) {
+        function startDemoMode() {
       const visitorInput = document.getElementById('guest-visitor-name');
-      const visitorNameInput = typeof customName === 'string' && customName.trim()
-        ? customName.trim()
-        : (visitorInput ? visitorInput.value.trim() : '');
-      const savedName = sessionStorage.getItem('reactor_guest_name');
-      const visitorName = visitorNameInput || savedName || 'Guest Visitor';
+      const visitorName = visitorInput ? visitorInput.value.trim() : '';
+
+      if (!visitorName) {
+        showToast('Silakan isi nama lengkap Anda sebelum meluncurkan demo!', 'error');
+        if (visitorInput) {
+          visitorInput.focus();
+          visitorInput.classList.add('ring-2', 'ring-red-500');
+          setTimeout(() => visitorInput.classList.remove('ring-2', 'ring-red-500'), 2000);
+        }
+        return;
+      }
 
       isDemoMode = true;
       sessionStorage.setItem('reactor_demo_mode', 'true');
       sessionStorage.setItem('reactor_guest_name', visitorName);
-      if (!sessionStorage.getItem('reactor_guest_entered_at')) {
-        sessionStorage.setItem('reactor_guest_entered_at', new Date().toISOString());
-      }
+      sessionStorage.setItem('reactor_guest_entered_at', new Date().toISOString());
 
       // Save visitor access to DB in background
       logVisitorAccess(visitorName, false);
@@ -2722,33 +2726,40 @@
       }
     });
 
-        (async function initApp() {
+    (async function initApp() {
       initTheme();
       calculateStoichiometry();
 
-      // If URL contains ?demo or ?mode=demo OR if demo was previously active -> launch demo immediately
-      if (isExplicitDemo || sessionStorage.getItem('reactor_demo_mode') === 'true') {
-        startDemoMode();
+      // Always show Login Page by default on fresh visit
+      document.getElementById('login-page').classList.remove('hidden');
+      document.getElementById('dashboard').classList.add('hidden');
+
+      // If URL contains ?mode=demo, focus and highlight the guest name field
+      if (isExplicitDemo) {
+        const guestInput = document.getElementById('guest-visitor-name');
+        if (guestInput) {
+          setTimeout(() => {
+            guestInput.focus();
+            guestInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 200);
+        }
         return;
       }
 
-      if (!session.token) {
-        document.getElementById('login-page').classList.remove('hidden');
-        document.getElementById('dashboard').classList.add('hidden');
-        return;
-      }
-
-      try {
-        if (session.user?.email) document.getElementById('user-display').textContent = session.user.email;
-        const state = await api('/api/state');
-        document.getElementById('login-page').classList.add('hidden');
-        document.getElementById('dashboard').classList.remove('hidden');
-        applyState(state);
-        await Promise.all([loadLogs(), loadBatches()]);
-        startEvents();
-      } catch (err) {
-        console.warn('Saved session could not be restored:', err.message);
-        logout();
+      // If operator already has a valid signed-in session in this tab:
+      if (session.token && !isDemoMode) {
+        try {
+          if (session.user?.email) document.getElementById('user-display').textContent = session.user.email;
+          const state = await api('/api/state');
+          document.getElementById('login-page').classList.add('hidden');
+          document.getElementById('dashboard').classList.remove('hidden');
+          applyState(state);
+          await Promise.all([loadLogs(), loadBatches()]);
+          startEvents();
+        } catch (err) {
+          console.warn('Saved session could not be restored:', err.message);
+          logout();
+        }
       }
     })();
   </script>

@@ -476,14 +476,12 @@ async function processSensorData(rawPayload) {
     if (!['standby', 'running', 'paused', 'emergency'].includes(processState.runStatus)) processState.runStatus = 'running';
     processState.latestData = data;
     
-    // Stage stats
     processState.stageStats.count += 1;
     processState.stageStats.sumTemp += data.temp;
     processState.stageStats.sumRpm += data.rpm;
     processState.stageStats.sumVol += data.vol;
     processState.stageStats.sumCurrent += data.current;
 
-    // Batch cumulative stats
     processState.batchStats.count += 1;
     processState.batchStats.sumTemp += data.temp;
     processState.batchStats.sumRpm += data.rpm;
@@ -601,6 +599,41 @@ app.get('/health', (_request, response) => {
     response.json({ status: 'ok', mqttConnected: Boolean(client?.connected), ...getPublicState() });
 });
 
+// Endpoint untuk merekam pengunjung pameran / guest access log
+app.post('/api/visitors', async (request, response) => {
+    const { visitorName, enteredAt, exitedAt } = request.body || {};
+    if (!visitorName) return response.status(400).json({ error: 'Nama pengunjung wajib diisi.' });
+
+    const now = indonesiaParts();
+    const visitorRow = {
+        stage: 1,
+        temp: 0, rpm: 0, vol: 0, current: 0,
+        waktu_lokal: now.time,
+        tanggal: now.date,
+        created_at: new Date().toISOString(),
+        batch_id: 'EXHIBITION-GUEST-ACCESS',
+        level_detected: false,
+        recorded_at: new Date().toISOString(),
+        sensor_payload: {
+            event_type: 'exhibition_guest_visit',
+            visitor_name: String(visitorName).trim(),
+            entered_at: enteredAt || new Date().toISOString(),
+            exited_at: exitedAt || null,
+            recorded_display: now.display
+        }
+    };
+    visitorRow[config.batchCodeColumn] = 'EXHIBITION-GUEST-ACCESS';
+
+    try {
+        await supabase.from('reactor_logs').insert([visitorRow]);
+        console.log(`[EXHIBITION] Pengunjung tercatat: ${visitorName} pada ${now.display}`);
+        return response.json({ ok: true, visitorName, loggedAt: now.display });
+    } catch (err) {
+        console.warn(`[EXHIBITION] Warning: Gagal menyimpan log tamu: ${err.message}`);
+        return response.json({ ok: true, visitorName, warning: err.message });
+    }
+});
+
 app.post('/api/auth/login', async (request, response) => {
     const { email, password, telegramId } = request.body || {};
     if (!email || !password || !telegramId) {
@@ -642,10 +675,6 @@ app.post('/api/auth/login', async (request, response) => {
         console.warn(`[AUTH] Admin upsert profil gagal (${upsertError.message}), mencoba fallback dengan token user...`);
         const userUpsert = await userClient.from('profiles').upsert(profilePayload, { onConflict: 'id' });
         upsertError = userUpsert.error;
-    }
-
-    if (upsertError) {
-        console.warn(`[AUTH] Peringatan: Profil tidak dapat disimpan ke Supabase (${upsertError.message}). Tetap melanjutkan sesi login.`);
     }
 
     processState.notificationChatIds.add(telegramChatId);
@@ -716,7 +745,6 @@ app.get('/api/batches', requireUser, async (_request, response) => {
     return response.json([...unique.values()]);
 });
 
-// Endpoint untuk menghapus data log batch tertentu (misal batch uji coba)
 app.delete('/api/batches/:batchId', requireUser, async (request, response) => {
     const batchId = String(request.params.batchId || '').trim();
     if (!batchId) return response.status(400).json({ error: 'Batch ID wajib disertakan.' });

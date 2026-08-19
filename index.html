@@ -413,7 +413,7 @@
             </div>
           </div>
 
-          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-6" id="stage-timeline"></div>
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5" id="stage-timeline"></div>
         </section>
 
         <!-- 4 SEPARATE PARAMETER CHARTS (2x2 GRID) -->
@@ -969,12 +969,11 @@
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
-                  <tr><td class="p-3 font-semibold">1. Mixing (60°C · 250 RPM)</td><td class="p-3">Motor + Heater ~50%</td><td class="p-3">~0.35A (4.2W)</td><td class="p-3">~3.33A (40.0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~44.2 W</td></tr>
-                  <tr><td class="p-3 font-semibold">2. Add Catalyst</td><td class="p-3">Catalyst Valve Servo</td><td class="p-3">0.0A (0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-violet-600">0.70A (4.2W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~4.2 W</td></tr>
-                  <tr><td class="p-3 font-semibold">3. Reflux (100°C · 0 RPM)</td><td class="p-3">Heater ~82% Duty (Motor OFF)</td><td class="p-3">0.0A (0W)</td><td class="p-3">~5.50A (66.0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~66.0 W</td></tr>
-                  <tr><td class="p-3 font-semibold">4. Separation (12 hours)</td><td class="p-3">All Actuators OFF</td><td class="p-3">0.0A (0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">0.0 W</td></tr>
-                  <tr><td class="p-3 font-semibold">5. Oil Treatment (120°C · 250 RPM)</td><td class="p-3">Motor + Heater 100% Duty</td><td class="p-3">~0.35A (4.2W)</td><td class="p-3">~6.67A (80.0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~84.2 W</td></tr>
-                  <tr><td class="p-3 font-semibold">6. Filtration</td><td class="p-3">Separator Valve Servo</td><td class="p-3">0.0A (0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-violet-600">0.70A (4.2W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~4.2 W</td></tr>
+                  <tr><td class="p-3 font-semibold">1. Mixing (60°C · 250 RPM)</td><td class="p-3">Motor + Heater ~50% + Katup 1 Umpan</td><td class="p-3">~0.35A (4.2W)</td><td class="p-3">~3.33A (40.0W)</td><td class="p-3">0.70A (saat Katup 1 buka)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~44.2 W</td></tr>
+                  <tr><td class="p-3 font-semibold">2. Reflux (100°C · 0 RPM)</td><td class="p-3">Heater ~82% Duty (Motor OFF)</td><td class="p-3">0.0A (0W)</td><td class="p-3">~5.50A (66.0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~66.0 W</td></tr>
+                  <tr><td class="p-3 font-semibold">3. Separation (12 hours)</td><td class="p-3">All Actuators OFF (Pencucian Air 10%)</td><td class="p-3">0.0A (0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">0.0 W</td></tr>
+                  <tr><td class="p-3 font-semibold">4. Oil Treatment (120°C · 250 RPM)</td><td class="p-3">Motor + Heater 100% Duty + Bentonit</td><td class="p-3">~0.35A (4.2W)</td><td class="p-3">~6.67A (80.0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~84.2 W</td></tr>
+                  <tr><td class="p-3 font-semibold">5. Filtration (Corong Whatman)</td><td class="p-3">Katup 2 Separator Servo (Bukaan pendek)</td><td class="p-3">0.0A (0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-violet-600">0.70A (4.2W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~4.2 W</td></tr>
                 </tbody>
               </table>
             </div>
@@ -1204,12 +1203,11 @@
     const chartWindows = { temp: 100, rpm: 100, current: 100, vol: 100 };
 
     const stageMeta = {
-      1: { name: 'Mixing', label: '1. Mixing', icon: 'fa-blender', duration: '30 mins', targetSeconds: 1800, setPointTemp: 60, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 0.35, minCurrent: 0.0, maxCurrent: 1.8, actuators: 'Motor ON (12V 280RPM) | Heater ON (12V 2x40W)' },
-      2: { name: 'Add Catalyst', label: '2. Add Catalyst', icon: 'fa-faucet-drip', duration: 'Momentary', targetSeconds: 60, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Valve Katalis ON (Servo 6V 0.7A)' },
-      3: { name: 'Reflux', label: '3. Reflux', icon: 'fa-fire-burner', duration: '5 hours', targetSeconds: 18000, setPointTemp: 100, tolTemp: 0.10, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Heater ON (12V 2x40W, Motor OFF)' },
-      4: { name: 'Separation', label: '4. Separation', icon: 'fa-hourglass-half', duration: '12 hours', targetSeconds: 43200, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Semua Aktuator OFF' },
-      5: { name: 'Oil Treatment', label: '5. Oil Treatment', icon: 'fa-droplet', duration: '1 hour', targetSeconds: 3600, setPointTemp: 120, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 0.35, minCurrent: 0.0, maxCurrent: 1.8, actuators: 'Motor ON | Heater ON | Bentonite 0.2g' },
-      6: { name: 'Filtration', label: '6. Filtration', icon: 'fa-filter', duration: 'Est. 2 hours', targetSeconds: 7200, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, targetVol: 375, actuators: 'Separator Valve ON (Servo 6V 0.7A)' }
+      1: { name: 'Mixing', label: '1. Mixing', icon: 'fa-blender', duration: '30 mins', targetSeconds: 1800, setPointTemp: 60, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 0.35, minCurrent: 0.0, maxCurrent: 1.8, actuators: 'Motor ON (12V 280RPM) | Heater ON (12V 2x40W) | Katup 1 Umpan Katalis 4%' },
+      2: { name: 'Reflux', label: '2. Reflux', icon: 'fa-fire-burner', duration: '5 hours', targetSeconds: 18000, setPointTemp: 100, tolTemp: 0.10, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Heater ON (12V 2x40W) | Motor OFF (0 RPM)' },
+      3: { name: 'Separation', label: '3. Separation', icon: 'fa-hourglass-half', duration: '12 hours', targetSeconds: 43200, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Semua Aktuator OFF (Pemisahan Gravitasi & Air Cuci 10%)' },
+      4: { name: 'Oil Treatment', label: '4. Oil Treatment', icon: 'fa-droplet', duration: '1 hour', targetSeconds: 3600, setPointTemp: 120, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 0.35, minCurrent: 0.0, maxCurrent: 1.8, actuators: 'Motor ON (250 RPM) | Heater ON (120°C) | Adsorben Bentonit 0.2g' },
+      5: { name: 'Filtration', label: '5. Filtration', icon: 'fa-filter', duration: 'Level ≥375 ml / 2h', targetSeconds: 7200, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, targetVol: 375, actuators: 'Katup 2 Pengurasan Separator ke Corong Whatman' }
     };
 
     let activeRecipe = {
@@ -1517,8 +1515,8 @@
       const isServo = isCat || isSep || Boolean(data.act?.servo);
 
       const motorW = 12 * motorA;
-      const heaterA = isHeater ? (stageId === 5 ? 6.67 : (stageId === 3 ? 5.50 : 3.33)) : 0.0;
-      const heaterW = isHeater ? (stageId === 5 ? 80.0 : (stageId === 3 ? 66.0 : 40.0)) : 0.0;
+      const heaterA = isHeater ? (stageId === 4 ? 6.67 : (stageId === 2 ? 5.50 : 3.33)) : 0.0;
+      const heaterW = isHeater ? (stageId === 4 ? 80.0 : (stageId === 2 ? 66.0 : 40.0)) : 0.0;
       const servoA = isServo ? 0.70 : 0.0;
       const servoW = isServo ? 4.2 : 0.0;
 
@@ -1963,7 +1961,7 @@
 
       const batchCode = state.batchCode || state.batchId;
       document.getElementById('batch-label').textContent = `Batch: ${batchCode || '-'}`;
-      document.getElementById('stage-status').textContent = state.currentStageId ? `Stage ${state.currentStageId}/6 — ${state.currentStageName}` : 'Standby / Awaiting Batch Initialization';
+      document.getElementById('stage-status').textContent = state.currentStageId ? `Stage ${state.currentStageId}/5 — ${state.currentStageName}` : 'Standby / Awaiting Batch Initialization';
 
       const run = String(state.runStatus || 'standby').toUpperCase();
       const badge = document.getElementById('run-badge');
@@ -2305,12 +2303,12 @@
         startY: doc.lastAutoTable.finalY + 6,
         head: [['Stage #', 'Process Name', 'Target Temp & RPM', 'Target Duration', 'Active Actuators & SOP Actions']],
         body: [
-          ['1', 'Mixing', '60 °C (±10%) · 250 RPM', '30 Minutes', 'Motor ON, Heater ON (~50%). Reagents blending.'],
-          ['2', 'Add Catalyst', 'Ambient · 0 RPM', 'Momentary (60s)', 'Catalyst Valve Servo ON. Dispenses 4% H2SO4.'],
-          ['3', 'Reflux', '100 °C (±10%) · 0 RPM', '5 Hours', 'Heater ON (~82%), Motor OFF. Reflux condensation.'],
-          ['4', 'Separation', 'Ambient · 0 RPM', '12 Hours', 'All OFF. Add 10% pure water. Gravitational phase sep.'],
-          ['5', 'Oil Treatment', '120 °C (±10%) · 250 RPM', '1 Hour', 'Motor ON, Heater 100%. Add 0.2g bentonite adsorbent.'],
-          ['6', 'Filtration', 'Ambient · 0 RPM', 'Level ≥375 ml', 'Separator Valve Servo ON. Product draining to beaker.']
+          [
+          ['1', 'Mixing', '60 °C (±10%) · 250 RPM', '30 Minutes', 'Motor ON, Heater ON (~50%). Katup 1 umpan katalis 4% H2SO4.'],
+          ['2', 'Reflux', '100 °C (±10%) · 0 RPM', '5 Hours', 'Heater ON (~82%), Motor OFF. Kondensasi refluks.'],
+          ['3', 'Separation', 'Ambient · 0 RPM', '12 Hours', 'Semua OFF. Air cuci 10%. Pemisahan gravitasi.'],
+          ['4', 'Oil Treatment', '120 °C (±10%) · 250 RPM', '1 Hour', 'Motor ON, Heater 100%. Adsorben bentonit 0.2g.'],
+          ['5', 'Filtration', 'Ambient · 0 RPM', 'Level ≥375 ml', 'Katup 2 Servo ON ke corong Whatman. Berhenti otomatis.']
         ],
         theme: 'grid',
         headStyles: { fillColor: [30, 41, 59] },

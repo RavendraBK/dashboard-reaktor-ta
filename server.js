@@ -37,11 +37,11 @@ function createUserClient(accessToken) {
 
 const stages = {
     1: { id: 1, name: 'Mixing', durationLabel: '30 menit', targetSeconds: 1800, temp: { target: 60, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON (12V 280RPM) | Heater ON (12V 2x40W)' },
-    2: { id: 2, name: 'Add Catalyst', durationLabel: 'Momentary', targetSeconds: 60, temp: null, rpm: null, current: null, actuators: 'Valve Katalis ON' },
+    2: { id: 2, name: 'Add Catalyst', durationLabel: 'Momentary', targetSeconds: 60, temp: null, rpm: null, current: null, actuators: 'Valve Katalis ON (Servo 6V 0.7A)' },
     3: { id: 3, name: 'Reflux', durationLabel: '5 jam', targetSeconds: 18000, temp: { target: 100, tolerance: 0.10 }, rpm: { target: 0, min: 0, max: 10 }, current: null, actuators: 'Heater ON (12V 2x40W, Motor OFF)' },
     4: { id: 4, name: 'Separation', durationLabel: '12 jam', targetSeconds: 43200, temp: null, rpm: null, current: null, actuators: 'Semua Aktuator OFF' },
     5: { id: 5, name: 'Oil Treatment', durationLabel: '1 jam', targetSeconds: 3600, temp: { target: 120, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON | Heater ON | Bentonit 0.2g' },
-    6: { id: 6, name: 'Filtration', durationLabel: 'Level ≥375 ml', targetSeconds: 7200, temp: null, rpm: null, current: null, actuators: 'Valve Pemisah ON' }
+    6: { id: 6, name: 'Filtration', durationLabel: 'Level ≥375 ml', targetSeconds: 7200, temp: null, rpm: null, current: null, actuators: 'Valve Pemisah ON (Servo 6V 0.7A)' }
 };
 
 const processState = {
@@ -136,11 +136,13 @@ function normaliseActuators(rawActuators) {
     const source = rawActuators && typeof rawActuators === 'object' ? rawActuators : {};
     const catalystValve = isActiveSignal(source.catalyst_valve ?? source.catalystValve);
     const separatorValve = isActiveSignal(source.separator_valve ?? source.separatorValve);
+    const servoValve = isActiveSignal(source.servo ?? source.servo_valve) || catalystValve || separatorValve;
     return {
         motor: isActiveSignal(source.motor ?? source.stirrer),
         heater: isActiveSignal(source.heater),
         catalyst_valve: catalystValve,
         separator_valve: separatorValve,
+        servo: servoValve,
         valve: isActiveSignal(source.valve) || catalystValve || separatorValve
     };
 }
@@ -315,11 +317,11 @@ function buildBatchSummaryMessage(reason = 'Tahap 6 / Filtrasi selesai') {
     const recipe = processState.recipe || {};
     const totalDurationSeconds = processState.batchStartedAt ? Math.round((Date.now() - processState.batchStartedAt) / 1000) : 0;
     
-    // Perhitungan energi listrik untuk 2 komponen (DC 12V 2x40W Heater + DC 12V 280RPM Motor)
     const avgCurrent = bStats.sumCurrent / divisor;
     const motorWatts = 12 * avgCurrent;
-    const heaterAvgWatts = 45.0; // estimasi rata-rata siklus heater 2x40W (max 80W)
-    const totalWatts = motorWatts + heaterAvgWatts;
+    const heaterAvgWatts = 45.0; // DC 12V 2x40W avg
+    const servoWatts = 4.2; // DC 6V 0.7A
+    const totalWatts = motorWatts + heaterAvgWatts + 1.0;
     const totalKWh = (totalWatts * (totalDurationSeconds / 3600)) / 1000;
 
     const finalVol = processState.latestData?.vol || 0;
@@ -347,6 +349,7 @@ function buildBatchSummaryMessage(reason = 'Tahap 6 / Filtrasi selesai') {
         `• Rata-rata RPM: ${Math.round(bStats.sumRpm / divisor)} RPM`,
         `• Daya Motor DC 12V 280RPM: ${formatNumber(motorWatts, 1)} W (${formatNumber(avgCurrent, 2)} A)`,
         `• Daya Heater DC 12V 2x40W (Max 80W): ~${formatNumber(heaterAvgWatts, 1)} W (~3.75 A)`,
+        `• Daya Servo DC 6V 0.7A Valve: ~${formatNumber(servoWatts, 1)} W (Saat Valve ON)`,
         `• Total Energi Terpakai: ${formatNumber(totalKWh, 4)} kWh (${formatNumber(totalKWh * 1000, 1)} Wh)`,
         `• Total Anomali: ${processState.anomalyCount} kali`,
         '',
@@ -515,7 +518,6 @@ async function processSensorData(rawPayload) {
         processState.levelReachedNotified = true;
         await notifyTelegram(buildLevelReachedMessage(data));
         
-        // Auto kirim Post-Batch Summary Report saat level akhir filtrasi tercapai
         if (!processState.batchCompletedNotified) {
             processState.batchCompletedNotified = true;
             await notifyTelegram(buildBatchSummaryMessage('Filtrasi Selesai (Level ≥375 ml Tercapai)'));
@@ -561,6 +563,11 @@ function applyLocalControl(command) {
     }
     if (command.action === 'start' || command.action === 'restart') {
         resetForNewBatch(command.batch_id, command.batch_code);
+        if (command.start_stage && stages[command.start_stage]) {
+            processState.currentStageId = Number(command.start_stage);
+            processState.stageStartedAt = Date.now();
+            processState.stageStats = createEmptyStats();
+        }
     }
     if (command.action === 'set_actuator' && processState.latestData) {
         processState.latestData.act[command.actuator] = Boolean(command.enabled);
@@ -583,7 +590,7 @@ app.use((request, response, next) => {
         }
     }
     response.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    response.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    response.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     if (request.method === 'OPTIONS') return response.sendStatus(204);
     return next();
 });
@@ -709,16 +716,36 @@ app.get('/api/batches', requireUser, async (_request, response) => {
     return response.json([...unique.values()]);
 });
 
+// Endpoint untuk menghapus data log batch tertentu (misal batch uji coba)
+app.delete('/api/batches/:batchId', requireUser, async (request, response) => {
+    const batchId = String(request.params.batchId || '').trim();
+    if (!batchId) return response.status(400).json({ error: 'Batch ID wajib disertakan.' });
+
+    const { error } = await supabase.from('reactor_logs').delete().eq('batch_id', batchId);
+    if (error) return response.status(500).json({ error: error.message });
+
+    if (processState.batchId === batchId) {
+        resetForNewBatch(null, null);
+        processState.runStatus = 'standby';
+        broadcastState();
+    }
+    return response.json({ ok: true, deletedBatchId: batchId, message: `Data log batch ${batchId} berhasil dihapus permanen.` });
+});
+
 app.post('/api/control', requireUser, async (request, response) => {
     const body = request.body || {};
     const allowedActions = new Set(['start', 'pause', 'resume', 'restart', 'emergency_stop', 'reset_emergency', 'set_actuator', 'complete_batch']);
     if (!allowedActions.has(body.action)) return response.status(400).json({ error: 'Aksi kontrol tidak dikenal.' });
-    if (body.action === 'set_actuator' && !['motor', 'heater', 'catalyst_valve', 'separator_valve'].includes(body.actuator)) {
+    if (body.action === 'set_actuator' && !['motor', 'heater', 'catalyst_valve', 'separator_valve', 'servo'].includes(body.actuator)) {
         return response.status(400).json({ error: 'Aktuator tidak dikenal.' });
     }
 
-    const batchId = String(body.batch_id || processState.batchId || createAutomaticBatchId()).trim();
-    const batchCode = String(body.batch_code || processState.batchCode || batchId).trim();
+    const batchCode = String(body.batch_code || processState.batchCode || '').trim();
+    const batchId = String(body.batch_id || processState.batchId || batchCode || createAutomaticBatchId()).trim();
+
+    if ((body.action === 'start' || body.action === 'restart') && !batchCode) {
+        return response.status(400).json({ error: 'Batch Code wajib diisi sebelum memulai proses.' });
+    }
     
     if (body.action === 'complete_batch') {
         await notifyTelegram(buildBatchSummaryMessage('Dihentikan / Selesai Manual oleh Operator'));
@@ -730,7 +757,8 @@ app.post('/api/control', requireUser, async (request, response) => {
     const command = {
         action: body.action,
         batch_id: batchId,
-        batch_code: batchCode,
+        batch_code: batchCode || batchId,
+        start_stage: body.start_stage ? Number(body.start_stage) : 1,
         actuator: body.actuator,
         enabled: Boolean(body.enabled),
         requested_by: request.user.email,

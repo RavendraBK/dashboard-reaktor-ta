@@ -26,14 +26,14 @@
     .warning-flash { animation: warningFlash .8s infinite; }
     .switch:checked + .switch-track { background:#0f766e; }
     .switch:checked + .switch-track:after { transform:translateX(1.25rem); }
-    @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    .animate-stirbar { animation: spin-slow 1.2s linear infinite; transform-origin: center; }
-    .animate-stirbar-fast { animation: spin-slow 0.6s linear infinite; transform-origin: center; }
-    @keyframes mantle-glow { 0%,100% { opacity: 0.9; filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.9)); } 50% { opacity: 0.4; filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.3)); } }
+    @keyframes spin-in-place { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .animate-stirbar { animation: spin-in-place 1.2s linear infinite; transform-box: fill-box; transform-origin: center; }
+    .animate-stirbar-fast { animation: spin-in-place 0.5s linear infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes mantle-glow { 0%,100% { opacity: 0.95; filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.9)); } 50% { opacity: 0.35; filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.2)); } }
     .mantle-heating { animation: mantle-glow 1.4s ease-in-out infinite; }
-    @keyframes droplet-fall { 0% { opacity: 0; transform: translateY(-5px); } 50% { opacity: 1; } 100% { opacity: 0; transform: translateY(18px); } }
-    .animate-drip { animation: droplet-fall 0.8s ease-in infinite; }
-    @keyframes bubble-rise { 0% { opacity: 0; transform: translateY(10px); } 50% { opacity: 0.8; } 100% { opacity: 0; transform: translateY(-20px); } }
+    @keyframes droplet-fall { 0% { opacity: 0; transform: translateY(-4px); } 50% { opacity: 1; } 100% { opacity: 0; transform: translateY(16px); } }
+    .animate-drip { animation: droplet-fall 0.7s ease-in infinite; }
+    @keyframes bubble-rise { 0% { opacity: 0; transform: translateY(8px); } 50% { opacity: 0.8; } 100% { opacity: 0; transform: translateY(-16px); } }
     .animate-vapor { animation: bubble-rise 1.5s ease-out infinite; }
     ::-webkit-scrollbar { height: 6px; width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -167,11 +167,11 @@
           </button>
           <button data-view="calculator" class="nav-item w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition">
             <i class="fa-solid fa-calculator w-4 text-center text-indigo-400 text-sm"></i>
-            <span>Stoichiometry Calculator (1:8)</span>
+            <span>Stoichiometry & Formulas</span>
           </button>
           <button data-view="energy" class="nav-item w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition">
             <i class="fa-solid fa-bolt w-4 text-center text-amber-400 text-sm"></i>
-            <span>Energy & Power (12V PSU)</span>
+            <span>Energy & Electrical Specs</span>
           </button>
           <button data-view="comparison" class="nav-item w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition">
             <i class="fa-solid fa-chart-line w-4 text-center text-cyan-400 text-sm"></i>
@@ -201,7 +201,7 @@
 
       <div class="p-4 border-t border-slate-800 text-[10px] text-slate-500 text-center space-y-1">
         <p>Esterification Reactor Lab System</p>
-        <p>DC 12V 2x40W Heater · DC 12V 280RPM Motor</p>
+        <p>Dual 12V 40W Heaters · 12V 280RPM Motor · 6V Servo</p>
       </div>
     </aside>
 
@@ -213,6 +213,17 @@
         <div class="flex items-start justify-between gap-3">
           <div><h2 class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>ANOMALY DETECTED</h2><p id="anomaly-text" class="mt-1 text-sm"></p></div>
           <button id="hide-anomaly" class="rounded-xl bg-red-700 px-3 py-1 text-xs font-bold text-white transition hover:bg-red-800">Dismiss</button>
+        </div>
+      </section>
+
+      <!-- Mandatory Batch Code Lock Banner (Shown if machine not started or standby without batch code) -->
+      <section id="lock-warning-banner" class="hidden rounded-2xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-4 text-amber-900 dark:text-amber-200 shadow-sm">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-lock text-amber-600 text-lg"></i>
+          <div>
+            <h3 class="font-bold text-xs">Monitoring Standby — Batch Initialization Required</h3>
+            <p class="text-[11px] text-amber-800 dark:text-amber-300">Please enter a Batch Code in the Process Controls card below and click <b>Start Process</b> to begin live data recording and telemetry monitoring.</p>
+          </div>
         </div>
       </section>
 
@@ -241,7 +252,7 @@
           <article class="rounded-2xl border-l-4 border-emerald-500 bg-white dark:bg-slate-900 p-4 shadow-sm border border-slate-200/60 dark:border-slate-800">
             <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Liquid Volume</span><i class="fa-solid fa-flask text-emerald-500 text-lg"></i></div>
             <p class="mt-2"><span id="vol-value" class="text-3xl font-extrabold text-slate-800 dark:text-white">0.0</span> <span class="text-sm font-semibold text-slate-500">ml</span></p>
-            <p id="level-text" class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Final level: waiting (≥375 ml)</p>
+            <p id="level-text" class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Flask Load Cell: Active</p>
           </article>
           <article class="col-span-2 rounded-2xl border-l-4 border-teal-600 bg-white dark:bg-slate-900 p-4 shadow-sm lg:col-span-1 border border-slate-200/60 dark:border-slate-800">
             <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Elapsed</span><i class="fa-solid fa-stopwatch text-teal-600 text-lg"></i></div>
@@ -257,7 +268,7 @@
               <span class="grid h-8 w-8 place-items-center rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-600 dark:text-teal-400"><i class="fa-solid fa-flask"></i></span>
               <div>
                 <h3 class="font-bold text-sm text-slate-800 dark:text-white">2D Lab-Scale Reactor Digital Twin</h3>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">Realistic Heating Mantle, Magnetic Stirrer, Reflux Condenser & Separatory Funnel Assembly</p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">Heating Mantle, Magnetic Stirrer, Reflux Condenser & Separatory Funnel Assembly</p>
               </div>
             </div>
             <div class="flex items-center gap-2 text-xs">
@@ -268,11 +279,11 @@
 
           <div class="grid lg:grid-cols-12 gap-6 items-center">
             
-            <!-- Realistic 2D Graphic Overlay Canvas / SVG -->
-            <div class="lg:col-span-8 flex justify-center items-center py-2 relative bg-slate-50 dark:bg-slate-950/60 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
-              <div class="relative w-full max-w-lg aspect-[3/4] flex justify-center items-center">
-                <!-- User's exact 2D Diagram Image Asset -->
-                <img src="/assets/2d_reaktor.png" alt="2D Lab Reactor Setup" class="w-full h-full object-contain select-none pointer-events-none drop-shadow-md">
+            <!-- Realistic 2D Graphic Overlay Canvas / SVG with Transparent PNG -->
+            <div class="lg:col-span-8 flex justify-center items-center py-2 relative bg-transparent rounded-2xl p-4">
+              <div class="relative w-full max-w-md aspect-[3/4.2] flex justify-center items-center">
+                <!-- Transparent 2D Diagram Image -->
+                <img id="reactor-2d-img" src="/assets/2d_reaktor.png" alt="2D Lab Reactor Setup" class="w-full h-full object-contain select-none pointer-events-none drop-shadow-lg" onload="processTransparentImage(this)">
 
                 <!-- Interactive SVG Animated Overlays -->
                 <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 400 580">
@@ -285,30 +296,36 @@
                     <circle cx="255" cy="60" r="5" fill="#38bdf8" class="animate-vapor" opacity="0.6" style="animation-delay: 1.2s;"/>
                   </g>
 
-                  <!-- 2. Catalyst Dosing Drops (Left Neck) -->
+                  <!-- 2. Catalyst Dosing Drops (Left Neck into Boiling Flask) -->
                   <g id="svg-catalyst-drip" class="hidden">
-                    <circle cx="198" cy="300" r="3.5" fill="#2dd4bf" class="animate-drip"/>
-                    <circle cx="204" cy="308" r="2.5" fill="#2dd4bf" class="animate-drip" style="animation-delay: 0.3s;"/>
+                    <circle cx="198" cy="298" r="3" fill="#2dd4bf" class="animate-drip"/>
+                    <circle cx="204" cy="306" r="2.5" fill="#2dd4bf" class="animate-drip" style="animation-delay: 0.3s;"/>
                   </g>
 
                   <!-- 3. Heating Mantle Thermal Glow (Around the cylindrical jacket) -->
                   <rect id="svg-mantle-glow" x="182" y="322" width="138" height="88" rx="8" fill="none" stroke="#ef4444" stroke-width="4" opacity="0" class=""/>
 
-                  <!-- 4. Magnetic Stirrer Bar (Spinning at the bottom of the flask) -->
-                  <g id="svg-stirbar-group" transform="translate(251, 385)">
-                    <rect id="svg-stirbar" x="-14" y="-3.5" width="28" height="7" rx="3.5" fill="#0284c7" stroke="#ffffff" stroke-width="1.5" class=""/>
+                  <!-- 4. Liquid Level in Boiling Flask (Active in Stage 1 Mixing, Stage 3 Reflux, Stage 5 Oil Treatment) -->
+                  <path id="svg-flask-liquid" d="M 215 350 C 215 405, 287 405, 287 350 Z" fill="#0284c7" opacity="0.7" class="transition-all duration-700"/>
+
+                  <!-- 5. Magnetic Stirrer Bar (In-place Centered Rotation) -->
+                  <g id="svg-stirbar-group" transform="translate(251, 386)">
+                    <rect id="svg-stirbar" x="-12" y="-3" width="24" height="6" rx="3" fill="#ffffff" stroke="#0284c7" stroke-width="1.5" class=""/>
                   </g>
 
-                  <!-- 5. Separatory Funnel Drainage Drops (Left Apparatus) -->
+                  <!-- 6. Separatory Funnel Liquid Level (Stage 4 Separation) -->
+                  <path id="svg-sep-liquid" d="M 68 200 C 68 285, 114 285, 114 200 Z" fill="#a78bfa" opacity="0" class="transition-all duration-700"/>
+
+                  <!-- 7. Separatory Funnel & Filtration Drainage Drops (Stage 6 Filtration) -->
                   <g id="svg-sep-drip" class="hidden">
-                    <circle cx="91" cy="390" r="3" fill="#a78bfa" class="animate-drip"/>
-                    <circle cx="91" cy="410" r="3" fill="#a78bfa" class="animate-drip" style="animation-delay: 0.4s;"/>
+                    <circle cx="91" cy="390" r="3" fill="#10b981" class="animate-drip"/>
+                    <circle cx="91" cy="415" r="3" fill="#10b981" class="animate-drip" style="animation-delay: 0.35s;"/>
                   </g>
 
-                  <!-- 6. Receiving Beaker Liquid Level -->
-                  <rect id="svg-beaker-level" x="65" y="475" width="48" height="32" rx="3" fill="#10b981" opacity="0.75" class="transition-all duration-500"/>
+                  <!-- 8. Receiving Beaker Liquid Level (Stage 6 Filtration) -->
+                  <rect id="svg-beaker-level" x="65" y="475" width="48" height="32" rx="3" fill="#10b981" opacity="0.8" class="transition-all duration-500"/>
 
-                  <!-- 7. Base Unit Digital LCD Readout Display Overlay -->
+                  <!-- 9. Base Unit Digital LCD Readout Display Overlay -->
                   <g transform="translate(162, 497)">
                     <rect x="0" y="0" width="54" height="20" rx="3" fill="#0f172a" stroke="#475569" stroke-width="1"/>
                     <text id="svg-lcd-temp" x="27" y="10" fill="#22d3ee" font-size="7.5" text-anchor="middle" font-family="monospace" font-weight="bold">0.0°C</text>
@@ -327,6 +344,7 @@
                   <div class="flex items-center gap-2"><span id="led-heater" class="h-2.5 w-2.5 rounded-full bg-slate-400"></span><span class="font-medium">Heater (12V 2x40W)</span></div>
                   <div class="flex items-center gap-2"><span id="led-catalyst" class="h-2.5 w-2.5 rounded-full bg-slate-400"></span><span class="font-medium">Catalyst Valve</span></div>
                   <div class="flex items-center gap-2"><span id="led-separator" class="h-2.5 w-2.5 rounded-full bg-slate-400"></span><span class="font-medium">Separator Valve</span></div>
+                  <div class="flex items-center gap-2"><span id="led-servo" class="h-2.5 w-2.5 rounded-full bg-slate-400"></span><span class="font-medium">Servo DC (6V 0.7A)</span></div>
                 </div>
               </div>
 
@@ -335,17 +353,20 @@
                 <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Agitation Speed:</span><span id="dt-rpm" class="font-bold text-blue-600 dark:text-blue-400">0 RPM</span></div>
                 <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Motor DC Current:</span><span id="dt-current" class="font-bold text-amber-600 dark:text-amber-400">0.00 A (Rated 0.3A)</span></div>
                 <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Heater 2x40W Current:</span><span id="dt-heater-a" class="font-bold text-red-600 dark:text-red-400">0.00 A (Max 6.67A)</span></div>
-                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Beaker Liquid Volume:</span><span id="dt-vol" class="font-bold text-emerald-600 dark:text-emerald-400">0.0 ml</span></div>
+                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Liquid Sensor Mode:</span><span id="dt-sensor-mode" class="font-bold text-emerald-600 dark:text-emerald-400">Flask Load Cell</span></div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- PRODUCTION STAGE TIMELINE WITH PROGRESS BAR & LIVE COUNTDOWN -->
+        <!-- PRODUCTION STAGE TIMELINE WITH RED/GREEN LED PROCESS INDICATORS -->
         <section class="rounded-3xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-200/80 dark:border-slate-800 space-y-4">
           <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
             <div>
-              <h2 class="text-base font-bold text-slate-800 dark:text-white"><i class="fa-solid fa-timeline mr-2 text-teal-700 dark:text-teal-400"></i>Production Stage Timeline & Live ETA</h2>
+              <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <i class="fa-solid fa-timeline text-teal-700 dark:text-teal-400"></i>
+                <span>Production Stages & Live Process LED Status</span>
+              </h2>
               <p id="stage-status" class="text-xs text-slate-500 dark:text-slate-400">Waiting for sensor data</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
@@ -369,9 +390,9 @@
             </div>
           </div>
 
-          <!-- 6 Stage Timeline Cards -->
+          <!-- 6 Stage Timeline Cards with Explicit Red / Green Process Status LEDs -->
           <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-6" id="stage-timeline">
-            <!-- Dynamically rendered -->
+            <!-- Dynamically populated with Red/Green LEDs by renderTimeline() -->
           </div>
         </section>
 
@@ -470,14 +491,14 @@
             </div>
           </article>
 
-          <!-- 4. Liquid Volume Chart -->
+          <!-- 4. Liquid Volume Chart (Load Cell vs Beaker Sensor Aware) -->
           <article class="flex flex-col rounded-3xl bg-white dark:bg-slate-900 p-4 shadow-sm border border-slate-200/80 dark:border-slate-800">
             <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
               <div class="flex items-center gap-2">
                 <span class="grid h-8 w-8 place-items-center rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400"><i class="fa-solid fa-flask"></i></span>
                 <div>
                   <h3 class="font-bold text-slate-800 dark:text-white text-sm">Liquid Volume Chart (ml)</h3>
-                  <p class="text-[11px] text-slate-400">Target Filtration: ≥375 ml</p>
+                  <p id="vol-sensor-info" class="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">Load Cell: Active (Mixing, Reflux, Oil Treat.)</p>
                 </div>
               </div>
               <select data-chart="vol" class="chart-filter rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-teal-600">
@@ -502,19 +523,38 @@
           </article>
         </section>
 
-        <!-- Process Controls & Actuators -->
+        <!-- Process Controls & Actuators with Stage Selector & Mandatory Batch Code -->
         <section class="grid gap-6 lg:grid-cols-2">
           <section class="rounded-3xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-200/80 dark:border-slate-800">
-            <h2 class="font-bold text-slate-800 dark:text-white"><i class="fa-solid fa-gamepad mr-2 text-teal-700 dark:text-teal-400"></i>Process Controls</h2>
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Commands dispatched to ESP32/simulator via MQTT control topics.</p>
-            <label class="mt-4 block text-sm font-semibold text-slate-700 dark:text-slate-300">Batch Code
-              <input id="batch-code-input" placeholder="e.g. BATCH-2026-001" class="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 outline-none focus:border-teal-600 dark:focus:border-teal-400">
-            </label>
+            <div class="flex items-center justify-between">
+              <h2 class="font-bold text-slate-800 dark:text-white"><i class="fa-solid fa-gamepad mr-2 text-teal-700 dark:text-teal-400"></i>Process Controls & Batch Start</h2>
+              <span class="rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-2.5 py-0.5 text-[10px] font-bold">Mandatory Batch Code</span>
+            </div>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Configure batch code & start stage. Dashboard monitoring starts when initialized.</p>
+            
+            <div class="mt-4 grid sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Batch Code <span class="text-red-500">*</span></label>
+                <input id="batch-code-input" placeholder="e.g. BATCH-2026-001" class="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-bold outline-none focus:border-teal-600">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Start / Jump From Stage</label>
+                <select id="start-stage-select" class="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold outline-none focus:border-teal-600">
+                  <option value="1">Stage 1: Mixing (Initial)</option>
+                  <option value="2">Stage 2: Add Catalyst</option>
+                  <option value="3">Stage 3: Reflux</option>
+                  <option value="4">Stage 4: Separation</option>
+                  <option value="5">Stage 5: Oil Treatment</option>
+                  <option value="6">Stage 6: Filtration</option>
+                </select>
+              </div>
+            </div>
+
             <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              <button data-command="start" class="control-button rounded-xl bg-teal-700 py-2.5 text-xs font-bold text-white transition hover:bg-teal-800"><i class="fa-solid fa-play mr-1"></i> Start</button>
+              <button data-command="start" class="control-button rounded-xl bg-teal-700 py-2.5 text-xs font-bold text-white transition hover:bg-teal-800"><i class="fa-solid fa-play mr-1"></i> Start Process</button>
               <button data-command="pause" class="control-button rounded-xl bg-amber-500 py-2.5 text-xs font-bold text-slate-900 transition hover:bg-amber-600"><i class="fa-solid fa-pause mr-1"></i> Pause</button>
               <button data-command="resume" class="control-button rounded-xl bg-cyan-600 py-2.5 text-xs font-bold text-white transition hover:bg-cyan-700"><i class="fa-solid fa-play mr-1"></i> Resume</button>
-              <button data-command="restart" class="control-button rounded-xl bg-slate-700 py-2.5 text-xs font-bold text-white transition hover:bg-slate-800"><i class="fa-solid fa-rotate-right mr-1"></i> Restart</button>
+              <button data-command="restart" class="control-button rounded-xl bg-slate-700 py-2.5 text-xs font-bold text-white transition hover:bg-slate-800"><i class="fa-solid fa-rotate-right mr-1"></i> Restart Batch</button>
               <button data-command="reset_emergency" class="control-button rounded-xl bg-violet-600 py-2.5 text-xs font-bold text-white transition hover:bg-violet-700"><i class="fa-solid fa-unlock mr-1"></i> Reset Stop</button>
               <button id="emergency-button" class="rounded-xl bg-red-700 py-2.5 text-xs font-bold text-white transition hover:bg-red-800"><i class="fa-solid fa-power-off mr-1"></i> EMERGENCY</button>
             </div>
@@ -525,20 +565,20 @@
           </section>
 
           <section class="rounded-3xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-200/80 dark:border-slate-800">
-            <h2 class="font-bold text-slate-800 dark:text-white"><i class="fa-solid fa-sliders mr-2 text-teal-700 dark:text-teal-400"></i>Actuators Status & Manual Override</h2>
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Toggles provide manual overrides and log events to sensor payloads.</p>
+            <h2 class="font-bold text-slate-800 dark:text-white"><i class="fa-solid fa-sliders mr-2 text-teal-700 dark:text-teal-400"></i>Actuators & DC Servo Valve Controls</h2>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Manual toggles for DC Motor, Dual Heaters, and DC Servo valve actuators.</p>
             <div class="mt-4 space-y-2.5">
               <label class="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/80 p-2.5"><span><i class="fa-solid fa-fan mr-2 text-blue-600"></i>Stirrer Motor (12V 280RPM)</span><input data-actuator="motor" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 dark:bg-slate-700 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
               <label class="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/80 p-2.5"><span><i class="fa-solid fa-fire-flame-simple mr-2 text-red-600"></i>Dual Heater Elements (12V 2x40W)</span><input data-actuator="heater" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 dark:bg-slate-700 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
-              <label class="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/80 p-2.5"><span><i class="fa-solid fa-faucet-drip mr-2 text-teal-600"></i>Catalyst Dosing Valve</span><input data-actuator="catalyst_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 dark:bg-slate-700 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
-              <label class="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/80 p-2.5"><span><i class="fa-solid fa-filter mr-2 text-violet-600"></i>Separator Valve</span><input data-actuator="separator_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 dark:bg-slate-700 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+              <label class="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/80 p-2.5"><span><i class="fa-solid fa-faucet-drip mr-2 text-teal-600"></i>Catalyst Dosing Valve (Servo 6V)</span><input data-actuator="catalyst_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 dark:bg-slate-700 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+              <label class="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/80 p-2.5"><span><i class="fa-solid fa-filter mr-2 text-violet-600"></i>Separator Discharge Valve (Servo 6V)</span><input data-actuator="separator_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 dark:bg-slate-700 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
             </div>
           </section>
         </section>
       </section>
 
       <!-- =================================================================== -->
-      <!-- VIEW 2: STOICHIOMETRY & REAGENTS CALCULATOR -->
+      <!-- VIEW 2: STOICHIOMETRY & FORMULA TRANSPARENCY -->
       <!-- =================================================================== -->
       <section id="view-calculator" class="content-view hidden space-y-6">
         <div class="rounded-3xl bg-white dark:bg-slate-900 p-6 shadow-sm border border-slate-200/80 dark:border-slate-800 space-y-6">
@@ -546,13 +586,13 @@
             <div class="flex items-center gap-3">
               <span class="grid h-10 w-10 place-items-center rounded-2xl bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-400 text-xl"><i class="fa-solid fa-calculator"></i></span>
               <div>
-                <h2 class="text-lg font-bold text-slate-800 dark:text-white">Stoichiometry & Reaction Balance Calculator</h2>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Automated mole ratio (1 Alcohol : 8 Carboxylic Acid), 500 ml boiling flask safe limits, catalyst (4%), washing water (10%), and yield estimation</p>
+                <h2 class="text-lg font-bold text-slate-800 dark:text-white">Stoichiometry, Chemical Formulas & Reaction Balance</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Automated mole conversions, 1:8 target ratio validation, 500ml boiling flask capacity limits, catalyst (4%), washing water (10%), and yield estimation</p>
               </div>
             </div>
           </div>
 
-          <!-- Reagent Input Cards (Simplified without presets or manual MW input) -->
+          <!-- Reagent Input Cards -->
           <div class="grid lg:grid-cols-2 gap-6">
             <!-- Reactant 1: Alcohol -->
             <div class="rounded-2xl bg-slate-50 dark:bg-slate-950/80 p-5 border border-slate-200/80 dark:border-slate-800 space-y-3.5">
@@ -613,11 +653,11 @@
             </div>
           </div>
 
-          <!-- Evaluation, Flask Limit & Yield Calculation Box -->
+          <!-- Calculation Evaluation & Flask 500ml Limit -->
           <div class="rounded-3xl bg-slate-900 dark:bg-slate-950 p-6 text-white space-y-5 border border-slate-800">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
               <div class="flex items-center gap-2">
-                <span class="text-sm font-bold text-indigo-400"><i class="fa-solid fa-chart-pie mr-1.5"></i>Stoichiometric Ratio & Capacity Analysis</span>
+                <span class="text-sm font-bold text-indigo-400"><i class="fa-solid fa-chart-pie mr-1.5"></i>Stoichiometric Ratio & Flask Capacity Analysis</span>
                 <span id="calc-eval-badge" class="rounded-full bg-emerald-500/20 text-emerald-300 px-3 py-0.5 text-xs font-bold border border-emerald-500/40">Checking...</span>
               </div>
               <button id="calc-apply-recipe-btn" class="rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white shadow-md transition hover:bg-teal-700 active:scale-[0.98]">
@@ -625,7 +665,6 @@
               </button>
             </div>
 
-            <!-- Key Metric Calculated Cards -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
               <div class="rounded-2xl bg-slate-800/80 p-3.5 border border-slate-700">
                 <span class="text-slate-400">Alcohol Moles:</span>
@@ -649,7 +688,7 @@
               </div>
             </div>
 
-            <!-- Flask 500ml & 75% Limit Visual Indicator -->
+            <!-- Flask 500ml & 75% Limit Bar -->
             <div class="rounded-2xl bg-slate-800/90 p-4 border border-slate-700 space-y-2">
               <div class="flex justify-between text-xs font-semibold">
                 <span>Boiling Flask Capacity (Max 500 ml · Safe Limit 75% = 375 ml)</span>
@@ -661,13 +700,13 @@
               <p id="calc-flask-warning" class="text-[11px] text-slate-400 leading-relaxed"></p>
             </div>
 
-            <!-- Smart Recommendations Box -->
+            <!-- Recommendations -->
             <div id="calc-recommendation-box" class="rounded-2xl bg-slate-800/90 border border-amber-600/40 p-4 text-xs space-y-1.5">
               <span class="font-bold text-amber-400 flex items-center gap-1.5"><i class="fa-solid fa-wand-magic-sparkles"></i>Ratio & Capacity Balancing Recommendation:</span>
               <p id="calc-recommendation-text" class="text-slate-300 text-[11px] leading-relaxed">Calculating recommendations...</p>
             </div>
 
-            <!-- Catalyst (4%), Water (10%), Bentonite (0.2g) and Yield Estimate -->
+            <!-- Reagent Amounts Summary -->
             <div class="grid md:grid-cols-3 gap-3 pt-2 text-xs">
               <div class="rounded-2xl bg-slate-800/90 p-4 border border-slate-700 space-y-1.5">
                 <div class="flex items-center justify-between">
@@ -697,72 +736,135 @@
               </div>
             </div>
           </div>
+
+          <!-- STEP-BY-STEP FORMULA REFERENCE & MANUAL VALIDATION BOX -->
+          <div class="rounded-2xl bg-slate-50 dark:bg-slate-950/80 p-5 border border-slate-200/80 dark:border-slate-800 space-y-4">
+            <h3 class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-square-root-variable text-teal-600 dark:text-teal-400"></i>
+              <span>Step-by-Step Stoichiometric Calculation Formulas</span>
+            </h3>
+            <div class="grid md:grid-cols-2 gap-4 text-xs font-mono">
+              <div class="rounded-xl bg-white dark:bg-slate-900 p-3.5 border border-slate-200 dark:border-slate-800 space-y-1.5">
+                <p class="font-bold text-indigo-600 dark:text-indigo-400">1. Unit Conversion to Moles (n):</p>
+                <p class="text-slate-600 dark:text-slate-300">• Mass in grams: <span class="text-teal-600">m = Volume (ml) × Density (ρ)</span></p>
+                <p class="text-slate-600 dark:text-slate-300">• Moles: <span class="text-teal-600">n = m (grams) / Molecular Weight (MW)</span></p>
+                <p class="text-slate-600 dark:text-slate-300">• Molar Ratio: <span class="text-amber-600">Ratio = n_acid / n_alcohol (Target = 8.0)</span></p>
+              </div>
+              <div class="rounded-xl bg-white dark:bg-slate-900 p-3.5 border border-slate-200 dark:border-slate-800 space-y-1.5">
+                <p class="font-bold text-indigo-600 dark:text-indigo-400">2. Solution Volume & Reagent Additions:</p>
+                <p class="text-slate-600 dark:text-slate-300">• Total Volume: <span class="text-teal-600">V_rxn = V_alcohol + V_acid</span> (Safe limit ≤ 375 ml)</p>
+                <p class="text-slate-600 dark:text-slate-300">• Catalyst (4%): <span class="text-teal-600">V_cat = 0.04 × V_rxn</span> (Stage 2/3 Reflux)</p>
+                <p class="text-slate-600 dark:text-slate-300">• Wash Water (10%): <span class="text-teal-600">V_water = 0.10 × V_rxn</span> (Stage 4 Separation)</p>
+                <p class="text-slate-600 dark:text-slate-300">• Adsorbent: <span class="text-teal-600">0.2 g Bentonite (~10 ml)</span> (Stage 5 Oil Treat.)</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
       <!-- =================================================================== -->
-      <!-- VIEW 3: ENERGY & POWER MONITOR -->
+      <!-- VIEW 3: ENERGY & ELECTRICAL SPECIFICATIONS -->
       <!-- =================================================================== -->
       <section id="view-energy" class="content-view hidden space-y-6">
         <div class="rounded-3xl bg-white dark:bg-slate-900 p-6 shadow-sm border border-slate-200/80 dark:border-slate-800 space-y-6">
-          <div class="border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
             <div class="flex items-center gap-3">
               <span class="grid h-10 w-10 place-items-center rounded-2xl bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 text-xl"><i class="fa-solid fa-bolt"></i></span>
               <div>
                 <h2 class="text-lg font-bold text-slate-800 dark:text-white">Energy & Power Consumption Analysis</h2>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Dedicated electrical telemetry for DC 12V 40W Dual Heaters (Parallel) & DC 12V 280 RPM Motor (Rated 0.3A / Stall 1.8A)</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Electrical telemetry for DC 12V 2x40W Heaters, DC 12V 280RPM Motor, and DC 6V Valve Servo</p>
               </div>
+            </div>
+            <!-- Active Stage Live Tracking Badge -->
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Active Process:</span>
+              <span id="energy-active-stage-badge" class="rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 px-3 py-1 text-xs font-bold border border-teal-200 dark:border-teal-800">Stage 1: Mixing</span>
             </div>
           </div>
 
-          <!-- Component Specifications Cards -->
+          <!-- Component Selector Dropdown for Detailed Calculation -->
+          <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50 dark:bg-slate-950 p-4 border border-slate-200/80 dark:border-slate-800">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+              <i class="fa-solid fa-filter text-amber-600"></i>
+              <span>Select Electrical Component for Detailed Power Analysis:</span>
+            </label>
+            <select id="energy-component-select" class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-bold outline-none focus:border-amber-600">
+              <option value="all">⚡ Combined Total (All 3 Components)</option>
+              <option value="motor">🌀 DC Stirrer Motor (12V 280 RPM · Rated 0.3A / Stall 1.8A)</option>
+              <option value="heater">🔥 Dual DC Heaters (12V 2x40W Parallel · Max 80W / 6.67A)</option>
+              <option value="servo">⚙️ DC Valve Servo Motor (6.0V · Running 0.7A / Stall 2.5A)</option>
+            </select>
+          </div>
+
+          <!-- Component Specifications Cards Grid -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <!-- 1. Motor DC Specs & Live Load -->
+            <!-- 1. Motor DC Specs -->
             <article class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 p-5 space-y-3">
               <div class="flex items-center justify-between">
                 <span class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-fan text-blue-600"></i>DC Stirrer Motor</span>
                 <span class="rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 text-[10px] font-bold px-2 py-0.5">12V · 280 RPM</span>
               </div>
               <div class="space-y-1.5 text-xs">
-                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Operating Voltage:</span><span class="font-bold text-slate-800 dark:text-slate-200">12.0 V DC</span></div>
-                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Rated Current:</span><span class="font-bold text-slate-800 dark:text-slate-200">0.30 A</span></div>
+                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Voltage:</span><span class="font-bold">12.0 V DC</span></div>
+                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Rated Current:</span><span class="font-bold">0.30 A</span></div>
                 <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Stall Current Limit:</span><span class="font-bold text-red-600">1.80 A</span></div>
-                <div class="flex justify-between border-t border-slate-200 dark:border-slate-800 pt-2"><span class="text-slate-500 dark:text-slate-400">Live Current Draw:</span><span id="en-motor-a" class="font-bold text-blue-600">0.00 A</span></div>
-                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Instantaneous Power:</span><span id="en-motor-w" class="font-bold text-blue-600">0.0 W</span></div>
+                <div class="flex justify-between border-t border-slate-200 dark:border-slate-800 pt-2"><span class="text-slate-500 dark:text-slate-400">Live Current:</span><span id="en-motor-a" class="font-bold text-blue-600">0.00 A</span></div>
+                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Live Power:</span><span id="en-motor-w" class="font-bold text-blue-600">0.0 W</span></div>
               </div>
             </article>
 
-            <!-- 2. Dual Heaters Specs & Live Load -->
+            <!-- 2. Dual Heaters Specs -->
             <article class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 p-5 space-y-3">
               <div class="flex items-center justify-between">
                 <span class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-fire-flame-simple text-red-600"></i>Dual DC Heaters</span>
                 <span class="rounded-full bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 text-[10px] font-bold px-2 py-0.5">12V · 2x40W Parallel</span>
               </div>
               <div class="space-y-1.5 text-xs">
-                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Supply Voltage:</span><span class="font-bold text-slate-800 dark:text-slate-200">12.0 V DC</span></div>
-                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Total Max Power:</span><span class="font-bold text-slate-800 dark:text-slate-200">80.0 W (2 × 40W)</span></div>
-                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Max Current (100% Duty):</span><span class="font-bold text-slate-800 dark:text-slate-200">6.67 A</span></div>
-                <div class="flex justify-between border-t border-slate-200 dark:border-slate-800 pt-2"><span class="text-slate-500 dark:text-slate-400">Estimated Current:</span><span id="en-heater-a" class="font-bold text-red-600">0.00 A</span></div>
-                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Estimated Power:</span><span id="en-heater-w" class="font-bold text-red-600">0.0 W</span></div>
+                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Voltage:</span><span class="font-bold">12.0 V DC</span></div>
+                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Total Max Power:</span><span class="font-bold">80.0 W (2 × 40W)</span></div>
+                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Max Current (100%):</span><span class="font-bold text-red-600">6.67 A</span></div>
+                <div class="flex justify-between border-t border-slate-200 dark:border-slate-800 pt-2"><span class="text-slate-500 dark:text-slate-400">Est. Current:</span><span id="en-heater-a" class="font-bold text-red-600">0.00 A</span></div>
+                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Est. Power:</span><span id="en-heater-w" class="font-bold text-red-600">0.0 W</span></div>
               </div>
             </article>
 
-            <!-- 3. Total System Power & Energy -->
+            <!-- 3. DC Servo Valve Motor Specs -->
             <article class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 p-5 space-y-3">
               <div class="flex items-center justify-between">
-                <span class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-gauge text-emerald-600"></i>Total Power & Energy</span>
-                <span class="rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold px-2 py-0.5">Live Total</span>
+                <span class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-microchip text-violet-600"></i>DC Servo Valve Motor</span>
+                <span class="rounded-full bg-violet-100 dark:bg-violet-950 text-violet-800 dark:text-violet-300 text-[10px] font-bold px-2 py-0.5">4.8V – 7.2V DC</span>
               </div>
               <div class="space-y-1.5 text-xs">
-                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Total Current:</span><span id="en-total-a" class="font-bold text-slate-800 dark:text-slate-200">0.00 A</span></div>
-                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Combined Power:</span><span id="en-total-w" class="font-bold text-slate-800 dark:text-slate-200">0.0 W</span></div>
-                <div class="flex justify-between border-t border-slate-200 dark:border-slate-800 pt-2"><span class="text-slate-500 dark:text-slate-400">Cumulative Energy (Wh):</span><span id="en-total-wh" class="font-bold text-emerald-600 text-sm">0.0 Wh</span></div>
-                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Cumulative Energy (kWh):</span><span id="en-total-kwh" class="font-bold text-emerald-600 text-sm">0.0000 kWh</span></div>
+                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Nominal Voltage:</span><span class="font-bold">6.0 V DC</span></div>
+                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Running Current (6V):</span><span class="font-bold">0.70 A (4.2 W)</span></div>
+                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Stall Current Limit:</span><span class="font-bold text-red-600">2.50 A</span></div>
+                <div class="flex justify-between border-t border-slate-200 dark:border-slate-800 pt-2"><span class="text-slate-500 dark:text-slate-400">Active Current:</span><span id="en-servo-a" class="font-bold text-violet-600">0.00 A</span></div>
+                <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Active Power:</span><span id="en-servo-w" class="font-bold text-violet-600">0.0 W</span></div>
               </div>
             </article>
           </div>
 
-          <!-- Per-Stage Electrical Contribution Table -->
+          <!-- Total Cumulative Energy Metric Display -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            <div class="rounded-2xl bg-slate-50 dark:bg-slate-950/80 p-4 border border-slate-200 dark:border-slate-800">
+              <span class="text-slate-500 dark:text-slate-400">Combined Live Current:</span>
+              <p id="en-total-a" class="text-xl font-bold text-slate-800 dark:text-white mt-1">0.00 A</p>
+            </div>
+            <div class="rounded-2xl bg-slate-50 dark:bg-slate-950/80 p-4 border border-slate-200 dark:border-slate-800">
+              <span class="text-slate-500 dark:text-slate-400">Combined Live Power:</span>
+              <p id="en-total-w" class="text-xl font-bold text-slate-800 dark:text-white mt-1">0.0 W</p>
+            </div>
+            <div class="rounded-2xl bg-slate-50 dark:bg-slate-950/80 p-4 border border-slate-200 dark:border-slate-800">
+              <span class="text-slate-500 dark:text-slate-400">Cumulative Energy (Wh):</span>
+              <p id="en-total-wh" class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">0.0 Wh</p>
+            </div>
+            <div class="rounded-2xl bg-slate-50 dark:bg-slate-950/80 p-4 border border-slate-200 dark:border-slate-800">
+              <span class="text-slate-500 dark:text-slate-400">Cumulative Energy (kWh):</span>
+              <p id="en-total-kwh" class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">0.0000 kWh</p>
+            </div>
+          </div>
+
+          <!-- Per-Stage Electrical Contribution Breakdown Table -->
           <div class="rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-3">
             <h3 class="font-bold text-sm text-slate-800 dark:text-white">Estimated Electrical Contribution by Stage</h3>
             <div class="overflow-x-auto">
@@ -770,19 +872,20 @@
                 <thead class="bg-slate-100 dark:bg-slate-800 text-[11px] uppercase font-bold text-slate-600 dark:text-slate-300">
                   <tr>
                     <th class="p-3">Synthesis Stage</th>
-                    <th class="p-3">Active Components</th>
-                    <th class="p-3">Supply Voltage</th>
-                    <th class="p-3">Est. Current</th>
-                    <th class="p-3">Est. Power</th>
+                    <th class="p-3">Active Actuators</th>
+                    <th class="p-3">DC Motor (12V)</th>
+                    <th class="p-3">DC Heaters (12V 2x40W)</th>
+                    <th class="p-3">DC Servo (6V)</th>
+                    <th class="p-3">Combined Power</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
-                  <tr><td class="p-3 font-semibold">1. Mixing (60°C · 250 RPM)</td><td class="p-3">Motor ON + Heater ~50%</td><td class="p-3">12.0 V DC</td><td class="p-3">~3.68 A</td><td class="p-3 font-bold">~44.2 W</td></tr>
-                  <tr><td class="p-3 font-semibold">2. Add Catalyst</td><td class="p-3">Valve Momentary</td><td class="p-3">12.0 V DC</td><td class="p-3">~0.10 A</td><td class="p-3 font-bold">~1.2 W</td></tr>
-                  <tr><td class="p-3 font-semibold">3. Reflux (100°C · 0 RPM)</td><td class="p-3">Heater ~82% Duty (Motor OFF)</td><td class="p-3">12.0 V DC</td><td class="p-3">~5.50 A</td><td class="p-3 font-bold">~66.0 W</td></tr>
-                  <tr><td class="p-3 font-semibold">4. Separation (12 hours)</td><td class="p-3">All Actuators OFF</td><td class="p-3">12.0 V DC</td><td class="p-3">0.00 A</td><td class="p-3 font-bold">0.0 W</td></tr>
-                  <tr><td class="p-3 font-semibold">5. Oil Treatment (120°C · 250 RPM)</td><td class="p-3">Motor ON + Heater 100% Duty</td><td class="p-3">12.0 V DC</td><td class="p-3">~7.02 A</td><td class="p-3 font-bold">~84.2 W</td></tr>
-                  <tr><td class="p-3 font-semibold">6. Filtration</td><td class="p-3">Separator Valve ON</td><td class="p-3">12.0 V DC</td><td class="p-3">~0.10 A</td><td class="p-3 font-bold">~1.2 W</td></tr>
+                  <tr><td class="p-3 font-semibold">1. Mixing (60°C · 250 RPM)</td><td class="p-3">Motor + Heater ~50%</td><td class="p-3">~0.35A (4.2W)</td><td class="p-3">~3.33A (40.0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~44.2 W</td></tr>
+                  <tr><td class="p-3 font-semibold">2. Add Catalyst</td><td class="p-3">Catalyst Valve Servo</td><td class="p-3">0.0A (0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-violet-600">0.70A (4.2W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~4.2 W</td></tr>
+                  <tr><td class="p-3 font-semibold">3. Reflux (100°C · 0 RPM)</td><td class="p-3">Heater ~82% Duty (Motor OFF)</td><td class="p-3">0.0A (0W)</td><td class="p-3">~5.50A (66.0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~66.0 W</td></tr>
+                  <tr><td class="p-3 font-semibold">4. Separation (12 hours)</td><td class="p-3">All Actuators OFF</td><td class="p-3">0.0A (0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">0.0 W</td></tr>
+                  <tr><td class="p-3 font-semibold">5. Oil Treatment (120°C · 250 RPM)</td><td class="p-3">Motor + Heater 100% Duty</td><td class="p-3">~0.35A (4.2W)</td><td class="p-3">~6.67A (80.0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~84.2 W</td></tr>
+                  <tr><td class="p-3 font-semibold">6. Filtration</td><td class="p-3">Separator Valve Servo</td><td class="p-3">0.0A (0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-violet-600">0.70A (4.2W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~4.2 W</td></tr>
                 </tbody>
               </table>
             </div>
@@ -800,7 +903,7 @@
               <span class="grid h-10 w-10 place-items-center rounded-2xl bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-400 text-xl"><i class="fa-solid fa-chart-line"></i></span>
               <div>
                 <h2 class="text-lg font-bold text-slate-800 dark:text-white">Multi-Batch Comparison & Analytics</h2>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Compare synthesis trajectories across 4 separate parameter charts (Temp, Speed, Volume, Current) and statistical KPI benchmarks</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Compare synthesis trajectories across 4 separate parameter charts (Temp, Speed, Volume, Current) and statistical benchmarks</p>
               </div>
             </div>
             <button id="btn-refresh-compare" class="rounded-xl bg-slate-800 dark:bg-slate-700 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-slate-900">
@@ -871,18 +974,19 @@
       </section>
 
       <!-- =================================================================== -->
-      <!-- VIEW 5: DATA LOGS & PDF EXPORT -->
+      <!-- VIEW 5: DATA LOGS & BATCH MANAGEMENT -->
       <!-- =================================================================== -->
       <section id="view-logs" class="content-view hidden space-y-6">
         <div class="rounded-3xl bg-white dark:bg-slate-900 p-6 shadow-sm border border-slate-200/80 dark:border-slate-800 space-y-4">
           <div class="flex flex-wrap items-end justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
             <div>
-              <h2 class="font-bold text-base text-slate-800 dark:text-white"><i class="fa-solid fa-table mr-2 text-teal-700 dark:text-teal-400"></i>Data Logs & Comprehensive Reports</h2>
-              <p class="text-xs text-slate-500 dark:text-slate-400">CSV contains raw telemetry; PDF includes formulation recipe, energy consumption, and statistical averages.</p>
+              <h2 class="font-bold text-base text-slate-800 dark:text-white"><i class="fa-solid fa-table mr-2 text-teal-700 dark:text-teal-400"></i>Data Logs, Batch Selector & PDF Export</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Select historical or running batches to view data. Delete test batches as needed.</p>
             </div>
             <div class="flex flex-wrap gap-2">
               <select id="batch-select" class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold"><option value="">Active Batch</option></select>
               <button id="load-batch" class="rounded-xl bg-slate-700 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800">Load</button>
+              <button id="delete-batch-btn" class="rounded-xl bg-red-700 px-3 py-2 text-xs font-bold text-white transition hover:bg-red-800" title="Delete selected completed/test batch data"><i class="fa-solid fa-trash mr-1"></i> Delete Batch</button>
               <button id="download-csv" class="rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700"><i class="fa-solid fa-file-csv mr-1"></i> Export CSV</button>
               <button id="download-pdf" class="rounded-xl bg-orange-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-orange-700"><i class="fa-solid fa-file-pdf mr-1"></i> Export PDF Report</button>
             </div>
@@ -942,6 +1046,32 @@
   <!-- 3. JAVASCRIPT APPLICATION LOGIC -->
   <!-- ========================================================================= -->
   <script>
+    // Automated HTML5 Canvas Pixel Transparency Shader for 2D Reactor PNG
+    function processTransparentImage(img) {
+      if (img.dataset.processed === 'true') return;
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.naturalWidth || 600;
+        canvas.height = img.naturalHeight || 800;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const d = imgData.data;
+        for (let i = 0; i < d.length; i += 4) {
+          const r = d[i], g = d[i+1], b = d[i+2];
+          // If pixel is near-white background
+          if (r > 240 && g > 240 && b > 240) {
+            d[i+3] = 0; // set alpha to 0 (transparent)
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+        img.src = canvas.toDataURL('image/png');
+        img.dataset.processed = 'true';
+      } catch (err) {
+        console.warn('Canvas transparency shader:', err.message);
+      }
+    }
+
     // Theme Management (Light / Dark)
     function initTheme() {
       const savedTheme = localStorage.getItem('reactor_theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -993,11 +1123,11 @@
 
     const stageMeta = {
       1: { name: 'Mixing', label: '1. Mixing', icon: 'fa-blender', duration: '30 mins', targetSeconds: 1800, setPointTemp: 60, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 0.35, minCurrent: 0.0, maxCurrent: 1.8, actuators: 'Motor ON (12V 280RPM) | Heater ON (12V 2x40W)' },
-      2: { name: 'Add Catalyst', label: '2. Add Catalyst', icon: 'fa-faucet-drip', duration: 'Momentary', targetSeconds: 60, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Catalyst Valve ON' },
+      2: { name: 'Add Catalyst', label: '2. Add Catalyst', icon: 'fa-faucet-drip', duration: 'Momentary', targetSeconds: 60, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Catalyst Valve ON (Servo 6V 0.7A)' },
       3: { name: 'Reflux', label: '3. Reflux', icon: 'fa-fire-burner', duration: '5 hours', targetSeconds: 18000, setPointTemp: 100, tolTemp: 0.10, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Heater ON (12V 2x40W, Motor OFF)' },
       4: { name: 'Separation', label: '4. Separation', icon: 'fa-hourglass-half', duration: '12 hours', targetSeconds: 43200, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'All Actuators OFF' },
       5: { name: 'Oil Treatment', label: '5. Oil Treatment', icon: 'fa-droplet', duration: '1 hour', targetSeconds: 3600, setPointTemp: 120, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 0.35, minCurrent: 0.0, maxCurrent: 1.8, actuators: 'Motor ON | Heater ON | Bentonite 0.2g' },
-      6: { name: 'Filtration', label: '6. Filtration', icon: 'fa-filter', duration: 'Est. 2 hours', targetSeconds: 7200, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, targetVol: 375, actuators: 'Separator Valve ON' }
+      6: { name: 'Filtration', label: '6. Filtration', icon: 'fa-filter', duration: 'Est. 2 hours', targetSeconds: 7200, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, targetVol: 375, actuators: 'Separator Valve ON (Servo 6V 0.7A)' }
     };
 
     let activeRecipe = {
@@ -1125,7 +1255,7 @@
       }
     }
 
-    // RENDER TIMELINE WITH COUNTDOWN & OVERTIME
+    // RENDER TIMELINE WITH RED & GREEN PROCESS LED INDICATORS
     function renderTimeline() {
       const container = document.getElementById('stage-timeline');
       const activeStage = currentState?.currentStageId || 0;
@@ -1137,18 +1267,19 @@
         const s = stageMeta[i];
         const isPast = activeStage > i || (activeStage === 6 && currentState?.latestData?.levelDetected);
         const isCurrent = activeStage === i;
-        const isFuture = activeStage < i;
 
         let cardStyle = 'border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 text-slate-500 opacity-75';
         let badgeStyle = 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400';
-        let badgeText = '○ Pending';
+        let badgeText = '○ Standby';
         let iconBg = 'bg-slate-200 dark:bg-slate-800 text-slate-500';
+        let ledStatusHtml = '<span class="inline-flex items-center gap-1 text-[10px] text-red-500 font-bold"><span class="h-2 w-2 rounded-full bg-red-500"></span> OFF</span>';
 
         if (isPast) {
           cardStyle = 'border-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-950 dark:text-emerald-200 shadow-sm';
           badgeStyle = 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 font-bold';
-          badgeText = '✓ Completed';
+          badgeText = '✓ Done';
           iconBg = 'bg-emerald-600 text-white';
+          ledStatusHtml = '<span class="inline-flex items-center gap-1 text-[10px] text-slate-400 font-bold"><span class="h-2 w-2 rounded-full bg-slate-400"></span> Passed</span>';
         } else if (isCurrent) {
           const isPaused = runStatus === 'paused';
           cardStyle = isDemoMode
@@ -1159,13 +1290,19 @@
             : (isDemoMode ? 'bg-indigo-600 text-white font-bold animate-pulse' : 'bg-teal-600 text-white font-bold animate-pulse');
           badgeText = isPaused ? '⏸️ Paused' : '● Active';
           iconBg = isDemoMode ? 'bg-indigo-700 text-white' : 'bg-teal-700 text-white';
+          ledStatusHtml = isPaused
+            ? '<span class="inline-flex items-center gap-1 text-[10px] text-amber-500 font-bold animate-pulse"><span class="h-2.5 w-2.5 rounded-full bg-amber-500 shadow-sm"></span> PAUSED</span>'
+            : '<span class="inline-flex items-center gap-1 text-[10px] text-emerald-500 font-bold animate-pulse"><span class="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-sm"></span> ACTIVE ON</span>';
         }
 
         html += `
           <article onclick="openStageModal(${i})" class="cursor-pointer rounded-2xl border-2 p-3.5 transition-all hover:scale-[1.02] active:scale-[0.98] ${cardStyle}">
             <div class="flex items-center justify-between">
               <span class="grid h-7 w-7 place-items-center rounded-xl text-xs font-bold ${iconBg}"><i class="fa-solid ${s.icon}"></i></span>
-              <span class="rounded-full px-2 py-0.5 text-[10px] ${badgeStyle}">${badgeText}</span>
+              <div class="flex items-center gap-1.5">
+                ${ledStatusHtml}
+                <span class="rounded-full px-2 py-0.5 text-[10px] ${badgeStyle}">${badgeText}</span>
+              </div>
             </div>
             <h4 class="mt-2.5 font-bold text-xs">${s.label}</h4>
             <p class="text-[10px] text-slate-500 mt-0.5">${s.duration}</p>
@@ -1212,15 +1349,16 @@
       const isMotor = Boolean(data.act?.motor);
       const isCat = Boolean(data.act?.catalyst_valve);
       const isSep = Boolean(data.act?.separator_valve);
+      const isServo = isCat || isSep || Boolean(data.act?.servo);
 
       const motorWatts = 12 * motorCurrent;
       const heaterWatts = isHeater ? 66.0 : 0.0;
-      const totalWatts = motorWatts + heaterWatts;
+      const servoWatts = isServo ? 4.2 : 0.0;
+      const totalWatts = motorWatts + heaterWatts + servoWatts;
 
-      document.getElementById('dt-power-pill').textContent = `${totalWatts.toFixed(1)} W (12V)`;
+      document.getElementById('dt-power-pill').textContent = `${totalWatts.toFixed(1)} W (12V/6V)`;
       document.getElementById('dt-rpm').textContent = `${Math.round(data.rpm)} RPM`;
       document.getElementById('dt-temp').textContent = `${number(data.temp)} °C`;
-      document.getElementById('dt-vol').textContent = `${number(data.vol)} ml`;
       document.getElementById('dt-current').textContent = `${number(motorCurrent, 2)} A (Rated 0.3A)`;
       document.getElementById('dt-heater-a').textContent = isHeater ? `${(heaterWatts / 12).toFixed(2)} A (12V 2x40W)` : '0.00 A (OFF)';
 
@@ -1229,8 +1367,9 @@
       document.getElementById('led-heater').className = `h-2.5 w-2.5 rounded-full ${isHeater ? 'bg-red-500 shadow-sm animate-pulse' : 'bg-slate-400'}`;
       document.getElementById('led-catalyst').className = `h-2.5 w-2.5 rounded-full ${isCat ? 'bg-teal-400 shadow-sm animate-pulse' : 'bg-slate-400'}`;
       document.getElementById('led-separator').className = `h-2.5 w-2.5 rounded-full ${isSep ? 'bg-purple-400 shadow-sm animate-pulse' : 'bg-slate-400'}`;
+      document.getElementById('led-servo').className = `h-2.5 w-2.5 rounded-full ${isServo ? 'bg-violet-400 shadow-sm animate-pulse' : 'bg-slate-400'}`;
 
-      // 1. Magnetic Stirrer Bar Spin
+      // 1. Magnetic Stirrer Bar Spin in place
       const stirBar = document.getElementById('svg-stirbar');
       if (isMotor && data.rpm > 10) {
         stirBar.className.baseVal = data.rpm > 200 ? 'animate-stirbar-fast' : 'animate-stirbar';
@@ -1242,45 +1381,73 @@
       const mantleGlow = document.getElementById('svg-mantle-glow');
       if (isHeater) {
         mantleGlow.className.baseVal = 'mantle-heating';
-        mantleGlow.setAttribute('opacity', '0.9');
+        mantleGlow.setAttribute('opacity', '0.95');
       } else {
         mantleGlow.className.baseVal = '';
         mantleGlow.setAttribute('opacity', '0');
       }
 
-      // 3. Catalyst Drops
-      document.getElementById('svg-catalyst-drip').className.baseVal = isCat ? '' : 'hidden';
+      // 3. Boiling Flask Liquid Level (Active in Stage 1 Mixing, Stage 3 Reflux, Stage 5 Oil Treatment)
+      const flaskLiquid = document.getElementById('svg-flask-liquid');
+      const isFlaskLiquidActive = (stageId === 1 || stageId === 3 || stageId === 5);
+      flaskLiquid.setAttribute('opacity', isFlaskLiquidActive ? '0.75' : '0.15');
 
-      // 4. Reflux Condenser Vapor (Stage 3 Reflux)
+      // 4. Separatory Funnel Liquid Level (Active in Stage 4 Separation)
+      const sepLiquid = document.getElementById('svg-sep-liquid');
+      sepLiquid.setAttribute('opacity', (stageId === 4) ? '0.8' : (stageId === 6 ? '0.2' : '0'));
+
+      // 5. Catalyst Funnel Drops (Stage 2 Add Catalyst & Stage 3 Reflux)
+      document.getElementById('svg-catalyst-drip').className.baseVal = (isCat || stageId === 2 || stageId === 3) ? '' : 'hidden';
+
+      // 6. Reflux Condenser Vapor (Stage 3 Reflux)
       document.getElementById('svg-condenser-vapor').className.baseVal = (stageId === 3 || isHeater) ? '' : 'hidden';
 
-      // 5. Separatory Funnel Drainage
-      document.getElementById('svg-sep-drip').className.baseVal = isSep ? '' : 'hidden';
+      // 7. Filtration Funnel Drainage & Beaker Level (Stage 6 Filtration)
+      document.getElementById('svg-sep-drip').className.baseVal = (isSep || stageId === 6) ? '' : 'hidden';
 
-      // 6. Beaker Liquid Level
+      const isFiltration = stageId === 6;
       const beakerH = Math.min(32, Math.max(4, (Number(data.vol || 0) / 500) * 32));
       const beakerY = 507 - beakerH;
       document.getElementById('svg-beaker-level').setAttribute('y', String(beakerY));
       document.getElementById('svg-beaker-level').setAttribute('height', String(beakerH));
+      document.getElementById('svg-beaker-level').setAttribute('opacity', isFiltration ? '0.85' : '0.2');
 
-      // 7. Base Unit LCD Readout Display
+      // Volume Sensor Mode Info Text
+      if (stageId === 6) {
+        document.getElementById('dt-sensor-mode').textContent = 'Beaker Level Sensor (≥75%)';
+        document.getElementById('vol-sensor-info').textContent = 'Beaker Level Sensor: Active (Filtration Level ≥375 ml)';
+        document.getElementById('level-text').textContent = data.levelDetected ? '✓ Level Reached (≥375 ml / 75%)' : 'Filtration in progress...';
+      } else {
+        document.getElementById('dt-sensor-mode').textContent = 'Flask Load Cell';
+        document.getElementById('vol-sensor-info').textContent = 'Flask Load Cell: Active (Mixing, Reflux, Oil Treat.)';
+        document.getElementById('level-text').textContent = 'Flask Load Cell: Active';
+      }
+
+      // Base Unit LCD Readout Display
       document.getElementById('svg-lcd-temp').textContent = `${number(data.temp)}°C`;
       document.getElementById('svg-lcd-rpm').textContent = `${Math.round(data.rpm)} RPM`;
     }
 
-    // UPDATE ENERGY CONSUMPTION VIEW (DC 12V 2x40W Heater + DC 12V 280RPM Motor)
+    // UPDATE ENERGY CONSUMPTION VIEW (12V 280RPM Motor + 12V 2x40W Heaters + 6V Valve Servo)
     function updateEnergyView(data) {
       if (!data) return;
+      const stageId = data.stageId || 1;
+      document.getElementById('energy-active-stage-badge').textContent = `Stage ${stageId}: ${stageMeta[stageId]?.name || 'Process'}`;
+
       const motorA = Number(data.current || 0);
       const isHeater = Boolean(data.act?.heater);
+      const isCat = Boolean(data.act?.catalyst_valve);
+      const isSep = Boolean(data.act?.separator_valve);
+      const isServo = isCat || isSep || Boolean(data.act?.servo);
+
       const motorW = 12 * motorA;
+      const heaterA = isHeater ? (stageId === 5 ? 6.67 : (stageId === 3 ? 5.50 : 3.33)) : 0.0;
+      const heaterW = isHeater ? (stageId === 5 ? 80.0 : (stageId === 3 ? 66.0 : 40.0)) : 0.0;
+      const servoA = isServo ? 0.70 : 0.0;
+      const servoW = isServo ? 4.2 : 0.0;
 
-      // Estimasi heater DC 12V 2x40W: ~5.5A / 66W during reflux, ~6.67A / 80W max
-      const heaterA = isHeater ? 5.50 : 0.0;
-      const heaterW = isHeater ? 66.0 : 0.0;
-
-      const totalA = motorA + heaterA;
-      const totalW = motorW + heaterW;
+      const totalA = motorA + heaterA + (servoA * (6 / 12));
+      const totalW = motorW + heaterW + servoW;
 
       cumulativeWattHours += (totalW * 2) / 3600; // 2 sec interval
       const totalKWh = cumulativeWattHours / 1000;
@@ -1289,8 +1456,10 @@
       document.getElementById('en-motor-w').textContent = `${motorW.toFixed(1)} W`;
       document.getElementById('en-heater-a').textContent = `${heaterA.toFixed(2)} A`;
       document.getElementById('en-heater-w').textContent = `${heaterW.toFixed(1)} W`;
+      document.getElementById('en-servo-a').textContent = `${servoA.toFixed(2)} A`;
+      document.getElementById('en-servo-w').textContent = `${servoW.toFixed(1)} W`;
 
-      document.getElementById('en-total-a').textContent = `${totalA.toFixed(2)} A`;
+      document.getElementById('en-total-a').textContent = `${totalA.toFixed(2)} A (12V Eq)`;
       document.getElementById('en-total-w').textContent = `${totalW.toFixed(1)} W`;
       document.getElementById('en-total-wh').textContent = `${cumulativeWattHours.toFixed(1)} Wh`;
       document.getElementById('en-total-kwh').textContent = `${totalKWh.toFixed(4)} kWh`;
@@ -1315,7 +1484,7 @@
       } else if (activeStage === stageId) {
         statusBadge.innerHTML = '<span class="text-teal-600 font-bold animate-pulse">● Currently In Progress</span>';
       } else {
-        statusBadge.innerHTML = '<span class="text-slate-400">○ Pending Execution</span>';
+        statusBadge.innerHTML = '<span class="text-slate-400">○ Standby</span>';
       }
 
       if (activeStage === stageId && currentState?.latestData?.elapsedSeconds) {
@@ -1528,8 +1697,6 @@
         badge.className = 'rounded-full bg-amber-500/20 text-amber-300 px-3 py-0.5 text-xs font-bold border border-amber-500/40';
         badge.textContent = isOverSafeLimit ? `⚠️ Volume Overflow Warning (${totalRxnVol.toFixed(0)} ml)` : `⚠️ Ratio Deviation (1 : ${ratioVal.toFixed(2)})`;
 
-        // Scale recommendation down to fit 75% flask limit (375 ml) with 1:8 ratio
-        // 1 mol alc (vol = 60.10/0.786 = 76.46 ml) + 8 mol acid (vol = 8 * 256.42/0.852 = 2407.7 ml) = 2484.16 ml per batch unit
         const scaleFactor = 375.0 / 2484.16;
         const recAlcMl = (76.46 * scaleFactor).toFixed(1);
         const recAcidG = (8 * 256.42 * scaleFactor).toFixed(1);
@@ -1730,13 +1897,21 @@
       const data = state.latestData;
       if (state.recipe) activeRecipe = { ...activeRecipe, ...state.recipe };
 
-      document.getElementById('batch-label').textContent = `Batch: ${state.batchCode || state.batchId || '-'}`;
-      document.getElementById('stage-status').textContent = state.currentStageId ? `Stage ${state.currentStageId}/6 — ${state.currentStageName}` : 'Waiting for sensor telemetry';
+      const batchCode = state.batchCode || state.batchId;
+      document.getElementById('batch-label').textContent = `Batch: ${batchCode || '-'}`;
+      document.getElementById('stage-status').textContent = state.currentStageId ? `Stage ${state.currentStageId}/6 — ${state.currentStageName}` : 'Standby / Awaiting Batch Initialization';
 
       const run = String(state.runStatus || 'standby').toUpperCase();
       const badge = document.getElementById('run-badge');
       badge.textContent = run;
       badge.className = `rounded-full px-2.5 py-1 text-[11px] font-bold ${run === 'RUNNING' ? 'bg-emerald-600 text-white' : run === 'EMERGENCY' ? 'bg-red-700 text-white' : run === 'PAUSED' ? 'bg-amber-500 text-slate-950' : 'bg-slate-700 text-white'}`;
+
+      const lockBanner = document.getElementById('lock-warning-banner');
+      if (!batchCode || run === 'STANDBY') {
+        lockBanner.classList.remove('hidden');
+      } else {
+        lockBanner.classList.add('hidden');
+      }
 
       if (data) {
         document.getElementById('temp-value').textContent = number(data.temp);
@@ -1745,7 +1920,6 @@
         document.getElementById('current-value').textContent = number(data.current, 2);
         document.getElementById('elapsed-value').textContent = formatElapsed(data.elapsedSeconds);
         document.getElementById('last-update').textContent = `Updated: ${new Date().toLocaleTimeString()}`;
-        document.getElementById('level-text').textContent = data.levelDetected ? '✓ Final product level reached (≥375 ml)' : 'Final level: waiting (≥375 ml)';
 
         document.querySelectorAll('[data-actuator]').forEach(toggle => {
           toggle.checked = Boolean(data.act?.[toggle.dataset.actuator]);
@@ -1821,16 +1995,50 @@
       select.value = selected;
     }
 
-    async function sendControl(action, extras = {}) {
-      if (action === 'emergency_stop' && !confirm('Are you sure you want to trigger an EMERGENCY STOP? All actuators will be powered off.')) return;
-      const code = document.getElementById('batch-code-input').value.trim() || (isDemoMode ? 'DEMO-BATCH-001' : '');
+    async function deleteSelectedBatch() {
+      const select = document.getElementById('batch-select');
+      const selectedBatchId = select.value;
+      if (!selectedBatchId) {
+        showToast('Please select a specific completed/test batch to delete.', 'error');
+        return;
+      }
+      if (!confirm(`Are you sure you want to permanently delete all data logs for batch "${selectedBatchId}"? This action cannot be undone.`)) return;
 
       if (isDemoMode) {
-        handleDemoControl(action, extras);
+        currentLogs = [];
+        renderLogs(currentLogs);
+        showToast('Demo batch data cleared.', 'success');
         return;
       }
 
-      const payload = { action, ...extras };
+      try {
+        const result = await api(`/api/batches/${encodeURIComponent(selectedBatchId)}`, { method: 'DELETE' });
+        showToast(result.message || 'Batch logs deleted successfully.', 'success');
+        await loadBatches();
+        await loadLogs('');
+      } catch (err) {
+        showToast('Failed to delete batch: ' + err.message, 'error');
+      }
+    }
+
+    async function sendControl(action, extras = {}) {
+      if (action === 'emergency_stop' && !confirm('Are you sure you want to trigger an EMERGENCY STOP? All actuators will be powered off.')) return;
+      const code = document.getElementById('batch-code-input').value.trim();
+
+      if ((action === 'start' || action === 'restart') && !code && !isDemoMode) {
+        showToast('Please enter a Batch Code before starting or restarting!', 'error');
+        document.getElementById('batch-code-input').focus();
+        return;
+      }
+
+      const startStage = Number(document.getElementById('start-stage-select').value) || 1;
+
+      if (isDemoMode) {
+        handleDemoControl(action, { start_stage: startStage, ...extras });
+        return;
+      }
+
+      const payload = { action, start_stage: startStage, ...extras };
       if (code) { payload.batch_id = code; payload.batch_code = code; }
       document.getElementById('control-message').textContent = 'Dispatching command...';
       try {
@@ -1880,7 +2088,7 @@
       doc.text(`Report Generated: ${new Date().toLocaleString()}`, 14, 30);
       doc.text(`Apparatus: Lab-Scale 500ml Round Flask, Heating Mantle, Magnetic Stirrer & DC 12V 10A PSU`, 14, 35);
 
-      // Table 1: Formulation Recipe (Without MW input requirement)
+      // Table 1: Formulation Recipe
       doc.autoTable({
         startY: 40,
         head: [['Reagents & Formulation Recipe', 'Amount / Input', 'Molar Stoichiometry', 'Process Function']],
@@ -1983,7 +2191,7 @@
       sampleCount: 0,
       batchId: 'DEMO-EXHIBITION-001',
       batchCode: 'DEMO-EXHIBITION-001',
-      actuators: { motor: true, heater: true, catalyst_valve: false, separator_valve: false }
+      actuators: { motor: true, heater: true, catalyst_valve: false, separator_valve: false, servo: false }
     };
 
     function startDemoMode() {
@@ -2029,12 +2237,14 @@
       const isHeaterOn = stageId === 1 || stageId === 3 || stageId === 5;
       const isCatalyst = stageId === 2;
       const isSeparator = stageId === 6;
+      const isServo = isCatalyst || isSeparator;
 
       demoSimState.actuators = {
         motor: isMotorOn,
         heater: isHeaterOn,
         catalyst_valve: isCatalyst,
-        separator_valve: isSeparator
+        separator_valve: isSeparator,
+        servo: isServo
       };
 
       let targetTemp = isHeaterOn ? (meta.setPointTemp || 60) : 28.5;
@@ -2071,11 +2281,11 @@
 
     function handleDemoControl(action, extras = {}) {
       if (action === 'start' || action === 'restart') {
-        demoSimState.stageId = 1;
+        demoSimState.stageId = extras.start_stage || 1;
         demoSimState.elapsedSeconds = 0;
         demoSimState.sampleCount = 0;
         demoSimState.runStatus = 'running';
-        showToast('Demo simulation started from Stage 1.', 'success');
+        showToast(`Demo simulation started from Stage ${demoSimState.stageId}.`, 'success');
       } else if (action === 'pause') {
         demoSimState.runStatus = 'paused';
         showToast('Demo simulation paused.', 'info');
@@ -2084,7 +2294,7 @@
         showToast('Demo simulation resumed.', 'success');
       } else if (action === 'emergency_stop') {
         demoSimState.runStatus = 'emergency';
-        demoSimState.actuators = { motor: false, heater: false, catalyst_valve: false, separator_valve: false };
+        demoSimState.actuators = { motor: false, heater: false, catalyst_valve: false, separator_valve: false, servo: false };
         showToast('EMERGENCY STOP activated in simulation mode!', 'error');
       } else if (action === 'reset_emergency') {
         demoSimState.runStatus = 'paused';
@@ -2167,7 +2377,10 @@
     document.querySelectorAll('.control-button').forEach(button => button.addEventListener('click', () => sendControl(button.dataset.command)));
     document.getElementById('emergency-button').addEventListener('click', () => sendControl('emergency_stop'));
     document.querySelectorAll('[data-actuator]').forEach(toggle => toggle.addEventListener('change', () => sendControl('set_actuator', { actuator: toggle.dataset.actuator, enabled: toggle.checked })));
+    
+    // Batch Selector & Delete Handler
     document.getElementById('load-batch').addEventListener('click', async () => { try { await loadLogs(document.getElementById('batch-select').value); showToast('Batch telemetry loaded.', 'success'); } catch (error) { showToast(error.message, 'error'); } });
+    document.getElementById('delete-batch-btn').addEventListener('click', deleteSelectedBatch);
     document.getElementById('batch-select').addEventListener('change', event => { if (event.target.value) document.getElementById('batch-code-input').value = event.target.value; });
     document.getElementById('download-csv').addEventListener('click', downloadCsv);
     document.getElementById('download-pdf').addEventListener('click', downloadPdf);

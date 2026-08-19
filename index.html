@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="id">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dashboard Reaktor Esterifikasi</title>
+  <title>Esterification Reactor Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -23,132 +23,170 @@
 </head>
 <body class="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased">
   <!-- Login Page -->
-  <main id="login-page" class="min-h-screen bg-gradient-to-br from-teal-800 to-cyan-700 flex items-center justify-center p-5">
+  <main id="login-page" class="min-h-screen bg-gradient-to-br from-teal-900 via-teal-800 to-cyan-800 flex items-center justify-center p-5">
     <section class="w-full max-w-md rounded-2xl bg-white p-7 shadow-2xl">
-      <div class="mb-7 text-center">
-        <div class="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-teal-100 text-3xl text-teal-700"><i class="fa-solid fa-flask-vial"></i></div>
-        <h1 class="text-2xl font-bold text-slate-800">Esterification Reactor</h1>
-        <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-teal-700">Monitoring monoester secara real-time</p>
+      <div class="mb-6 text-center">
+        <div class="mx-auto mb-3.5 grid h-16 w-16 place-items-center rounded-full bg-teal-100 text-3xl text-teal-700 shadow-inner"><i class="fa-solid fa-flask-vial"></i></div>
+        <h1 class="text-2xl font-extrabold text-slate-800">Esterification Reactor</h1>
+        <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-teal-700">Real-time Monoester Monitoring & Control</p>
       </div>
-      <form id="login-form" class="space-y-4">
-        <label class="block text-sm font-semibold">Email akun Supabase Auth
-          <input id="email" required type="email" autocomplete="email" placeholder="nama@email.com" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
+
+      <!-- Visitor Demo Quick Access Banner -->
+      <div class="mb-5 rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-purple-50 p-4 text-center">
+        <div class="flex items-center justify-center gap-2 text-indigo-900 font-bold text-sm">
+          <i class="fa-solid fa-qrcode text-indigo-600"></i>
+          <span>Exhibition & Guest Visitor?</span>
+        </div>
+        <p class="mt-1 text-[11px] text-slate-600">Try interactive simulation mode with real-time dummy physics without logging in.</p>
+        <button id="guest-demo-btn" type="button" class="mt-3 w-full rounded-lg bg-indigo-600 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-indigo-700 active:scale-[0.99]">
+          <i class="fa-solid fa-play mr-1.5"></i> Launch Exhibition Demo Mode
+        </button>
+      </div>
+
+      <div class="relative mb-5 text-center">
+        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200"></div></div>
+        <span class="relative bg-white px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Or Operator Sign In</span>
+      </div>
+
+      <form id="login-form" class="space-y-3.5">
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Supabase Auth Email
+          <input id="email" required type="email" autocomplete="email" placeholder="operator@email.com" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
         </label>
-        <label class="block text-sm font-semibold">Password
-          <input id="password" required type="password" autocomplete="current-password" placeholder="••••••••" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Password
+          <input id="password" required type="password" autocomplete="current-password" placeholder="••••••••" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
         </label>
-        <label class="block text-sm font-semibold">Telegram Chat ID
-          <input id="telegram-id" required type="text" inputmode="numeric" placeholder="Contoh: 123456789" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Telegram Chat ID
+          <input id="telegram-id" required type="text" inputmode="numeric" placeholder="e.g. 123456789" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
         </label>
-        <p id="login-error" class="hidden rounded-lg bg-red-50 p-3 text-sm text-red-700"></p>
-        <button id="login-button" class="w-full rounded-lg bg-teal-700 py-3 font-bold text-white transition hover:bg-teal-800 disabled:opacity-60">
-          Masuk ke Dashboard
+        <p id="login-error" class="hidden rounded-lg bg-red-50 p-3 text-xs text-red-700 font-medium"></p>
+        <button id="login-button" class="w-full rounded-lg bg-teal-700 py-3 text-sm font-bold text-white shadow-md transition hover:bg-teal-800 disabled:opacity-60">
+          Sign In to Live Production
         </button>
       </form>
-      <p class="mt-5 text-center text-xs text-slate-500">Email dan password dibuat di menu Authentication Supabase. Chat ID harus sesuai profil akun.</p>
+      <p class="mt-4 text-center text-[11px] text-slate-400">Credentials are managed via Supabase Authentication. Chat ID must match user profile.</p>
     </section>
   </main>
 
   <!-- Dashboard Page -->
   <div id="dashboard" class="hidden">
-    <header class="sticky top-0 z-30 bg-teal-800 text-white shadow-lg">
+    <header class="sticky top-0 z-30 bg-teal-900 text-white shadow-lg transition-colors" id="main-header">
       <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-flask-vial text-3xl text-teal-300"></i>
-          <div><h1 class="font-bold">Esterification Reactor</h1><p class="text-xs text-teal-100">IoT monitoring — Monoester</p></div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="font-bold text-base md:text-lg">Esterification Reactor</h1>
+              <span id="mode-badge" class="rounded-full bg-teal-700 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-teal-100">LIVE SYSTEM</span>
+            </div>
+            <p class="text-xs text-teal-200">IoT Monitoring & Supervisory Control — Monoester</p>
+          </div>
         </div>
         <div class="flex flex-wrap items-center gap-2 text-xs">
-          <span id="mqtt-badge" class="rounded-full bg-slate-700 px-3 py-1.5"><i class="fa-solid fa-circle mr-1 text-slate-400"></i> MQTT: checking</span>
-          <span id="run-badge" class="rounded-full bg-slate-700 px-3 py-1.5 font-bold">STANDBY</span>
-          <span id="user-display" class="rounded-full bg-teal-950 px-3 py-1.5"></span>
-          <button id="logout-button" class="rounded-md bg-slate-900 px-3 py-1.5 transition hover:bg-slate-950"><i class="fa-solid fa-right-from-bracket mr-1"></i> Keluar</button>
+          <span id="mqtt-badge" class="rounded-full bg-slate-800 px-3 py-1.5 font-medium"><i class="fa-solid fa-circle mr-1.5 text-slate-400"></i> MQTT: Checking...</span>
+          <span id="run-badge" class="rounded-full bg-slate-800 px-3 py-1.5 font-bold uppercase">STANDBY</span>
+          <span id="user-display" class="rounded-full bg-teal-950 px-3 py-1.5 font-medium text-teal-200"></span>
+          <button id="logout-button" class="rounded-lg bg-slate-800 px-3 py-1.5 font-semibold text-slate-200 transition hover:bg-slate-700 hover:text-white"><i class="fa-solid fa-right-from-bracket mr-1"></i> <span id="logout-text">Sign Out</span></button>
         </div>
       </div>
     </header>
 
+    <!-- Demo Mode Info Notice (Only shown in demo mode) -->
+    <div id="demo-banner" class="hidden bg-gradient-to-r from-indigo-700 via-purple-700 to-indigo-800 text-white py-2 px-4 shadow-sm text-xs">
+      <div class="mx-auto max-w-7xl flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span class="rounded bg-white/20 px-2 py-0.5 font-bold text-[10px] uppercase tracking-wider">EXHIBITION GUEST MODE</span>
+          <span>You are exploring the live interactive simulation with simulated physics. Real machine and database remain unaffected.</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="demo-fastforward-btn" class="rounded bg-white/20 px-2.5 py-1 text-[11px] font-bold transition hover:bg-white/30"><i class="fa-solid fa-forward-step mr-1"></i> Next Stage</button>
+          <button id="exit-demo-btn" class="rounded bg-white text-indigo-900 px-2.5 py-1 text-[11px] font-bold shadow-sm transition hover:bg-slate-100">Exit Demo</button>
+        </div>
+      </div>
+    </div>
+
     <main class="mx-auto max-w-7xl space-y-6 p-4 md:p-6">
-      <!-- Banner Anomali -->
+      <!-- Anomaly Alert Banner -->
       <section id="anomaly-banner" class="hidden rounded-xl border-2 border-red-600 bg-red-100 p-4 text-red-900 shadow-lg warning-flash">
         <div class="flex items-start justify-between gap-3">
-          <div><h2 class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>ANOMALI TERDETEKSI</h2><p id="anomaly-text" class="mt-1 text-sm"></p></div>
-          <button id="hide-anomaly" class="rounded bg-red-700 px-3 py-1 text-xs font-bold text-white transition hover:bg-red-800">Tutup</button>
+          <div><h2 class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>ANOMALY DETECTED</h2><p id="anomaly-text" class="mt-1 text-sm"></p></div>
+          <button id="hide-anomaly" class="rounded bg-red-700 px-3 py-1 text-xs font-bold text-white transition hover:bg-red-800">Dismiss</button>
         </div>
       </section>
 
-      <!-- Ringkasan Nilai Sensor Utama -->
+      <!-- Key Sensor Metric Cards -->
       <section class="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <article class="rounded-xl border-l-4 border-red-500 bg-white p-4 shadow-sm">
-          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase text-slate-500">Suhu</span><i class="fa-solid fa-temperature-half text-red-500 text-lg"></i></div>
+          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-wider text-slate-500">Temperature</span><i class="fa-solid fa-temperature-half text-red-500 text-lg"></i></div>
           <p class="mt-2"><span id="temp-value" class="text-3xl font-extrabold text-slate-800">0.0</span> <span class="text-sm font-semibold text-slate-500">°C</span></p>
           <p id="temp-subtext" class="mt-1 text-[11px] text-slate-500">Set Point: 60 / 100 / 120 °C (±10%)</p>
         </article>
         <article class="rounded-xl border-l-4 border-blue-500 bg-white p-4 shadow-sm">
-          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase text-slate-500">Kecepatan</span><i class="fa-solid fa-arrows-rotate text-blue-500 text-lg"></i></div>
+          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-wider text-slate-500">Agitation Speed</span><i class="fa-solid fa-arrows-rotate text-blue-500 text-lg"></i></div>
           <p class="mt-2"><span id="rpm-value" class="text-3xl font-extrabold text-slate-800">0</span> <span class="text-sm font-semibold text-slate-500">RPM</span></p>
           <p id="rpm-subtext" class="mt-1 text-[11px] text-slate-500">Mixing & Oil Treatment: 250 ±10%</p>
         </article>
         <article class="rounded-xl border-l-4 border-amber-500 bg-white p-4 shadow-sm">
-          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase text-slate-500">Arus Motor</span><i class="fa-solid fa-bolt text-amber-500 text-lg"></i></div>
+          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-wider text-slate-500">Motor Current</span><i class="fa-solid fa-bolt text-amber-500 text-lg"></i></div>
           <p class="mt-2"><span id="current-value" class="text-3xl font-extrabold text-slate-800">0.00</span> <span class="text-sm font-semibold text-slate-500">A</span></p>
-          <p id="current-subtext" class="mt-1 text-[11px] text-slate-500">Set Point: 2.0 A (Batas: 0–3.2 A)</p>
+          <p id="current-subtext" class="mt-1 text-[11px] text-slate-500">Set Point: 2.0 A (Range: 0.0–3.2 A)</p>
         </article>
         <article class="rounded-xl border-l-4 border-emerald-500 bg-white p-4 shadow-sm">
-          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase text-slate-500">Volume</span><i class="fa-solid fa-flask text-emerald-500 text-lg"></i></div>
+          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-wider text-slate-500">Liquid Volume</span><i class="fa-solid fa-flask text-emerald-500 text-lg"></i></div>
           <p class="mt-2"><span id="vol-value" class="text-3xl font-extrabold text-slate-800">0.0</span> <span class="text-sm font-semibold text-slate-500">ml</span></p>
-          <p id="level-text" class="mt-1 text-[11px] text-slate-500">Level akhir: menunggu (≥375 ml)</p>
+          <p id="level-text" class="mt-1 text-[11px] text-slate-500">Final level: waiting (≥375 ml)</p>
         </article>
         <article class="col-span-2 rounded-xl border-l-4 border-teal-600 bg-white p-4 shadow-sm lg:col-span-1">
-          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase text-slate-500">Waktu Proses</span><i class="fa-solid fa-stopwatch text-teal-600 text-lg"></i></div>
+          <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-wider text-slate-500">Elapsed Time</span><i class="fa-solid fa-stopwatch text-teal-600 text-lg"></i></div>
           <p id="elapsed-value" class="mt-2 text-2xl font-extrabold text-slate-800">00:00:00</p>
-          <p id="last-update" class="mt-1 text-[11px] text-slate-500">Belum ada data</p>
+          <p id="last-update" class="mt-1 text-[11px] text-slate-500">No data received yet</p>
         </article>
       </section>
 
-      <!-- TIMELINE TAHAP PRODUKSI -->
+      <!-- PRODUCTION STAGE TIMELINE -->
       <section class="rounded-xl bg-white p-5 shadow-sm">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div>
-            <h2 class="text-base font-bold text-slate-800"><i class="fa-solid fa-timeline mr-2 text-teal-700"></i>Timeline Tahap Produksi</h2>
-            <p id="stage-status" class="text-xs text-slate-500">Menunggu data sensor</p>
+            <h2 class="text-base font-bold text-slate-800"><i class="fa-solid fa-timeline mr-2 text-teal-700"></i>Production Stage Timeline</h2>
+            <p id="stage-status" class="text-xs text-slate-500">Waiting for sensor data</p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <span class="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-semibold text-teal-800"><i class="fa-solid fa-circle-info mr-1"></i>Klik kotak tahap untuk melihat perbandingan set point & rata-rata</span>
+            <span class="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-semibold text-teal-800"><i class="fa-solid fa-circle-info mr-1"></i>Click any stage card to analyze set points & actual averages</span>
             <span id="batch-label" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">Batch: -</span>
           </div>
         </div>
 
         <!-- 6 Stage Timeline Cards -->
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-6" id="stage-timeline">
-          <!-- Di-render dinamis oleh renderTimeline() -->
+          <!-- Dynamically rendered by renderTimeline() -->
         </div>
       </section>
 
-      <!-- 4 GRAFIK PARAMETER TERPISAH (2x2 GRID) -->
+      <!-- 4 SEPARATE PARAMETER CHARTS (2x2 GRID) -->
       <section class="grid gap-4 md:grid-cols-2">
-        <!-- 1. Grafik Suhu -->
+        <!-- 1. Temperature Chart -->
         <article class="flex flex-col rounded-xl bg-white p-4 shadow-sm">
           <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-2">
               <span class="grid h-8 w-8 place-items-center rounded-lg bg-red-100 text-red-600"><i class="fa-solid fa-temperature-half"></i></span>
               <div>
-                <h3 class="font-bold text-slate-800 text-sm">Grafik Suhu (°C)</h3>
+                <h3 class="font-bold text-slate-800 text-sm">Temperature Chart (°C)</h3>
                 <p class="text-[11px] text-slate-400">Target: 60 / 100 / 120 °C (±10%)</p>
               </div>
             </div>
             <select data-chart="temp" class="chart-filter rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-teal-600">
-              <option value="all">🌐 Semua Proses</option>
-              <option value="current">📍 Hanya Tahap Berjalan</option>
-              <option value="1">Tahap 1: Mixing</option>
-              <option value="2">Tahap 2: Add Catalyst</option>
-              <option value="3">Tahap 3: Reflux</option>
-              <option value="4">Tahap 4: Separation</option>
-              <option value="5">Tahap 5: Oil Treatment</option>
-              <option value="6">Tahap 6: Filtration</option>
+              <option value="all">🌐 All Stages (Full Process)</option>
+              <option value="current">📍 Current Active Stage Only</option>
+              <option value="1">Stage 1: Mixing</option>
+              <option value="2">Stage 2: Add Catalyst</option>
+              <option value="3">Stage 3: Reflux</option>
+              <option value="4">Stage 4: Separation</option>
+              <option value="5">Stage 5: Oil Treatment</option>
+              <option value="6">Stage 6: Filtration</option>
             </select>
           </div>
           <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Slide rentang data:</span>
-            <span id="slider-temp-label" class="font-semibold text-teal-700">100 poin</span>
+            <span>Data window range:</span>
+            <span id="slider-temp-label" class="font-semibold text-teal-700">100 points</span>
           </div>
           <input data-chart="temp" type="range" min="20" max="400" value="100" class="chart-slider mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-700">
           <div class="overflow-x-auto rounded-lg border border-slate-100 p-2">
@@ -156,30 +194,30 @@
           </div>
         </article>
 
-        <!-- 2. Grafik Kecepatan Putar (RPM) -->
+        <!-- 2. Agitation Speed Chart (RPM) -->
         <article class="flex flex-col rounded-xl bg-white p-4 shadow-sm">
           <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-2">
               <span class="grid h-8 w-8 place-items-center rounded-lg bg-blue-100 text-blue-600"><i class="fa-solid fa-arrows-rotate"></i></span>
               <div>
-                <h3 class="font-bold text-slate-800 text-sm">Grafik Kecepatan (RPM)</h3>
-                <p class="text-[11px] text-slate-400">Target: 250 RPM (±10%) saat pengadukan</p>
+                <h3 class="font-bold text-slate-800 text-sm">Agitation Speed Chart (RPM)</h3>
+                <p class="text-[11px] text-slate-400">Target: 250 RPM (±10%) during stirring</p>
               </div>
             </div>
             <select data-chart="rpm" class="chart-filter rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-teal-600">
-              <option value="all">🌐 Semua Proses</option>
-              <option value="current">📍 Hanya Tahap Berjalan</option>
-              <option value="1">Tahap 1: Mixing</option>
-              <option value="2">Tahap 2: Add Catalyst</option>
-              <option value="3">Tahap 3: Reflux</option>
-              <option value="4">Tahap 4: Separation</option>
-              <option value="5">Tahap 5: Oil Treatment</option>
-              <option value="6">Tahap 6: Filtration</option>
+              <option value="all">🌐 All Stages (Full Process)</option>
+              <option value="current">📍 Current Active Stage Only</option>
+              <option value="1">Stage 1: Mixing</option>
+              <option value="2">Stage 2: Add Catalyst</option>
+              <option value="3">Stage 3: Reflux</option>
+              <option value="4">Stage 4: Separation</option>
+              <option value="5">Stage 5: Oil Treatment</option>
+              <option value="6">Stage 6: Filtration</option>
             </select>
           </div>
           <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Slide rentang data:</span>
-            <span id="slider-rpm-label" class="font-semibold text-teal-700">100 poin</span>
+            <span>Data window range:</span>
+            <span id="slider-rpm-label" class="font-semibold text-teal-700">100 points</span>
           </div>
           <input data-chart="rpm" type="range" min="20" max="400" value="100" class="chart-slider mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-700">
           <div class="overflow-x-auto rounded-lg border border-slate-100 p-2">
@@ -187,30 +225,30 @@
           </div>
         </article>
 
-        <!-- 3. Grafik Arus Motor (A) -->
+        <!-- 3. Motor Current Chart (A) -->
         <article class="flex flex-col rounded-xl bg-white p-4 shadow-sm">
           <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-2">
               <span class="grid h-8 w-8 place-items-center rounded-lg bg-amber-100 text-amber-600"><i class="fa-solid fa-bolt"></i></span>
               <div>
-                <h3 class="font-bold text-slate-800 text-sm">Grafik Arus Motor (A)</h3>
-                <p class="text-[11px] text-slate-400">Set Point: 2.0 A (Batas: 0.0 – 3.2 A)</p>
+                <h3 class="font-bold text-slate-800 text-sm">Motor Current Chart (A)</h3>
+                <p class="text-[11px] text-slate-400">Set Point: 2.0 A (Tolerance: 0.0–3.2 A)</p>
               </div>
             </div>
             <select data-chart="current" class="chart-filter rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-teal-600">
-              <option value="all">🌐 Semua Proses</option>
-              <option value="current">📍 Hanya Tahap Berjalan</option>
-              <option value="1">Tahap 1: Mixing</option>
-              <option value="2">Tahap 2: Add Catalyst</option>
-              <option value="3">Tahap 3: Reflux</option>
-              <option value="4">Tahap 4: Separation</option>
-              <option value="5">Tahap 5: Oil Treatment</option>
-              <option value="6">Tahap 6: Filtration</option>
+              <option value="all">🌐 All Stages (Full Process)</option>
+              <option value="current">📍 Current Active Stage Only</option>
+              <option value="1">Stage 1: Mixing</option>
+              <option value="2">Stage 2: Add Catalyst</option>
+              <option value="3">Stage 3: Reflux</option>
+              <option value="4">Stage 4: Separation</option>
+              <option value="5">Stage 5: Oil Treatment</option>
+              <option value="6">Stage 6: Filtration</option>
             </select>
           </div>
           <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Slide rentang data:</span>
-            <span id="slider-current-label" class="font-semibold text-teal-700">100 poin</span>
+            <span>Data window range:</span>
+            <span id="slider-current-label" class="font-semibold text-teal-700">100 points</span>
           </div>
           <input data-chart="current" type="range" min="20" max="400" value="100" class="chart-slider mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-700">
           <div class="overflow-x-auto rounded-lg border border-slate-100 p-2">
@@ -218,30 +256,30 @@
           </div>
         </article>
 
-        <!-- 4. Grafik Volume Cairan (ml) -->
+        <!-- 4. Liquid Volume Chart (ml) -->
         <article class="flex flex-col rounded-xl bg-white p-4 shadow-sm">
           <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-2">
               <span class="grid h-8 w-8 place-items-center rounded-lg bg-emerald-100 text-emerald-600"><i class="fa-solid fa-flask"></i></span>
               <div>
-                <h3 class="font-bold text-slate-800 text-sm">Grafik Volume (ml)</h3>
-                <p class="text-[11px] text-slate-400">Target Filtrasi Akhir: ≥375 ml</p>
+                <h3 class="font-bold text-slate-800 text-sm">Liquid Volume Chart (ml)</h3>
+                <p class="text-[11px] text-slate-400">Final Filtration Target: ≥375 ml</p>
               </div>
             </div>
             <select data-chart="vol" class="chart-filter rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-teal-600">
-              <option value="all">🌐 Semua Proses</option>
-              <option value="current">📍 Hanya Tahap Berjalan</option>
-              <option value="1">Tahap 1: Mixing</option>
-              <option value="2">Tahap 2: Add Catalyst</option>
-              <option value="3">Tahap 3: Reflux</option>
-              <option value="4">Tahap 4: Separation</option>
-              <option value="5">Tahap 5: Oil Treatment</option>
-              <option value="6">Tahap 6: Filtration</option>
+              <option value="all">🌐 All Stages (Full Process)</option>
+              <option value="current">📍 Current Active Stage Only</option>
+              <option value="1">Stage 1: Mixing</option>
+              <option value="2">Stage 2: Add Catalyst</option>
+              <option value="3">Stage 3: Reflux</option>
+              <option value="4">Stage 4: Separation</option>
+              <option value="5">Stage 5: Oil Treatment</option>
+              <option value="6">Stage 6: Filtration</option>
             </select>
           </div>
           <div class="mb-2 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Slide rentang data:</span>
-            <span id="slider-vol-label" class="font-semibold text-teal-700">100 poin</span>
+            <span>Data window range:</span>
+            <span id="slider-vol-label" class="font-semibold text-teal-700">100 points</span>
           </div>
           <input data-chart="vol" type="range" min="20" max="400" value="100" class="chart-slider mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-700">
           <div class="overflow-x-auto rounded-lg border border-slate-100 p-2">
@@ -250,16 +288,16 @@
         </article>
       </section>
 
-      <!-- Kontrol & Sakelar Aktuator -->
+      <!-- Process Controls & Actuators -->
       <section class="grid gap-6 lg:grid-cols-2">
         <section class="rounded-xl bg-white p-4 shadow-sm">
-          <h2 class="font-bold text-slate-800"><i class="fa-solid fa-gamepad mr-2 text-teal-700"></i>Kontrol Proses</h2>
-          <p class="mt-1 text-xs text-slate-500">Perintah diteruskan backend ke ESP32/simulator melalui topik kontrol MQTT.</p>
-          <label class="mt-4 block text-sm font-semibold">Kode batch
-            <input id="batch-code-input" placeholder="Contoh: UJI-001" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-teal-600">
+          <h2 class="font-bold text-slate-800"><i class="fa-solid fa-gamepad mr-2 text-teal-700"></i>Process Controls</h2>
+          <p class="mt-1 text-xs text-slate-500">Commands are dispatched to the ESP32/simulator via MQTT control topics.</p>
+          <label class="mt-4 block text-sm font-semibold">Batch Code
+            <input id="batch-code-input" placeholder="e.g. BATCH-2026-001" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-teal-600">
           </label>
           <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <button data-command="start" class="control-button rounded-lg bg-teal-700 px-3 py-2 text-sm font-bold text-white transition hover:bg-teal-800"><i class="fa-solid fa-play mr-1"></i> Mulai</button>
+            <button data-command="start" class="control-button rounded-lg bg-teal-700 px-3 py-2 text-sm font-bold text-white transition hover:bg-teal-800"><i class="fa-solid fa-play mr-1"></i> Start</button>
             <button data-command="pause" class="control-button rounded-lg bg-amber-500 px-3 py-2 text-sm font-bold text-slate-900 transition hover:bg-amber-600"><i class="fa-solid fa-pause mr-1"></i> Pause</button>
             <button data-command="resume" class="control-button rounded-lg bg-cyan-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-cyan-700"><i class="fa-solid fa-play mr-1"></i> Resume</button>
             <button data-command="restart" class="control-button rounded-lg bg-slate-700 px-3 py-2 text-sm font-bold text-white transition hover:bg-slate-800"><i class="fa-solid fa-rotate-right mr-1"></i> Restart</button>
@@ -270,51 +308,51 @@
         </section>
 
         <section class="rounded-xl bg-white p-4 shadow-sm">
-          <h2 class="font-bold text-slate-800"><i class="fa-solid fa-sliders mr-2 text-teal-700"></i>Status & Toggle Aktuator</h2>
-          <p class="mt-1 text-xs text-slate-500">Toggle merupakan perintah manual dan setiap aksi disimpan ke sensor_payload pada reactor_logs.</p>
+          <h2 class="font-bold text-slate-800"><i class="fa-solid fa-sliders mr-2 text-teal-700"></i>Actuators Status & Manual Toggle</h2>
+          <p class="mt-1 text-xs text-slate-500">Toggles provide manual overrides and log events to sensor payloads.</p>
           <div class="mt-4 space-y-2.5">
-            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-fan mr-2 text-blue-600"></i>Motor pengaduk</span><input data-actuator="motor" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
-            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-fire-flame-simple mr-2 text-red-600"></i>Heater</span><input data-actuator="heater" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
-            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-faucet-drip mr-2 text-teal-600"></i>Valve katalis</span><input data-actuator="catalyst_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
-            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-filter mr-2 text-violet-600"></i>Valve pemisah</span><input data-actuator="separator_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-fan mr-2 text-blue-600"></i>Stirrer Motor</span><input data-actuator="motor" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-fire-flame-simple mr-2 text-red-600"></i>Heater Element</span><input data-actuator="heater" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-faucet-drip mr-2 text-teal-600"></i>Catalyst Valve</span><input data-actuator="catalyst_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
+            <label class="flex items-center justify-between rounded-lg bg-slate-50 p-2.5"><span><i class="fa-solid fa-filter mr-2 text-violet-600"></i>Separator Valve</span><input data-actuator="separator_valve" type="checkbox" class="switch sr-only"><span class="switch-track relative h-6 w-11 rounded-full bg-slate-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition"></span></label>
           </div>
         </section>
       </section>
 
-      <!-- Rekap & Unduh Data -->
+      <!-- Historical Data & Export -->
       <section class="rounded-xl bg-white p-4 shadow-sm">
         <div class="flex flex-wrap items-end justify-between gap-3">
-          <div><h2 class="font-bold text-slate-800"><i class="fa-solid fa-table mr-2 text-teal-700"></i>Rekap dan Unduh Data</h2><p class="text-xs text-slate-500">CSV berisi semua sampel batch; PDF berisi ringkasan rata-rata dan sampel terbaru.</p></div>
+          <div><h2 class="font-bold text-slate-800"><i class="fa-solid fa-table mr-2 text-teal-700"></i>Data Logs & Export</h2><p class="text-xs text-slate-500">CSV contains all raw sensor samples; PDF includes statistical averages and latest telemetry.</p></div>
           <div class="flex flex-wrap gap-2">
-            <select id="batch-select" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold"><option value="">Batch aktif</option></select>
-            <button id="load-batch" class="rounded-lg bg-slate-700 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800">Muat</button>
-            <button id="download-csv" class="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700"><i class="fa-solid fa-file-csv mr-1"></i>CSV</button>
-            <button id="download-pdf" class="rounded-lg bg-orange-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-orange-700"><i class="fa-solid fa-file-pdf mr-1"></i>PDF</button>
+            <select id="batch-select" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold"><option value="">Active Batch</option></select>
+            <button id="load-batch" class="rounded-lg bg-slate-700 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800">Load</button>
+            <button id="download-csv" class="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700"><i class="fa-solid fa-file-csv mr-1"></i> Export CSV</button>
+            <button id="download-pdf" class="rounded-lg bg-orange-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-orange-700"><i class="fa-solid fa-file-pdf mr-1"></i> Export PDF</button>
           </div>
         </div>
-        <div class="mt-4 overflow-x-auto"><table class="min-w-full text-left text-xs"><thead class="border-b bg-slate-50 text-[11px] uppercase text-slate-500"><tr><th class="p-2.5">Waktu</th><th class="p-2.5">Tahap</th><th class="p-2.5">Suhu</th><th class="p-2.5">RPM</th><th class="p-2.5">Volume</th><th class="p-2.5">Arus</th><th class="p-2.5">Level</th></tr></thead><tbody id="log-table"><tr><td class="p-3 text-slate-500" colspan="7">Belum ada data untuk ditampilkan.</td></tr></tbody></table></div>
+        <div class="mt-4 overflow-x-auto"><table class="min-w-full text-left text-xs"><thead class="border-b bg-slate-50 text-[11px] uppercase text-slate-500"><tr><th class="p-2.5">Time</th><th class="p-2.5">Stage</th><th class="p-2.5">Temperature</th><th class="p-2.5">Speed</th><th class="p-2.5">Volume</th><th class="p-2.5">Current</th><th class="p-2.5">Level</th></tr></thead><tbody id="log-table"><tr><td class="p-3 text-slate-500" colspan="7">No telemetry data recorded yet.</td></tr></tbody></table></div>
       </section>
     </main>
   </div>
 
-  <!-- MODAL DETAIL & PERBANDINGAN SET POINT TAHAP -->
+  <!-- STAGE COMPARISON & SET POINT MODAL -->
   <div id="stage-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
     <div class="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl transition-all">
       <div class="flex items-start justify-between border-b border-slate-100 pb-3">
         <div>
           <div class="flex items-center gap-2">
             <span id="modal-stage-num" class="grid h-7 w-7 place-items-center rounded-full bg-teal-100 text-xs font-bold text-teal-800">1</span>
-            <h3 id="modal-stage-title" class="text-lg font-bold text-slate-800">Tahap 1: Mixing</h3>
+            <h3 id="modal-stage-title" class="text-lg font-bold text-slate-800">Stage 1: Mixing</h3>
           </div>
-          <p id="modal-stage-desc" class="mt-0.5 text-xs text-slate-500">Target durasi: 30 menit · Motor & Heater ON</p>
+          <p id="modal-stage-desc" class="mt-0.5 text-xs text-slate-500">Target duration: 30 minutes · Motor & Heater ON</p>
         </div>
         <button id="close-modal" class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
 
       <div class="my-4 grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3 text-center text-xs">
-        <div><span class="text-slate-400">Status Tahap</span><p id="modal-status-badge" class="mt-0.5 font-bold text-slate-700">-</p></div>
-        <div><span class="text-slate-400">Jumlah Sampel Log</span><p id="modal-sample-count" class="mt-0.5 font-bold text-slate-700">0 data</p></div>
-        <div><span class="text-slate-400">Durasi Berjalan</span><p id="modal-elapsed" class="mt-0.5 font-bold text-slate-700">00:00:00</p></div>
+        <div><span class="text-slate-400">Stage Status</span><p id="modal-status-badge" class="mt-0.5 font-bold text-slate-700">-</p></div>
+        <div><span class="text-slate-400">Recorded Samples</span><p id="modal-sample-count" class="mt-0.5 font-bold text-slate-700">0 samples</p></div>
+        <div><span class="text-slate-400">Duration Elapsed</span><p id="modal-elapsed" class="mt-0.5 font-bold text-slate-700">00:00:00</p></div>
       </div>
 
       <div class="overflow-x-auto">
@@ -323,20 +361,20 @@
             <tr>
               <th class="p-2.5 font-bold">Parameter</th>
               <th class="p-2.5 font-bold">Set Point</th>
-              <th class="p-2.5 font-bold">Batas Toleransi</th>
-              <th class="p-2.5 font-bold">Rata-rata Aktual</th>
-              <th class="p-2.5 font-bold">Evaluasi</th>
+              <th class="p-2.5 font-bold">Tolerance Limits</th>
+              <th class="p-2.5 font-bold">Actual Average</th>
+              <th class="p-2.5 font-bold">Status Evaluation</th>
             </tr>
           </thead>
           <tbody id="modal-table-body" class="divide-y divide-slate-100">
-            <!-- Diisi secara dinamis oleh openStageModal() -->
+            <!-- Populated dynamically by openStageModal() -->
           </tbody>
         </table>
       </div>
 
       <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
-        <span>* Toleransi Suhu & RPM adalah ±10%. Arus motor normal 0.0 – 3.2 A (Set Point 2.0 A).</span>
-        <button id="close-modal-btn" class="rounded-lg bg-teal-700 px-4 py-2 font-bold text-white transition hover:bg-teal-800">Tutup</button>
+        <span>* Temperature & Agitation Speed tolerance is ±10%. Motor Current range: 0.00 – 3.20 A (Set Point 2.0 A).</span>
+        <button id="close-modal-btn" class="rounded-lg bg-teal-700 px-4 py-2 font-bold text-white transition hover:bg-teal-800">Close</button>
       </div>
     </div>
   </div>
@@ -344,7 +382,11 @@
   <div id="toast" class="fixed bottom-5 right-5 z-50 hidden max-w-sm rounded-lg bg-slate-900 px-4 py-3 text-xs text-white shadow-xl"></div>
 
   <script>
-    // Konfigurasi API
+    // Configuration & URL Params
+    const urlParams = new URLSearchParams(window.location.search);
+    const isExplicitDemo = urlParams.has('demo') || urlParams.has('mode') && ['demo', 'sim', 'simulation', 'guest'].includes(urlParams.get('mode'));
+    let isDemoMode = isExplicitDemo || sessionStorage.getItem('reactor_demo_mode') === 'true';
+
     const isLocal = ['localhost', '127.0.0.1', '0.0.0.0', ''].includes(window.location.hostname);
     const defaultApiBase = isLocal
       ? window.location.origin
@@ -352,7 +394,7 @@
           ? 'https://dashboard-reaktor-ta.onrender.com'
           : window.location.origin);
     const API_BASE = ((window.REACTOR_CONFIG && window.REACTOR_CONFIG.apiBaseUrl) || defaultApiBase).replace(/\/+$/, '');
-    
+
     const session = {
       token: sessionStorage.getItem('reactor_access_token') || '',
       user: JSON.parse(sessionStorage.getItem('reactor_user') || 'null'),
@@ -362,32 +404,33 @@
     let currentState = null;
     let currentLogs = [];
     let activeModalStage = null;
+    let demoInterval = null;
 
-    // Filter per grafik ('all', 'current', atau '1'..'6') & window slider
+    // Filters per chart & window slider
     const chartFilters = { temp: 'all', rpm: 'all', current: 'all', vol: 'all' };
     const chartWindows = { temp: 100, rpm: 100, current: 100, vol: 100 };
 
     const stageMeta = {
-      1: { name: 'Mixing', label: '1. Mixing', icon: 'fa-blender', duration: '30 menit', setPointTemp: 60, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 2.0, minCurrent: 0.0, maxCurrent: 3.2, actuators: 'Motor ON | Heater ON' },
-      2: { name: 'Add Catalyst', label: '2. Add Catalyst', icon: 'fa-faucet-drip', duration: 'Momentary', setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Valve Katalis ON' },
-      3: { name: 'Reflux', label: '3. Reflux', icon: 'fa-fire-burner', duration: '5 jam', setPointTemp: 100, tolTemp: 0.10, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Heater ON (Motor OFF)' },
-      4: { name: 'Separation', label: '4. Separation', icon: 'fa-hourglass-half', duration: '12 jam', setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Semua Aktuator OFF' },
-      5: { name: 'Oil Treatment', label: '5. Oil Treatment', icon: 'fa-droplet', duration: '1 jam', setPointTemp: 120, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 2.0, minCurrent: 0.0, maxCurrent: 3.2, actuators: 'Motor ON | Heater ON' },
-      6: { name: 'Filtration', label: '6. Filtration', icon: 'fa-filter', duration: 'Estimasi 2 jam', setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, targetVol: 375, actuators: 'Valve Pemisah ON' }
+      1: { name: 'Mixing', label: '1. Mixing', icon: 'fa-blender', duration: '30 mins', setPointTemp: 60, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 2.0, minCurrent: 0.0, maxCurrent: 3.2, actuators: 'Motor ON | Heater ON' },
+      2: { name: 'Add Catalyst', label: '2. Add Catalyst', icon: 'fa-faucet-drip', duration: 'Momentary', setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Catalyst Valve ON' },
+      3: { name: 'Reflux', label: '3. Reflux', icon: 'fa-fire-burner', duration: '5 hours', setPointTemp: 100, tolTemp: 0.10, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Heater ON (Motor OFF)' },
+      4: { name: 'Separation', label: '4. Separation', icon: 'fa-hourglass-half', duration: '12 hours', setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'All Actuators OFF' },
+      5: { name: 'Oil Treatment', label: '5. Oil Treatment', icon: 'fa-droplet', duration: '1 hour', setPointTemp: 120, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 2.0, minCurrent: 0.0, maxCurrent: 3.2, actuators: 'Motor ON | Heater ON' },
+      6: { name: 'Filtration', label: '6. Filtration', icon: 'fa-filter', duration: 'Est. 2 hours', setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, targetVol: 375, actuators: 'Separator Valve ON' }
     };
 
-    // Helper format
+    // Helper functions
     function number(value, digits = 1) { const parsed = Number(value); return Number.isFinite(parsed) ? parsed.toFixed(digits) : (0).toFixed(digits); }
     function formatElapsed(seconds = 0) { seconds = Math.max(0, Math.floor(Number(seconds) || 0)); return [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), seconds % 60].map(v => String(v).padStart(2, '0')).join(':'); }
     function text(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
     function showToast(message, kind = 'info') { const node = document.getElementById('toast'); node.textContent = message; node.className = 'fixed bottom-5 right-5 z-50 max-w-sm rounded-lg px-4 py-3 text-xs text-white shadow-xl ' + (kind === 'error' ? 'bg-red-700' : kind === 'success' ? 'bg-teal-700' : 'bg-slate-900'); node.classList.remove('hidden'); clearTimeout(showToast.timer); showToast.timer = setTimeout(() => node.classList.add('hidden'), 4500); }
 
-    // Inisialisasi 4 Chart Terpisah
+    // Initialize 4 Separate Charts
     const chartConfigs = {
-      temp: { ctx: 'chart-temp', color: '#ef4444', fill: 'rgba(239,68,68,0.1)', label: 'Suhu (°C)', unit: '°C' },
-      rpm: { ctx: 'chart-rpm', color: '#2563eb', fill: 'rgba(37,99,235,0.1)', label: 'Kecepatan (RPM)', unit: 'RPM' },
-      current: { ctx: 'chart-current', color: '#d97706', fill: 'rgba(217,119,6,0.1)', label: 'Arus Motor (A)', unit: 'A' },
-      vol: { ctx: 'chart-vol', color: '#059669', fill: 'rgba(5,150,105,0.1)', label: 'Volume (ml)', unit: 'ml' }
+      temp: { ctx: 'chart-temp', color: '#ef4444', fill: 'rgba(239,68,68,0.1)', label: 'Temperature (°C)', unit: '°C' },
+      rpm: { ctx: 'chart-rpm', color: '#2563eb', fill: 'rgba(37,99,235,0.1)', label: 'Agitation Speed (RPM)', unit: 'RPM' },
+      current: { ctx: 'chart-current', color: '#d97706', fill: 'rgba(217,119,6,0.1)', label: 'Motor Current (A)', unit: 'A' },
+      vol: { ctx: 'chart-vol', color: '#059669', fill: 'rgba(5,150,105,0.1)', label: 'Liquid Volume (ml)', unit: 'ml' }
     };
 
     const charts = {};
@@ -410,16 +453,17 @@
 
     // API Helper
     async function api(path, options = {}) {
+      if (isDemoMode) return {};
       const headers = { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) };
       if (session.token) headers.Authorization = `Bearer ${session.token}`;
       const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
-      const body = await response.json().catch(() => ({ error: 'Respons server tidak valid.' }));
+      const body = await response.json().catch(() => ({ error: 'Invalid server response.' }));
       if (response.status === 401 && session.token) logout();
-      if (!response.ok) throw new Error(body.error || 'Permintaan gagal.');
+      if (!response.ok) throw new Error(body.error || 'Request failed.');
       return body;
     }
 
-    // Update grafik berdasarkan filter scope dan window slider
+    // Update charts based on active filter scope & window slider
     function updateCharts() {
       if (!currentLogs.length) return;
       const currentStage = currentState?.currentStageId || 1;
@@ -436,7 +480,7 @@
         }
 
         const sliced = filtered.slice(-maxPoints);
-        chart.data.labels = sliced.map(r => r.waktu_lokal || new Date(r.recorded_at || Date.now()).toLocaleTimeString('id-ID'));
+        chart.data.labels = sliced.map(r => r.waktu_lokal || new Date(r.recorded_at || Date.now()).toLocaleTimeString());
         chart.data.datasets[0].data = sliced.map(r => {
           if (key === 'temp') return Number(r.temp);
           if (key === 'rpm') return Number(r.rpm);
@@ -447,7 +491,7 @@
       }
     }
 
-    // RENDER TIMELINE TAHAP PRODUKSI
+    // RENDER TIMELINE
     function renderTimeline() {
       const container = document.getElementById('stage-timeline');
       const activeStage = currentState?.currentStageId || 0;
@@ -462,20 +506,24 @@
 
         let cardStyle = 'border-slate-200 bg-slate-50/70 text-slate-500 opacity-75';
         let badgeStyle = 'bg-slate-200 text-slate-600';
-        let badgeText = '○ Belum';
+        let badgeText = '○ Pending';
         let iconBg = 'bg-slate-200 text-slate-500';
 
         if (isPast) {
           cardStyle = 'border-emerald-400 bg-emerald-50/50 text-emerald-950 shadow-sm';
           badgeStyle = 'bg-emerald-100 text-emerald-800 font-bold';
-          badgeText = '✓ Selesai';
+          badgeText = '✓ Completed';
           iconBg = 'bg-emerald-600 text-white';
         } else if (isCurrent) {
           const isPaused = runStatus === 'paused';
-          cardStyle = 'border-teal-600 bg-teal-50/90 text-teal-950 shadow-md ring-2 ring-teal-500/30 scale-[1.02]';
-          badgeStyle = isPaused ? 'bg-amber-200 text-amber-900 font-bold animate-pulse' : 'bg-teal-600 text-white font-bold animate-pulse';
-          badgeText = isPaused ? '⏸️ Dijeda' : '● Berjalan';
-          iconBg = 'bg-teal-700 text-white';
+          cardStyle = isDemoMode
+            ? 'border-indigo-600 bg-indigo-50/90 text-indigo-950 shadow-md ring-2 ring-indigo-500/30 scale-[1.02]'
+            : 'border-teal-600 bg-teal-50/90 text-teal-950 shadow-md ring-2 ring-teal-500/30 scale-[1.02]';
+          badgeStyle = isPaused
+            ? 'bg-amber-200 text-amber-900 font-bold animate-pulse'
+            : (isDemoMode ? 'bg-indigo-600 text-white font-bold animate-pulse' : 'bg-teal-600 text-white font-bold animate-pulse');
+          badgeText = isPaused ? '⏸️ Paused' : '● Active';
+          iconBg = isDemoMode ? 'bg-indigo-700 text-white' : 'bg-teal-700 text-white';
         }
 
         html += `
@@ -487,7 +535,7 @@
             <h4 class="mt-2.5 font-bold text-xs">${s.label}</h4>
             <p class="text-[10px] text-slate-500 mt-0.5">${s.duration}</p>
             <div class="mt-2 flex items-center justify-between border-t border-slate-200/60 pt-1.5 text-[10px] text-teal-700 font-semibold">
-              <span>Detail & Nilai</span>
+              <span>View Analysis</span>
               <i class="fa-solid fa-chevron-right text-[9px]"></i>
             </div>
           </article>
@@ -496,7 +544,7 @@
       container.innerHTML = html;
     }
 
-    // BUKA MODAL PERBANDINGAN SET POINT
+    // OPEN STAGE MODAL
     function openStageModal(stageId) {
       activeModalStage = stageId;
       const s = stageMeta[stageId];
@@ -506,26 +554,24 @@
 
       document.getElementById('modal-stage-num').textContent = stageId;
       document.getElementById('modal-stage-title').textContent = s.label;
-      document.getElementById('modal-stage-desc').textContent = `Target durasi: ${s.duration} · ${s.actuators}`;
-      document.getElementById('modal-sample-count').textContent = `${count} sampel`;
+      document.getElementById('modal-stage-desc').textContent = `Target duration: ${s.duration} · ${s.actuators}`;
+      document.getElementById('modal-sample-count').textContent = `${count} samples`;
 
       const statusBadge = document.getElementById('modal-status-badge');
       if (activeStage > stageId) {
-        statusBadge.innerHTML = '<span class="text-emerald-700 font-bold">✓ Selesai Dilalui</span>';
+        statusBadge.innerHTML = '<span class="text-emerald-700 font-bold">✓ Stage Completed</span>';
       } else if (activeStage === stageId) {
-        statusBadge.innerHTML = '<span class="text-teal-700 font-bold animate-pulse">● Sedang Berjalan</span>';
+        statusBadge.innerHTML = '<span class="text-teal-700 font-bold animate-pulse">● Currently In Progress</span>';
       } else {
-        statusBadge.innerHTML = '<span class="text-slate-500">○ Belum Dilakukan</span>';
+        statusBadge.innerHTML = '<span class="text-slate-500">○ Pending Execution</span>';
       }
 
-      // Hitung durasi tahap
       if (activeStage === stageId && currentState?.latestData?.elapsedSeconds) {
         document.getElementById('modal-elapsed').textContent = formatElapsed(currentState.latestData.elapsedSeconds);
       } else {
         document.getElementById('modal-elapsed').textContent = count ? formatElapsed(count * 2) : '-';
       }
 
-      // Hitung Rata-rata
       const avg = count ? {
         temp: stageLogs.reduce((sum, r) => sum + Number(r.temp || 0), 0) / count,
         rpm: stageLogs.reduce((sum, r) => sum + Number(r.rpm || 0), 0) / count,
@@ -533,7 +579,6 @@
         vol: stageLogs.reduce((sum, r) => sum + Number(r.vol || 0), 0) / count
       } : null;
 
-      // Evaluasi toleransi
       function evalParam(actual, target, tol, unit) {
         if (!count || actual === null || target === null) return { avgText: '-', status: '<span class="text-slate-400">-</span>' };
         const min = target * (1 - tol);
@@ -541,8 +586,8 @@
         const isOk = actual >= min && actual <= max;
         const avgText = `${number(actual)} ${unit}`;
         const status = isOk
-          ? `<span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">🟢 Sesuai (±10%)</span>`
-          : `<span class="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800">🔴 Di Luar Batas</span>`;
+          ? `<span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">🟢 Within Limits (±10%)</span>`
+          : `<span class="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800">🔴 Out of Tolerance</span>`;
         return { avgText, status };
       }
 
@@ -552,8 +597,8 @@
         const isOk = actual >= s.minCurrent && actual <= s.maxCurrent;
         const avgText = `${number(actual, 2)} A`;
         const status = isOk
-          ? `<span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">🟢 Sesuai (0–3.2 A)</span>`
-          : `<span class="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800">🔴 Di Luar Batas</span>`;
+          ? `<span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">🟢 Normal (0–3.2 A)</span>`
+          : `<span class="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800">🔴 Out of Range</span>`;
         return { avgText, status };
       }
 
@@ -563,32 +608,32 @@
 
       const tableRows = [
         {
-          name: '<i class="fa-solid fa-temperature-half mr-1.5 text-red-500"></i>Suhu',
+          name: '<i class="fa-solid fa-temperature-half mr-1.5 text-red-500"></i>Temperature',
           setPoint: s.setPointTemp ? `${s.setPointTemp} °C` : '- (Heater OFF)',
           tol: s.setPointTemp ? `${(s.setPointTemp * 0.9).toFixed(1)} – ${(s.setPointTemp * 1.1).toFixed(1)} °C (±10%)` : '-',
           avg: evalT.avgText,
           eval: evalT.status
         },
         {
-          name: '<i class="fa-solid fa-arrows-rotate mr-1.5 text-blue-500"></i>Kecepatan (RPM)',
+          name: '<i class="fa-solid fa-arrows-rotate mr-1.5 text-blue-500"></i>Agitation Speed (RPM)',
           setPoint: s.setPointRpm ? `${s.setPointRpm} RPM` : '- (Motor OFF)',
           tol: s.setPointRpm ? `${Math.round(s.setPointRpm * 0.9)} – ${Math.round(s.setPointRpm * 1.1)} RPM (±10%)` : '-',
           avg: evalR.avgText,
           eval: s.setPointRpm ? evalR.status : (count ? '<span class="text-slate-500">Motor OFF</span>' : '-')
         },
         {
-          name: '<i class="fa-solid fa-bolt mr-1.5 text-amber-500"></i>Arus Motor',
+          name: '<i class="fa-solid fa-bolt mr-1.5 text-amber-500"></i>Motor Current',
           setPoint: s.setCurrent ? '2.00 A' : '- (Motor OFF)',
-          tol: s.setCurrent ? 'Batas: 0.00 – 3.20 A' : '-',
+          tol: s.setCurrent ? 'Limits: 0.00 – 3.20 A' : '-',
           avg: evalC.avgText,
           eval: evalC.status
         },
         {
-          name: '<i class="fa-solid fa-flask mr-1.5 text-emerald-500"></i>Volume Cairan',
+          name: '<i class="fa-solid fa-flask mr-1.5 text-emerald-500"></i>Liquid Volume',
           setPoint: stageId === 6 ? '≥ 375 ml' : '500 ml',
-          tol: stageId === 6 ? 'Wadah akhir: ≥ 375 ml (75%)' : 'Volume reaktor: ~500 ml',
+          tol: stageId === 6 ? 'Final beaker: ≥ 375 ml (75%)' : 'Reactor volume: ~500 ml',
           avg: count ? `${number(avg.vol)} ml` : '-',
-          eval: count ? (stageId === 6 ? (avg.vol >= 375 ? '<span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">🟢 Level Tercapai</span>' : '<span class="text-amber-700 font-bold">Mengalir...</span>') : '<span class="text-slate-500">Normal</span>') : '-'
+          eval: count ? (stageId === 6 ? (avg.vol >= 375 ? '<span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">🟢 Target Reached</span>' : '<span class="text-amber-700 font-bold">Filtrating...</span>') : '<span class="text-slate-500">Normal</span>') : '-'
         }
       ];
 
@@ -611,12 +656,12 @@
       activeModalStage = null;
     }
 
-    // Terapkan data state live dari server
+    // Apply Live / Simulated State
     function applyState(state) {
       currentState = state;
       const data = state.latestData;
       document.getElementById('batch-label').textContent = `Batch: ${state.batchCode || state.batchId || '-'}`;
-      document.getElementById('stage-status').textContent = state.currentStageId ? `Tahap ${state.currentStageId}/6 — ${state.currentStageName}` : 'Menunggu data sensor';
+      document.getElementById('stage-status').textContent = state.currentStageId ? `Stage ${state.currentStageId}/6 — ${state.currentStageName}` : 'Waiting for sensor telemetry';
 
       const run = String(state.runStatus || 'standby').toUpperCase();
       const badge = document.getElementById('run-badge');
@@ -629,14 +674,13 @@
         document.getElementById('vol-value').textContent = number(data.vol);
         document.getElementById('current-value').textContent = number(data.current, 2);
         document.getElementById('elapsed-value').textContent = formatElapsed(data.elapsedSeconds);
-        document.getElementById('last-update').textContent = `Update: ${new Date().toLocaleTimeString('id-ID')}`;
-        document.getElementById('level-text').textContent = data.levelDetected ? '✓ Level akhir terdeteksi (≥375 ml)' : 'Level akhir: menunggu (≥375 ml)';
+        document.getElementById('last-update').textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+        document.getElementById('level-text').textContent = data.levelDetected ? '✓ Final product level reached (≥375 ml)' : 'Final level: waiting (≥375 ml)';
 
         document.querySelectorAll('[data-actuator]').forEach(toggle => {
           toggle.checked = Boolean(data.act?.[toggle.dataset.actuator]);
         });
 
-        // Tambahkan ke log aktif jika belum ada
         currentLogs.push({
           batch_id: state.batchId,
           batch_code: state.batchCode,
@@ -646,7 +690,7 @@
           vol: data.vol,
           current: data.current,
           level_detected: data.levelDetected,
-          waktu_lokal: new Date().toLocaleTimeString('id-ID'),
+          waktu_lokal: new Date().toLocaleTimeString(),
           tanggal: new Date().toISOString().split('T')[0],
           recorded_at: new Date().toISOString()
         });
@@ -660,8 +704,8 @@
     }
 
     function showAnomaly(payload) {
-      const summary = (payload.anomalies || []).map(item => `${item.label}: ${item.value} (${item.setPoint})`).join(' | ') || 'Parameter melebihi batas aman.';
-      document.getElementById('anomaly-text').textContent = `${payload.stageName || 'Proses'} — ${summary}`;
+      const summary = (payload.anomalies || []).map(item => `${item.label}: ${item.value} (${item.setPoint})`).join(' | ') || 'Parameter outside safe limits.';
+      document.getElementById('anomaly-text').textContent = `${payload.stageName || 'Process'} — ${summary}`;
       const banner = document.getElementById('anomaly-banner');
       banner.classList.remove('hidden');
       clearTimeout(showAnomaly.timer);
@@ -679,12 +723,13 @@
           <td class="p-2.5 font-bold text-blue-600">${Math.round(Number(row.rpm) || 0)}</td>
           <td class="p-2.5 font-bold text-emerald-600">${number(row.vol)} ml</td>
           <td class="p-2.5 font-bold text-amber-600">${number(row.current, 2)} A</td>
-          <td class="p-2.5">${row.level_detected ? '<span class="text-emerald-600 font-bold">✓ Terdeteksi</span>' : '-'}</td>
+          <td class="p-2.5">${row.level_detected ? '<span class="text-emerald-600 font-bold">✓ Reached</span>' : '-'}</td>
         </tr>
-      `).join('') : '<tr><td class="p-3 text-slate-500" colspan="7">Belum ada data untuk ditampilkan.</td></tr>';
+      `).join('') : '<tr><td class="p-3 text-slate-500" colspan="7">No telemetry data recorded yet.</td></tr>';
     }
 
     async function loadLogs(batchId = '') {
+      if (isDemoMode) return currentLogs;
       currentLogs = await api(`/api/logs?limit=2000${batchId ? `&batchId=${encodeURIComponent(batchId)}` : ''}`);
       renderLogs(currentLogs);
       updateCharts();
@@ -693,24 +738,34 @@
     }
 
     async function loadBatches() {
+      if (isDemoMode) {
+        document.getElementById('batch-select').innerHTML = '<option value="DEMO-EXHIBITION">DEMO-EXHIBITION-BATCH</option>';
+        return;
+      }
       const batches = await api('/api/batches');
       const select = document.getElementById('batch-select');
       const selected = select.value;
-      select.innerHTML = '<option value="">Batch aktif</option>' + batches.map(item => `<option value="${text(item.batchId)}">${text(item.batchCode || item.batchId)} — ${new Date(item.latestAt).toLocaleString('id-ID')}</option>`).join('');
+      select.innerHTML = '<option value="">Active Batch</option>' + batches.map(item => `<option value="${text(item.batchId)}">${text(item.batchCode || item.batchId)} — ${new Date(item.latestAt).toLocaleString()}</option>`).join('');
       select.value = selected;
     }
 
     async function sendControl(action, extras = {}) {
-      if (action === 'emergency_stop' && !confirm('Yakin melakukan EMERGENCY STOP? Semua aktuator akan diperintahkan OFF.')) return;
-      const code = document.getElementById('batch-code-input').value.trim();
+      if (action === 'emergency_stop' && !confirm('Are you sure you want to trigger an EMERGENCY STOP? All actuators will be powered off.')) return;
+      const code = document.getElementById('batch-code-input').value.trim() || (isDemoMode ? 'DEMO-BATCH-001' : '');
+
+      if (isDemoMode) {
+        handleDemoControl(action, extras);
+        return;
+      }
+
       const payload = { action, ...extras };
       if (code) { payload.batch_id = code; payload.batch_code = code; }
-      document.getElementById('control-message').textContent = 'Mengirim perintah...';
+      document.getElementById('control-message').textContent = 'Dispatching command...';
       try {
         const result = await api('/api/control', { method: 'POST', body: JSON.stringify(payload) });
         applyState(result.state);
-        document.getElementById('control-message').textContent = `Perintah ${action} berhasil dikirim ke MQTT.`;
-        showToast('Perintah berhasil dikirim.', 'success');
+        document.getElementById('control-message').textContent = `Command ${action} dispatched successfully.`;
+        showToast(`Command ${action} sent.`, 'success');
       } catch (error) {
         document.getElementById('control-message').textContent = error.message;
         showToast(error.message, 'error');
@@ -720,11 +775,11 @@
     function downloadFile(content, name, type) { const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([content], { type })); link.download = name; link.click(); URL.revokeObjectURL(link.href); }
     function csvEscape(value) { const valueText = String(value ?? ''); return /[",\n]/.test(valueText) ? `"${valueText.replaceAll('"', '""')}"` : valueText; }
     function downloadCsv() {
-      const rows = [['Batch ID', 'Batch Code', 'Tanggal', 'Waktu Lokal', 'Stage', 'Proses', 'Suhu °C', 'RPM', 'Volume ml', 'Arus A', 'Level Terdeteksi', 'Aktuator / Payload'], ...currentLogs.map(row => [row.batch_id, row.batch_code, row.tanggal, row.waktu_lokal, row.stage, stageMeta[row.stage]?.name || '', row.temp, row.rpm, row.vol, row.current, row.level_detected, JSON.stringify(row.sensor_payload || {})])];
+      const rows = [['Batch ID', 'Batch Code', 'Date', 'Local Time', 'Stage', 'Process Name', 'Temperature °C', 'Agitation RPM', 'Volume ml', 'Current A', 'Level Detected', 'Actuators Payload'], ...currentLogs.map(row => [row.batch_id, row.batch_code, row.tanggal, row.waktu_lokal, row.stage, stageMeta[row.stage]?.name || '', row.temp, row.rpm, row.vol, row.current, row.level_detected, JSON.stringify(row.sensor_payload || {})])];
       downloadFile(rows.map(row => row.map(csvEscape).join(',')).join('\n'), 'Reactor_Data.csv', 'text/csv;charset=utf-8');
     }
     function downloadPdf() {
-      if (!window.jspdf) return showToast('Library PDF belum dimuat. Periksa koneksi internet.', 'error');
+      if (!window.jspdf) return showToast('PDF library failed to load. Please check internet connection.', 'error');
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       const n = currentLogs.length || 1;
@@ -735,29 +790,30 @@
         current: currentLogs.reduce((sum, row) => sum + Number(row.current || 0), 0) / n
       };
       doc.setFontSize(16);
-      doc.text('Laporan Batch Reaktor Esterifikasi', 14, 18);
+      doc.text('Esterification Reactor Batch Report', 14, 18);
       doc.setFontSize(10);
       doc.text(`Batch: ${currentState?.batchCode || currentLogs[0]?.batch_code || '-'}`, 14, 26);
-      doc.text(`Dibuat: ${new Date().toLocaleString('id-ID')}`, 14, 32);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 32);
       doc.autoTable({
         startY: 38,
-        head: [['Jumlah Sampel', 'Rata-rata Suhu', 'Rata-rata RPM', 'Rata-rata Volume', 'Rata-rata Arus']],
+        head: [['Total Samples', 'Average Temperature', 'Average Agitation Speed', 'Average Volume', 'Average Current']],
         body: [[currentLogs.length, `${number(averages.temp)} °C`, `${Math.round(averages.rpm)} RPM`, `${number(averages.vol)} ml`, `${number(averages.current, 2)} A`]],
         theme: 'grid',
         headStyles: { fillColor: [15, 118, 110] }
       });
       doc.autoTable({
         startY: 60,
-        head: [['Waktu', 'Stage', 'Suhu', 'RPM', 'Volume', 'Arus', 'Level']],
-        body: currentLogs.slice(-100).map(row => [`${row.tanggal || ''} ${row.waktu_lokal || ''}`, `${row.stage} - ${stageMeta[row.stage]?.name || ''}`, `${number(row.temp)} °C`, row.rpm, `${number(row.vol)} ml`, `${number(row.current, 2)} A`, row.level_detected ? 'Ya' : 'Tidak']),
+        head: [['Time', 'Stage', 'Temperature', 'RPM', 'Volume', 'Current', 'Level']],
+        body: currentLogs.slice(-100).map(row => [`${row.tanggal || ''} ${row.waktu_lokal || ''}`, `${row.stage} - ${stageMeta[row.stage]?.name || ''}`, `${number(row.temp)} °C`, row.rpm, `${number(row.vol)} ml`, `${number(row.current, 2)} A`, row.level_detected ? 'Yes' : 'No']),
         theme: 'striped',
         styles: { fontSize: 7 },
         headStyles: { fillColor: [15, 118, 110] }
       });
-      doc.save('Reactor_Laporan_Batch.pdf');
+      doc.save('Reactor_Batch_Report.pdf');
     }
 
     function startEvents() {
+      if (isDemoMode) return;
       session.events?.close();
       session.events = new EventSource(`${API_BASE}/api/events?token=${encodeURIComponent(session.token)}`);
       session.events.addEventListener('state', event => applyState(JSON.parse(event.data)));
@@ -767,22 +823,162 @@
     }
 
     function logout() {
+      if (demoInterval) clearInterval(demoInterval);
       session.events?.close();
       sessionStorage.removeItem('reactor_access_token');
       sessionStorage.removeItem('reactor_user');
+      sessionStorage.removeItem('reactor_demo_mode');
       session.token = '';
       session.user = null;
+      isDemoMode = false;
       document.getElementById('dashboard').classList.add('hidden');
       document.getElementById('login-page').classList.remove('hidden');
     }
 
+    // =========================================================================
+    // EXHIBITION IN-BROWSER SIMULATION ENGINE (GUEST DEMO MODE)
+    // =========================================================================
+    const demoSimState = {
+      runStatus: 'running',
+      stageId: 1,
+      elapsedSeconds: 0,
+      sampleCount: 0,
+      batchId: 'DEMO-EXHIBITION-001',
+      batchCode: 'DEMO-EXHIBITION-001',
+      actuators: { motor: true, heater: true, catalyst_valve: false, separator_valve: false }
+    };
+
+    function startDemoMode() {
+      isDemoMode = true;
+      sessionStorage.setItem('reactor_demo_mode', 'true');
+
+      // Update UI for Demo Mode
+      document.getElementById('login-page').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      document.getElementById('demo-banner').classList.remove('hidden');
+      document.getElementById('mode-badge').textContent = 'DEMO SIMULATION';
+      document.getElementById('mode-badge').className = 'rounded-full bg-purple-600 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white animate-pulse';
+      document.getElementById('mqtt-badge').innerHTML = '<i class="fa-solid fa-bolt mr-1.5 text-purple-300"></i> Mock Telemetry: Active';
+      document.getElementById('user-display').textContent = 'Guest Visitor';
+      document.getElementById('logout-text').textContent = 'Exit Demo';
+      document.getElementById('batch-code-input').value = 'DEMO-EXHIBITION-001';
+
+      currentLogs = [];
+      demoSimState.stageId = 1;
+      demoSimState.elapsedSeconds = 0;
+      demoSimState.sampleCount = 0;
+      demoSimState.runStatus = 'running';
+
+      // Start internal 2-second simulation tick
+      if (demoInterval) clearInterval(demoInterval);
+      demoInterval = setInterval(tickDemoSimulation, 2000);
+      tickDemoSimulation();
+      showToast('Exhibition Demo Mode started. Explore controls and telemetry freely!', 'success');
+    }
+
+    function tickDemoSimulation() {
+      if (!isDemoMode || demoSimState.runStatus !== 'running') return;
+
+      demoSimState.sampleCount += 1;
+      demoSimState.elapsedSeconds += 2;
+
+      // Auto cycle stages every 8 samples (~16 seconds) in demo mode so visitors experience all 6 stages
+      if (demoSimState.sampleCount % 8 === 0) {
+        demoSimState.stageId = demoSimState.stageId >= 6 ? 1 : demoSimState.stageId + 1;
+      }
+
+      const stageId = demoSimState.stageId;
+      const meta = stageMeta[stageId];
+
+      // Actuators
+      const isMotorOn = stageId === 1 || stageId === 5;
+      const isHeaterOn = stageId === 1 || stageId === 3 || stageId === 5;
+      const isCatalyst = stageId === 2;
+      const isSeparator = stageId === 6;
+
+      demoSimState.actuators = {
+        motor: isMotorOn,
+        heater: isHeaterOn,
+        catalyst_valve: isCatalyst,
+        separator_valve: isSeparator
+      };
+
+      // Physics values with realistic noise
+      let targetTemp = isHeaterOn ? (meta.setPointTemp || 60) : 28.5;
+      let temp = Math.max(20, targetTemp + (Math.random() * 3 - 1.5));
+      let rpm = isMotorOn ? Math.round(250 + (Math.random() * 8 - 4)) : 0;
+      let current = isMotorOn ? Number((2.0 + (Math.random() * 0.15 - 0.08)).toFixed(2)) : 0.0;
+      let volume = stageId === 6 ? Math.min(500, 320 + (demoSimState.sampleCount % 8) * 22) : (500 + (Math.random() * 4 - 2));
+
+      const levelDetected = stageId === 6 && volume >= 375;
+
+      const demoPayload = {
+        stageId: stageId,
+        temp: Number(temp.toFixed(1)),
+        rpm: rpm,
+        vol: Number(volume.toFixed(1)),
+        current: current,
+        levelDetected: levelDetected,
+        elapsedSeconds: demoSimState.elapsedSeconds,
+        act: demoSimState.actuators
+      };
+
+      applyState({
+        batchId: demoSimState.batchId,
+        batchCode: demoSimState.batchCode,
+        currentStageId: stageId,
+        currentStageName: meta.name,
+        runStatus: demoSimState.runStatus,
+        anomalyCount: 0,
+        latestData: demoPayload,
+        updatedAt: new Date().toISOString()
+      });
+    }
+
+    function handleDemoControl(action, extras = {}) {
+      if (action === 'start' || action === 'restart') {
+        demoSimState.stageId = 1;
+        demoSimState.elapsedSeconds = 0;
+        demoSimState.sampleCount = 0;
+        demoSimState.runStatus = 'running';
+        showToast('Demo simulation started from Stage 1.', 'success');
+      } else if (action === 'pause') {
+        demoSimState.runStatus = 'paused';
+        showToast('Demo simulation paused.', 'info');
+      } else if (action === 'resume') {
+        demoSimState.runStatus = 'running';
+        showToast('Demo simulation resumed.', 'success');
+      } else if (action === 'emergency_stop') {
+        demoSimState.runStatus = 'emergency';
+        demoSimState.actuators = { motor: false, heater: false, catalyst_valve: false, separator_valve: false };
+        showToast('EMERGENCY STOP activated in simulation mode!', 'error');
+      } else if (action === 'reset_emergency') {
+        demoSimState.runStatus = 'paused';
+        showToast('Emergency state reset. Press Resume to continue.', 'info');
+      } else if (action === 'set_actuator') {
+        demoSimState.actuators[extras.actuator] = Boolean(extras.enabled);
+        showToast(`Toggled ${extras.actuator} = ${extras.enabled}`, 'info');
+      }
+      tickDemoSimulation();
+    }
+
     // Event Listeners
+    document.getElementById('guest-demo-btn').addEventListener('click', startDemoMode);
+    document.getElementById('exit-demo-btn').addEventListener('click', logout);
+    document.getElementById('demo-fastforward-btn').addEventListener('click', () => {
+      if (!isDemoMode) return;
+      demoSimState.stageId = demoSimState.stageId >= 6 ? 1 : demoSimState.stageId + 1;
+      demoSimState.sampleCount = 0;
+      tickDemoSimulation();
+      showToast(`Fast-forwarded to Stage ${demoSimState.stageId}: ${stageMeta[demoSimState.stageId].name}`, 'info');
+    });
+
     document.getElementById('login-form').addEventListener('submit', async event => {
       event.preventDefault();
       const button = document.getElementById('login-button');
       const errorNode = document.getElementById('login-error');
       button.disabled = true;
-      button.textContent = 'Memeriksa akun...';
+      button.textContent = 'Verifying account...';
       errorNode.classList.add('hidden');
       try {
         const response = await fetch(`${API_BASE}/api/auth/login`, {
@@ -795,7 +991,7 @@
           })
         });
         const body = await response.json();
-        if (!response.ok) throw new Error(body.error || 'Login gagal.');
+        if (!response.ok) throw new Error(body.error || 'Sign in failed.');
         session.token = body.accessToken;
         session.user = body.user;
         sessionStorage.setItem('reactor_access_token', session.token);
@@ -803,6 +999,9 @@
         document.getElementById('user-display').textContent = body.user.email;
         document.getElementById('login-page').classList.add('hidden');
         document.getElementById('dashboard').classList.remove('hidden');
+        document.getElementById('demo-banner').classList.add('hidden');
+        document.getElementById('mode-badge').textContent = 'LIVE PRODUCTION';
+        document.getElementById('mode-badge').className = 'rounded-full bg-emerald-600 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white';
         await Promise.all([loadLogs(), loadBatches()]);
         const state = await api('/api/state');
         applyState(state);
@@ -812,7 +1011,7 @@
         errorNode.classList.remove('hidden');
       } finally {
         button.disabled = false;
-        button.textContent = 'Masuk ke Dashboard';
+        button.textContent = 'Sign In to Live Production';
       }
     });
 
@@ -821,7 +1020,7 @@
     document.querySelectorAll('.control-button').forEach(button => button.addEventListener('click', () => sendControl(button.dataset.command)));
     document.getElementById('emergency-button').addEventListener('click', () => sendControl('emergency_stop'));
     document.querySelectorAll('[data-actuator]').forEach(toggle => toggle.addEventListener('change', () => sendControl('set_actuator', { actuator: toggle.dataset.actuator, enabled: toggle.checked })));
-    document.getElementById('load-batch').addEventListener('click', async () => { try { await loadLogs(document.getElementById('batch-select').value); showToast('Data batch dimuat.', 'success'); } catch (error) { showToast(error.message, 'error'); } });
+    document.getElementById('load-batch').addEventListener('click', async () => { try { await loadLogs(document.getElementById('batch-select').value); showToast('Batch telemetry loaded.', 'success'); } catch (error) { showToast(error.message, 'error'); } });
     document.getElementById('batch-select').addEventListener('change', event => { if (event.target.value) document.getElementById('batch-code-input').value = event.target.value; });
     document.getElementById('download-csv').addEventListener('click', downloadCsv);
     document.getElementById('download-pdf').addEventListener('click', downloadPdf);
@@ -844,13 +1043,17 @@
       slider.addEventListener('input', event => {
         const key = event.target.dataset.chart;
         chartWindows[key] = Number(event.target.value);
-        document.getElementById(`slider-${key}-label`).textContent = `${event.target.value} poin`;
+        document.getElementById(`slider-${key}-label`).textContent = `${event.target.value} points`;
         updateCharts();
       });
     });
 
-    // Auto restore session
-    (async function initSession() {
+    // Auto initialization / session check
+    (async function initApp() {
+      if (isDemoMode) {
+        startDemoMode();
+        return;
+      }
       if (!session.token) return;
       try {
         if (session.user?.email) document.getElementById('user-display').textContent = session.user.email;
@@ -861,7 +1064,7 @@
         await Promise.all([loadLogs(), loadBatches()]);
         startEvents();
       } catch (err) {
-        console.warn('Sesi tersimpan tidak dapat dipulihkan:', err.message);
+        console.warn('Saved session could not be restored:', err.message);
         logout();
       }
     })();

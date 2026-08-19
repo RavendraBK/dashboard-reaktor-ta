@@ -119,7 +119,13 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-2 text-xs">
+        <div class="flex items-center gap-2 text-xs">          <!-- Browser Push Notification Permission Button -->
+          <button id="notif-perm-btn" class="relative rounded-xl bg-teal-800/80 dark:bg-slate-800 p-2 text-teal-100 dark:text-teal-300 transition hover:bg-teal-700 dark:hover:bg-slate-700" title="Aktifkan Web Push Notifications (Mulai, Selesai & Anomali)">
+            <i id="notif-perm-icon" class="fa-solid fa-bell text-sm"></i>
+            <span id="notif-perm-dot" class="hidden absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]"></span>
+          </button>
+
+
           <!-- Theme Toggle Button (Light / Dark) -->
           <button id="theme-toggle-btn" class="rounded-xl bg-teal-800/80 dark:bg-slate-800 p-2 text-teal-100 dark:text-amber-300 transition hover:bg-teal-700 dark:hover:bg-slate-700" title="Toggle Theme">
             <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
@@ -1152,6 +1158,7 @@
     function initTheme() {
       const savedTheme = localStorage.getItem('reactor_theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
       applyTheme(savedTheme);
+      updateNotificationButtonUI();
     }
     function applyTheme(theme) {
       if (theme === 'dark') {
@@ -1163,6 +1170,7 @@
       }
       localStorage.setItem('reactor_theme', theme);
     }
+    document.getElementById('notif-perm-btn').addEventListener('click', requestBrowserNotificationPermission);
     document.getElementById('theme-toggle-btn').addEventListener('click', () => {
       const isDark = document.documentElement.classList.contains('dark');
       applyTheme(isDark ? 'light' : 'dark');
@@ -1986,6 +1994,53 @@
       } else {
         lockBanner.classList.add('hidden');
       }
+      // Web Push Notifications for Stage Transitions, Completion & Status Changes
+      if (run === 'RUNNING') {
+        if (state.currentStageId && state.currentStageId !== lastNotifiedStageId) {
+          const currentMeta = stageMeta[state.currentStageId];
+          if (lastNotifiedStageId !== null && lastNotifiedStageId > 0 && lastNotifiedStageId < state.currentStageId) {
+            const prevMeta = stageMeta[lastNotifiedStageId];
+            sendBrowserNotification(`✅ Reaktor: Tahap ${lastNotifiedStageId} (${prevMeta?.name || ''}) Selesai`, {
+              body: `Melanjutkan ke Tahap ${state.currentStageId}: ${currentMeta?.name || ''}. Rincian di Telegram.`
+            });
+          }
+          sendBrowserNotification(`🟢 Reaktor: Memulai Tahap ${state.currentStageId} (${currentMeta?.name || ''})`, {
+            body: `Target: ${currentMeta?.setPointTemp ? currentMeta.setPointTemp + '°C' : 'Suhu Ambien'}, ${currentMeta?.setPointRpm || 0} RPM (${currentMeta?.duration || ''}).`
+          });
+          lastNotifiedStageId = state.currentStageId;
+        }
+
+        if (state.currentStageId === 6 && data?.levelDetected && !batchCompleteNotified) {
+          sendBrowserNotification(`🎉 Reaktor: Proses Sintesis Selesai (Batch ${batchCode || '-'})`, {
+            body: 'Tahap 6 Filtrasi telah selesai. Laporan PDF lengkap & rekapan telah dikirim ke Telegram.'
+          });
+          batchCompleteNotified = true;
+        }
+
+        if (lastNotifiedRunStatus === 'PAUSED' || lastNotifiedRunStatus === 'EMERGENCY') {
+          sendBrowserNotification('▶️ Reaktor: Proses Dilanjutkan (Resumed)', {
+            body: 'Proses sintesis aktif kembali memonitor parameter.'
+          });
+        }
+        lastNotifiedRunStatus = 'RUNNING';
+      } else if (run === 'EMERGENCY') {
+        if (lastNotifiedRunStatus !== 'EMERGENCY') {
+          sendBrowserNotification('🛑 EMERGENCY STOP DIAKTIFKAN!', {
+            body: 'Semua aktuator reaktor dimatikan darurat. Batch dihentikan. Rincian di Telegram.',
+            requireInteraction: true
+          });
+          lastNotifiedRunStatus = 'EMERGENCY';
+        }
+      } else if (run === 'PAUSED') {
+        if (lastNotifiedRunStatus === 'RUNNING') {
+          sendBrowserNotification('⏸️ Reaktor: Proses Dijeda (Paused)', {
+            body: 'Sintesis sementara dijeda oleh operator.'
+          });
+          lastNotifiedRunStatus = 'PAUSED';
+        }
+      } else if (run === 'STANDBY') {
+        lastNotifiedRunStatus = 'STANDBY';
+      }
 
       if (data) {
         document.getElementById('temp-value').textContent = number(data.temp);
@@ -2021,7 +2076,80 @@
 
       renderTimeline();
       if (activeModalStage) openStageModal(activeModalStage);
+    }    let lastNotifiedStageId = null;
+    let lastNotifiedRunStatus = null;
+    let batchCompleteNotified = false;
+
+    function updateNotificationButtonUI() {
+      const btn = document.getElementById('notif-perm-btn');
+      const icon = document.getElementById('notif-perm-icon');
+      const dot = document.getElementById('notif-perm-dot');
+      if (!btn || !('Notification' in window)) return;
+
+      if (Notification.permission === 'granted') {
+        btn.title = 'Web Push Notifications: Aktif (Mulai, Selesai & Anomali)';
+        if (dot) {
+          dot.className = 'absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]';
+          dot.classList.remove('hidden');
+        }
+        if (icon) icon.className = 'fa-solid fa-bell text-sm text-emerald-300';
+      } else if (Notification.permission === 'denied') {
+        btn.title = 'Web Push Notifications: Diblokir di izin browser';
+        if (dot) {
+          dot.className = 'absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500';
+          dot.classList.remove('hidden');
+        }
+        if (icon) icon.className = 'fa-solid fa-bell-slash text-sm text-slate-400';
+      } else {
+        btn.title = 'Klik untuk mengaktifkan Web Push Notifications';
+        if (dot) dot.classList.add('hidden');
+        if (icon) icon.className = 'fa-solid fa-bell text-sm text-slate-300';
+      }
     }
+
+    function requestBrowserNotificationPermission() {
+      if (!('Notification' in window)) {
+        showToast('Browser Anda tidak mendukung Web Push Notification.', 'error');
+        return;
+      }
+      if (Notification.permission === 'granted') {
+        showToast('Web Push Notification sudah aktif.', 'info');
+        sendBrowserNotification('🔔 Notifikasi Reaktor Aktif', {
+          body: 'Anda akan menerima notifikasi singkat saat proses mulai, selesai, atau terjadi anomali. Rincian lengkap tetap di Telegram.'
+        });
+        return;
+      }
+      Notification.requestPermission().then(permission => {
+        updateNotificationButtonUI();
+        if (permission === 'granted') {
+          showToast('Web Push Notification berhasil diaktifkan!', 'success');
+          sendBrowserNotification('🔔 Notifikasi Reaktor Aktif', {
+            body: 'Anda akan menerima notifikasi singkat saat proses mulai, selesai, atau terjadi anomali.'
+          });
+        } else {
+          showToast('Izin notifikasi ditolak/tidak diberikan.', 'error');
+        }
+      });
+    }
+
+    function sendBrowserNotification(title, options = {}) {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      try {
+        const notif = new Notification(title, {
+          icon: '/assets/2d_reaktor.png',
+          badge: '/assets/2d_reaktor.png',
+          ...options
+        });
+        notif.onclick = () => {
+          window.focus();
+          notif.close();
+        };
+      } catch (err) {
+        console.warn('Browser Notification error:', err.message);
+      }
+    }
+
+
 
     function showAnomaly(payload) {
       const summary = (payload.anomalies || []).map(item => `${item.label}: ${item.value} (${item.setPoint})`).join(' | ') || 'Parameter outside safe limits.';
@@ -2030,6 +2158,12 @@
       banner.classList.remove('hidden');
       clearTimeout(showAnomaly.timer);
       showAnomaly.timer = setTimeout(() => banner.classList.add('hidden'), 12000);
+      // Trigger Web Push Notification for Anomaly
+      sendBrowserNotification('🚨 ALERT: Anomali Reaktor Terdeteksi!', {
+        body: `${payload.stageName || 'Proses'}: ${summary}. Cek Telegram & Dashboard untuk rincian lengkap.`,
+        requireInteraction: true,
+        tag: 'reactor-anomaly'
+      });
     }
 
     function renderLogs(logs) {

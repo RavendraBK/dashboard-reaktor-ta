@@ -137,7 +137,7 @@
   <script>
     // Bila dashboard di-host terpisah dari server.js (misalnya Vercel), isi URL backend di sini.
     // Contoh: window.REACTOR_CONFIG = { apiBaseUrl: 'https://nama-backend.onrender.com' };
-    window.REACTOR_CONFIG = window.REACTOR_CONFIG || { apiBaseUrl: '' };
+    window.REACTOR_CONFIG = window.REACTOR_CONFIG || { apiBaseUrl: 'https://dashboard-reaktor-ta.onrender.com' };
     const API_BASE = (window.REACTOR_CONFIG.apiBaseUrl || window.location.origin).replace(/\/$/, '');
     const session = { token: sessionStorage.getItem('reactor_access_token') || '', user: null, events: null };
     let currentState = null;

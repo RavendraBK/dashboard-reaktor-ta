@@ -120,6 +120,7 @@ function getStageId(rawStage) {
     if (text.includes('separat') || text.includes('pisah')) return 3;
     if (text.includes('oil') || text.includes('treatment') || text.includes('minyak')) return 4;
     if (text.includes('filtr') || text.includes('saring') || text.includes('done')) return 5;
+    if (text.includes('standby') || text.includes('ready') || text.includes('siap')) return 1;
     return null;
 }
 
@@ -470,8 +471,15 @@ async function processSensorData(rawPayload) {
         await startStage(data.stageId);
     }
 
-    processState.runStatus = String(rawPayload.machine_status ?? rawPayload.run_status ?? processState.runStatus).toLowerCase();
-    if (!['standby', 'running', 'paused', 'emergency'].includes(processState.runStatus)) processState.runStatus = 'running';
+    let incomingStatus = String(rawPayload.status ?? rawPayload.machine_status ?? rawPayload.run_status ?? '').toLowerCase();
+    if (!incomingStatus && typeof rawPayload.running === 'boolean') {
+        incomingStatus = rawPayload.running ? 'running' : 'paused';
+    }
+    if (['standby', 'running', 'paused', 'emergency'].includes(incomingStatus)) {
+        processState.runStatus = incomingStatus;
+    } else if (!processState.runStatus || processState.runStatus === 'standby') {
+        processState.runStatus = 'running';
+    }
     processState.latestData = data;
     
     processState.stageStats.count += 1;

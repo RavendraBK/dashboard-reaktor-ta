@@ -862,9 +862,23 @@ client.on('reconnect', () => console.warn('[MQTT] Menghubungkan ulang...'));
 client.on('error', (error) => console.error('[MQTT] Error:', error.message));
 
 let messageQueue = Promise.resolve();
-client.on('message', (_topic, message) => {
-    messageQueue = messageQueue.then(() => processSensorData(JSON.parse(message.toString())))
-        .catch((error) => console.error('[MQTT] Pesan gagal diproses:', error.message));
+client.on('message', (topic, message) => {
+    if (topic === config.sensorTopic) {
+        try {
+            const payload = JSON.parse(message.toString());
+            messageQueue = messageQueue.then(() => processSensorData(payload))
+                .catch((error) => console.error('[MQTT] Pesan sensor gagal diproses:', error.message));
+        } catch (error) {
+            console.warn('[MQTT] Parsing payload sensor gagal:', error.message);
+        }
+    } else if (topic === 'ta/reaktor/status') {
+        console.log('[MQTT] Status ESP32:', message.toString());
+    } else if (topic === 'ta/reaktor/log') {
+        try {
+            const logEntry = JSON.parse(message.toString());
+            console.log(`[ESP32 LOG] [${logEntry.ev || 'EV'}] ${logEntry.stage || ''} -> ${logEntry.det || ''}`);
+        } catch (_) {}
+    }
 });
 
 const keepAliveUrl = process.env.KEEP_ALIVE_URL

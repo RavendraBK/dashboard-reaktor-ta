@@ -148,12 +148,12 @@ function normaliseActuators(rawActuators) {
 
 function normalisePayload(rawPayload) {
     if (!rawPayload || typeof rawPayload !== 'object') return null;
-    const stageId = getStageId(rawPayload.stage ?? rawPayload.process);
-    const temp = toFiniteNumber(rawPayload.temp ?? rawPayload.temperature);
-    const rpm = toFiniteNumber(rawPayload.rpm);
-    const vol = toFiniteNumber(rawPayload.vol ?? rawPayload.volume);
+    const stageId = getStageId(rawPayload.stage ?? rawPayload.stage_id ?? rawPayload.process);
+    const temp = toFiniteNumber(rawPayload.temp ?? rawPayload.temperature ?? rawPayload.suhu);
+    const rpm = toFiniteNumber(rawPayload.rpm ?? rawPayload.kecepatan);
+    const vol = toFiniteNumber(rawPayload.vol ?? rawPayload.volume ?? rawPayload.volume_ml ?? rawPayload.massa_g);
     const act = normaliseActuators(rawPayload.act ?? rawPayload.actuators);
-    const current = toFiniteNumber(rawPayload.current ?? rawPayload.current_a ?? rawPayload.ampere)
+    const current = toFiniteNumber(rawPayload.current ?? rawPayload.current_a ?? rawPayload.ampere ?? (rawPayload.arus_ma ? (rawPayload.arus_ma / 1000) : null))
         ?? (act.motor ? 0.35 : 0);
 
     if (!stageId || temp === null || rpm === null || vol === null) return null;
@@ -164,9 +164,9 @@ function normalisePayload(rawPayload) {
         stageId, temp, rpm, vol, current, act,
         batchId,
         batchCode,
-        levelDetected: isActiveSignal(rawPayload.level_detected ?? rawPayload.levelDetected)
-            || (stageId === 6 && vol >= 375),
-        elapsedSeconds: Math.max(0, Math.round(toFiniteNumber(rawPayload.elapsed_seconds ?? rawPayload.elapsedSeconds) ?? 0)),
+        levelDetected: isActiveSignal(rawPayload.level_detected ?? rawPayload.levelDetected ?? rawPayload.level_penuh)
+            || (stageId === 5 && vol >= 375),
+        elapsedSeconds: Math.max(0, Math.round(toFiniteNumber(rawPayload.elapsed_s ?? rawPayload.elapsed_seconds ?? rawPayload.elapsedSeconds) ?? 0)),
         rawPayload
     };
 }

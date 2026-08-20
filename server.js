@@ -551,10 +551,18 @@ function publishControl(command) {
 
     if (command.action === 'start') {
         if (command.start_stage && Number(command.start_stage) > 1) {
-            espCmd = { cmd: 'goto', stage: stageMap[command.start_stage] || 'mixing' };
+            espCmd = { cmd: 'goto', stage: stageMap[command.start_stage] || 'mixing', batch_code: command.batch_code, batch_id: command.batch_id };
         } else {
-            espCmd = { cmd: 'start' };
+            espCmd = { cmd: 'start', batch_code: command.batch_code, batch_id: command.batch_id };
         }
+    } else if (command.action === 'init_batch' || command.action === 'sync_batch') {
+        espCmd = {
+            cmd: 'init_batch',
+            batch_code: command.batch_code,
+            batch_id: command.batch_id || command.batch_code,
+            stage: Number(command.start_stage || 1),
+            recipe: command.recipe || processState.recipe
+        };
     } else if (command.action === 'pause') {
         espCmd = { cmd: 'pause' };
     } else if (command.action === 'resume') {
@@ -584,6 +592,10 @@ function applyLocalControl(command) {
         case 'restart':
             processState.runStatus = 'running';
             break;
+        case 'init_batch':
+        case 'sync_batch':
+            processState.runStatus = 'standby';
+            break;
         case 'pause':
             processState.runStatus = 'paused';
             break;
@@ -592,6 +604,12 @@ function applyLocalControl(command) {
             break;
         default:
             break;
+    }
+    if (command.action === 'init_batch' || command.action === 'sync_batch') {
+        processState.batchCode = command.batch_code;
+        processState.batchId = command.batch_id || command.batch_code;
+        processState.currentStageId = Number(command.start_stage || 1);
+        if (command.recipe) processState.recipe = { ...processState.recipe, ...command.recipe };
     }
     if (command.action === 'start' || command.action === 'restart') {
         resetForNewBatch(command.batch_id, command.batch_code);
@@ -796,7 +814,7 @@ app.delete('/api/batches/:batchId', requireUser, async (request, response) => {
 
 app.post('/api/control', requireUser, async (request, response) => {
     const body = request.body || {};
-    const allowedActions = new Set(['start', 'pause', 'resume', 'restart', 'emergency_stop', 'reset_emergency', 'set_actuator', 'complete_batch']);
+    const allowedActions = new Set(['start', 'pause', 'resume', 'restart', 'emergency_stop', 'reset_emergency', 'set_actuator', 'complete_batch', 'init_batch', 'sync_batch', 'tare', 'next']);
     if (!allowedActions.has(body.action)) return response.status(400).json({ error: 'Aksi kontrol tidak dikenal.' });
     if (body.action === 'set_actuator' && !['motor', 'heater', 'catalyst_valve', 'separator_valve', 'servo'].includes(body.actuator)) {
         return response.status(400).json({ error: 'Aktuator tidak dikenal.' });

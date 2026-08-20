@@ -2618,6 +2618,47 @@
     }
 
     // Event Listeners
+    document.getElementById('init-connect-batch-btn').addEventListener('click', async () => {
+      const batchCode = document.getElementById('batch-code-input').value.trim();
+      if (!batchCode) {
+        showToast('Silakan isi Batch Code terlebih dahulu!', 'error');
+        document.getElementById('batch-code-input').focus();
+        return;
+      }
+      const startStage = Number(document.getElementById('start-stage-select').value || 1);
+      calculateStoichiometry();
+
+      const btn = document.getElementById('init-connect-batch-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim ke Alat Reaktor...';
+
+      if (isDemoMode) {
+        showToast(`[Demo] Batch ${batchCode} terhubung! LCD alat: CONNECTED.`, 'success');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-link mr-1.5"></i> 1. Submit Batch & Tampilkan Status CONNECTED di LCD Alat';
+        return;
+      }
+
+      try {
+        await api('/api/control', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'init_batch',
+            batch_code: batchCode,
+            batch_id: batchCode,
+            start_stage: startStage,
+            recipe: activeRecipe
+          })
+        });
+        showToast(`✅ Sukses! Batch "${batchCode}" terhubung. Layar LCD alat menampilkan: CONNECTED & SIAP!`, 'success');
+      } catch (err) {
+        showToast('Gagal menghubungkan batch ke alat: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-link mr-1.5"></i> 1. Submit Batch & Tampilkan Status CONNECTED di LCD Alat';
+      }
+    });
+
     document.getElementById('guest-demo-btn').addEventListener('click', startDemoMode);
     document.getElementById('exit-demo-btn').addEventListener('click', logout);
     document.getElementById('demo-fastforward-btn').addEventListener('click', () => {

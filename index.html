@@ -1066,14 +1066,55 @@
       </section>
 
       <!-- =================================================================== -->
-      <!-- VIEW 5: DATA LOGS & BATCH MANAGEMENT -->
+      <!-- VIEW 5: DATA LOGS, BATCH NOTES & MANAGEMENT -->
       <!-- =================================================================== -->
       <section id="view-logs" class="content-view hidden space-y-6">
+        
+        <!-- BATCH OPERATOR OBSERVATION NOTES CARD -->
+        <div class="rounded-3xl bg-white dark:bg-slate-900 p-6 shadow-sm border border-slate-200/80 dark:border-slate-800 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <div class="grid h-8 w-8 place-items-center rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-400">
+                  <i class="fa-solid fa-clipboard-list text-sm"></i>
+                </div>
+                <h2 class="font-bold text-base text-slate-800 dark:text-white">Catatan Temuan & Observasi Batch (Operator Log Notes)</h2>
+              </div>
+              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Tuliskan temuan, fenomena kimiawi, atau catatan penting selama tahapan sintesis. Catatan ini akan otomatis disertakan ke dalam dokumen laporan resmi <strong>PDF Export</strong>.
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                <span class="text-slate-400 text-[11px]">Kode Batch:</span>
+                <span id="notes-active-batch-badge" class="text-teal-600 dark:text-teal-400 font-bold">BATCH-01</span>
+              </div>
+              <button id="add-note-item-btn" type="button" class="inline-flex items-center gap-1.5 rounded-xl bg-teal-700 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-teal-800">
+                <i class="fa-solid fa-plus text-xs"></i> Tambah Temuan (+)
+              </button>
+            </div>
+          </div>
+
+          <!-- SCROLLABLE NOTES CONTAINER (LIST WITH VERTICAL SCROLLBAR) -->
+          <div id="notes-list-container" class="max-h-72 overflow-y-auto space-y-2.5 p-2 pr-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50">
+            <!-- Dynamic note items rendered here -->
+          </div>
+
+          <!-- FOOTER ACTION -->
+          <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 dark:border-slate-800 pt-3">
+            <span id="notes-status-msg" class="text-xs text-slate-500 italic">Klik tombol "Simpan Catatan Temuan" untuk menyimpan dan menyertakannya ke laporan PDF.</span>
+            <button id="submit-batch-notes-btn" type="button" class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-95">
+              <i class="fa-solid fa-floppy-disk"></i> Simpan Catatan Temuan (Submit)
+            </button>
+          </div>
+        </div>
+
+        <!-- TELEMETRY DATA LOGS & PDF EXPORT -->
         <div class="rounded-3xl bg-white dark:bg-slate-900 p-6 shadow-sm border border-slate-200/80 dark:border-slate-800 space-y-4">
           <div class="flex flex-wrap items-end justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
             <div>
               <h2 class="font-bold text-base text-slate-800 dark:text-white"><i class="fa-solid fa-table mr-2 text-teal-700 dark:text-teal-400"></i>Data Logs, Batch Selector & PDF Export</h2>
-              <p class="text-xs text-slate-500 dark:text-slate-400">Select historical or running batches to view data. Delete test batches as needed.</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Pilih riwayat batch atau batch yang sedang berjalan untuk melihat data telemetri.</p>
             </div>
             <div class="flex flex-wrap gap-2">
               <select id="batch-select" class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold"><option value="">Active Batch</option></select>
@@ -1997,6 +2038,7 @@
 
       const batchCode = state.batchCode || state.batchId;
       document.getElementById('batch-label').textContent = `Batch: ${batchCode || '-'}`;
+      const nBadge = document.getElementById('notes-active-batch-badge'); if (nBadge && batchCode) nBadge.textContent = batchCode;
       document.getElementById('stage-status').textContent = state.currentStageId ? `Stage ${state.currentStageId}/5 — ${state.currentStageName}` : 'Standby / Awaiting Batch Initialization';
 
       const run = String(state.runStatus || 'standby').toUpperCase();
@@ -2368,6 +2410,156 @@
       showToast('Apparatus Manual & Specifications PDF downloaded!', 'success');
     }
 
+    
+    // =========================================================================
+    // BATCH OBSERVATION NOTES & OPERATOR LOGS MANAGEMENT
+    // =========================================================================
+    let batchNotesStore = {};
+    try {
+      const stored = localStorage.getItem('reaktor_batch_notes_store');
+      if (stored) batchNotesStore = JSON.parse(stored);
+    } catch (e) {
+      batchNotesStore = {};
+    }
+
+    function getActiveBatchCode() {
+      const inputVal = document.getElementById('batch-code-input')?.value?.trim();
+      const selectVal = document.getElementById('batch-select')?.value?.trim();
+      return selectVal || inputVal || currentState?.batchCode || currentState?.batchId || 'BATCH-01';
+    }
+
+    function getNotesForBatch(batchCode) {
+      const key = batchCode || getActiveBatchCode();
+      if (!batchNotesStore[key]) {
+        // Default initial sample notes for demo/usability
+        batchNotesStore[key] = [
+          { id: 'note_1', stage: 'Stage 1 - Mixing', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), text: 'Pencampuran reaktan awal dan katalis H2SO4 berlangsung homogen.' }
+        ];
+      }
+      return batchNotesStore[key];
+    }
+
+    function renderBatchNotesUI() {
+      const activeBatch = getActiveBatchCode();
+      const badge = document.getElementById('notes-active-batch-badge');
+      if (badge) badge.textContent = activeBatch;
+
+      const container = document.getElementById('notes-list-container');
+      if (!container) return;
+
+      const notes = getNotesForBatch(activeBatch);
+      if (!notes || notes.length === 0) {
+        container.innerHTML = `
+          <div id="notes-empty-state" class="text-center py-6 text-xs text-slate-400">
+            <i class="fa-regular fa-note-sticky text-2xl mb-1 text-slate-300 dark:text-slate-600 block"></i>
+            Belum ada catatan temuan untuk batch <strong>${activeBatch}</strong>.<br>
+            Klik tombol <strong>"+ Tambah Temuan"</strong> di atas untuk menambahkan catatan baru.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = notes.map((item, index) => `
+        <div class="note-row-item flex items-start gap-2.5 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm transition hover:border-teal-500/50" data-note-id="${item.id}">
+          <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-teal-100 dark:bg-teal-950 text-[11px] font-bold text-teal-800 dark:text-teal-300 mt-0.5">
+            #${index + 1}
+          </span>
+          <div class="flex-1 space-y-1.5">
+            <div class="flex flex-wrap items-center gap-2">
+              <select class="note-stage-select rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1 text-[11px] font-semibold text-slate-700 dark:text-slate-200">
+                <option value="Stage 1 - Mixing" ${item.stage === 'Stage 1 - Mixing' ? 'selected' : ''}>Stage 1 - Mixing (60°C)</option>
+                <option value="Stage 2 - Reflux" ${item.stage === 'Stage 2 - Reflux' ? 'selected' : ''}>Stage 2 - Reflux (100°C)</option>
+                <option value="Stage 3 - Separation" ${item.stage === 'Stage 3 - Separation' ? 'selected' : ''}>Stage 3 - Separation</option>
+                <option value="Stage 4 - Oil Treatment" ${item.stage === 'Stage 4 - Oil Treatment' ? 'selected' : ''}>Stage 4 - Oil Treatment (120°C)</option>
+                <option value="Stage 5 - Filtration" ${item.stage === 'Stage 5 - Filtration' ? 'selected' : ''}>Stage 5 - Filtration</option>
+                <option value="Umum / General" ${item.stage === 'Umum / General' ? 'selected' : ''}>Umum / General</option>
+              </select>
+              <span class="text-[10px] text-slate-400"><i class="fa-regular fa-clock mr-1"></i>${item.time || new Date().toLocaleTimeString()}</span>
+            </div>
+            <textarea class="note-text-input w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-950 p-2 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500" rows="2" placeholder="Tuliskan temuan pengujian... (misal: Suhu stabil 60°C, larutan bening kekuningan, katalis terdistribusi merata)">${text(item.text || '')}</textarea>
+          </div>
+          <button type="button" class="delete-note-btn shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 transition" title="Hapus catatan ini">
+            <i class="fa-solid fa-trash-can text-xs"></i>
+          </button>
+        </div>
+      `).join('');
+
+      // Attach row event handlers
+      const rowElements = container.querySelectorAll ? container.querySelectorAll('.note-row-item') : [];
+      rowElements.forEach(row => {
+        const id = row.dataset.noteId;
+        const textEl = row.querySelector('.note-text-input');
+        const stageEl = row.querySelector('.note-stage-select');
+        const delBtn = row.querySelector('.delete-note-btn');
+
+        textEl?.addEventListener('input', (e) => {
+          const targetNote = notes.find(n => n.id === id);
+          if (targetNote) targetNote.text = e.target.value;
+        });
+
+        stageEl?.addEventListener('change', (e) => {
+          const targetNote = notes.find(n => n.id === id);
+          if (targetNote) targetNote.stage = e.target.value;
+        });
+
+        delBtn?.addEventListener('click', () => {
+          const activeB = getActiveBatchCode();
+          batchNotesStore[activeB] = (batchNotesStore[activeB] || []).filter(n => n.id !== id);
+          saveBatchNotesToStorage();
+          renderBatchNotesUI();
+          showToast('Catatan temuan dihapus.', 'info');
+        });
+      });
+    }
+
+    function addBatchNoteItem() {
+      const activeB = getActiveBatchCode();
+      if (!batchNotesStore[activeB]) batchNotesStore[activeB] = [];
+      const newId = 'note_' + Date.now();
+      const currentStgId = currentState?.currentStageId || 1;
+      const stageNameMap = { 1: 'Stage 1 - Mixing', 2: 'Stage 2 - Reflux', 3: 'Stage 3 - Separation', 4: 'Stage 4 - Oil Treatment', 5: 'Stage 5 - Filtration' };
+
+      batchNotesStore[activeB].push({
+        id: newId,
+        stage: stageNameMap[currentStgId] || 'Stage 1 - Mixing',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        text: ''
+      });
+      renderBatchNotesUI();
+
+      // Scroll container to bottom and focus on new input
+      const container = document.getElementById('notes-list-container');
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+        const newRow = container.querySelector(`[data-note-id="${newId}"] .note-text-input`);
+        newRow?.focus();
+      }
+      showToast('Poin temuan baru ditambahkan. Silakan ketik catatan Anda.', 'info');
+    }
+
+    function saveBatchNotesToStorage() {
+      try {
+        localStorage.setItem('reaktor_batch_notes_store', JSON.stringify(batchNotesStore));
+      } catch (e) {
+        console.warn('LocalStorage error:', e);
+      }
+    }
+
+    function submitBatchNotes() {
+      const activeB = getActiveBatchCode();
+      const notes = getNotesForBatch(activeB);
+      saveBatchNotesToStorage();
+
+      const statusEl = document.getElementById('notes-status-msg');
+      if (statusEl) {
+        statusEl.innerHTML = `<span class="text-emerald-600 dark:text-emerald-400 font-bold"><i class="fa-solid fa-check mr-1"></i>${notes.length} catatan temuan berhasil disimpan untuk batch ${activeB}!</span>`;
+        setTimeout(() => {
+          if (statusEl) statusEl.textContent = 'Klik tombol "Simpan Catatan Temuan" untuk menyertakannya ke laporan PDF.';
+        }, 5000);
+      }
+      showToast(`✅ Sukses! ${notes.length} catatan temuan untuk batch "${activeB}" tersimpan & siap dicetak di PDF Export.`, 'success');
+    }
+
     function downloadPdf() {
       if (!window.jspdf) return showToast('PDF library failed to load. Please check internet connection.', 'error');
       const { jsPDF } = window.jspdf;
@@ -2428,7 +2620,7 @@
 
       doc.autoTable({
         startY: doc.lastAutoTable.finalY + 5,
-        head: [['Executive Synthesis Summary & Observations']],
+        head: [['Executive Synthesis Summary & Automated Analysis']],
         body: [[
           `1. Stoichiometry: 1:8 molar ratio was maintained throughout synthesis within the 500 ml boiling flask (working capacity: ~${activeRecipe.estimatedTotalVol} ml).\n` +
           `2. Thermal Regulation: Average temperature was maintained at ${number(averages.temp)} °C within set point tolerance (±10%).\n` +
@@ -2439,6 +2631,34 @@
         headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
         styles: { fontSize: 8, cellPadding: 3, textColor: [51, 65, 85] }
       });
+
+      // SECTION: OPERATOR CUSTOM OBSERVATION NOTES & FINDINGS (Catatan Temuan Batch)
+      const currentBatchKey = currentState?.batchCode || currentLogs[0]?.batch_code || getActiveBatchCode();
+      const customNotes = getNotesForBatch(currentBatchKey).filter(n => n.text && n.text.trim().length > 0);
+      
+      if (customNotes && customNotes.length > 0) {
+        const notesTableBody = customNotes.map((item, idx) => [
+          `#${idx + 1}`,
+          item.stage || 'General',
+          item.time || '-',
+          item.text.trim()
+        ]);
+
+        doc.autoTable({
+          startY: doc.lastAutoTable.finalY + 5,
+          head: [['No', 'Tahap / Stage', 'Waktu', 'Catatan Temuan & Observasi Khusus Operator (User Notes)']],
+          body: notesTableBody,
+          theme: 'grid',
+          headStyles: { fillColor: [15, 118, 110] },
+          styles: { fontSize: 8, cellPadding: 2.5 },
+          columnStyles: {
+            0: { cellWidth: 10, halign: 'center' },
+            1: { cellWidth: 38 },
+            2: { cellWidth: 22 },
+            3: { cellWidth: 'auto' }
+          }
+        });
+      }
 
       doc.autoTable({
         startY: doc.lastAutoTable.finalY + 5,
@@ -2660,6 +2880,20 @@
       }
       tickDemoSimulation();
     }
+
+    // Event Listeners for Batch Notes
+    safeOn('add-note-item-btn', 'click', addBatchNoteItem);
+    safeOn('submit-batch-notes-btn', 'click', submitBatchNotes);
+    safeOn('batch-select', 'change', () => {
+      renderBatchNotesUI();
+    });
+    safeOn('batch-code-input', 'input', () => {
+      const badge = document.getElementById('notes-active-batch-badge');
+      if (badge) badge.textContent = getActiveBatchCode();
+    });
+
+    // Initialize Notes UI on load
+    setTimeout(renderBatchNotesUI, 200);
 
     // Event Listeners
     safeOn('init-connect-batch-btn', 'click', async () => {

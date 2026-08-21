@@ -158,8 +158,8 @@ function normalisePayload(rawPayload) {
 
     if (!stageId || temp === null || rpm === null || vol === null) return null;
 
-    const batchId = String(rawPayload.batch_id ?? rawPayload.batchId ?? '').trim() || null;
-    const batchCode = String(rawPayload.batch_code ?? rawPayload.batchCode ?? batchId ?? '').trim() || null;
+    const batchId = String(rawPayload.batch ?? rawPayload.batch_id ?? rawPayload.batchId ?? rawPayload.batch_code ?? rawPayload.batchCode ?? '').trim() || null;
+    const batchCode = String(rawPayload.batch ?? rawPayload.batch_code ?? rawPayload.batchCode ?? rawPayload.batch_id ?? rawPayload.batchId ?? batchId ?? '').trim() || null;
     return {
         stageId, temp, rpm, vol, current, act,
         batchId,
@@ -548,19 +548,22 @@ function publishControl(command) {
     
     let espCmd = {};
     const stageMap = { 1: 'mixing', 2: 'reflux', 3: 'separation', 4: 'oil_treatment', 5: 'filtration' };
+    const bCode = command.batch_code || command.batch_id || processState.batchCode || 'BATCH-01';
 
     if (command.action === 'start') {
         if (command.start_stage && Number(command.start_stage) > 1) {
-            espCmd = { cmd: 'goto', stage: stageMap[command.start_stage] || 'mixing', batch_code: command.batch_code, batch_id: command.batch_id };
+            espCmd = { cmd: 'goto', stage: stageMap[command.start_stage] || 'mixing', batch_code: bCode, batch: bCode, batch_id: bCode };
         } else {
-            espCmd = { cmd: 'start', batch_code: command.batch_code, batch_id: command.batch_id };
+            espCmd = { cmd: 'start', batch_code: bCode, batch: bCode, batch_id: bCode };
         }
     } else if (command.action === 'init_batch' || command.action === 'sync_batch') {
         espCmd = {
             cmd: 'init_batch',
-            batch_code: command.batch_code,
-            batch_id: command.batch_id || command.batch_code,
+            batch_code: bCode,
+            batch: bCode,
+            batch_id: bCode,
             stage: Number(command.start_stage || 1),
+            start_stage: Number(command.start_stage || 1),
             recipe: command.recipe || processState.recipe
         };
     } else if (command.action === 'pause') {
@@ -568,7 +571,7 @@ function publishControl(command) {
     } else if (command.action === 'resume') {
         espCmd = { cmd: 'resume' };
     } else if (command.action === 'restart') {
-        espCmd = { cmd: 'stop' };
+        espCmd = { cmd: 'restart' };
     } else if (command.action === 'emergency_stop') {
         espCmd = { cmd: 'stop' };
     } else if (command.action === 'reset_emergency') {

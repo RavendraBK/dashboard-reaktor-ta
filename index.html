@@ -2648,7 +2648,7 @@
     }
 
     // Event Listeners
-    document.getElementById('init-connect-batch-btn').addEventListener('click', async () => {
+    safeOn('init-connect-batch-btn', 'click', async () => {
       const batchCode = document.getElementById('batch-code-input').value.trim();
       if (!batchCode) {
         showToast('Silakan isi Batch Code terlebih dahulu!', 'error');
@@ -2680,7 +2680,7 @@
             recipe: activeRecipe
           })
         });
-        showToast(`✅ Sukses! Batch "${batchCode}" terhubung. Layar LCD alat menampilkan: CONNECTED & SIAP!`, 'success');
+        showToast(`✅ Sukses! Batch "${batchCode}" terhubung. Layar LCD alat menampilkan: CONNECT & SIAP!`, 'success');
       } catch (err) {
         showToast('Gagal menghubungkan batch ke alat: ' + err.message, 'error');
       } finally {

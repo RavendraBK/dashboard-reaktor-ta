@@ -2487,14 +2487,18 @@
     };
 
         function startDemoMode(nameOverride) {
-      const visitorInput = document.getElementById('guest-visitor-name');
-      let visitorName = typeof nameOverride === 'string' && nameOverride.trim() 
-        ? nameOverride.trim() 
-        : (visitorInput ? visitorInput.value.trim() : '');
-
-      if (!visitorName) {
-        visitorName = 'Tamu Penguji / Dosen';
+      let visitorName = '';
+      if (typeof nameOverride === 'string' && nameOverride.trim()) {
+        visitorName = nameOverride.trim();
+      } else {
+        const visitorInput = document.getElementById('guest-visitor-name');
+        if (visitorInput && visitorInput.value && visitorInput.value.trim()) {
+          visitorName = visitorInput.value.trim();
+        } else {
+          visitorName = 'Tamu Penguji / Dosen';
+        }
       }
+      const visitorInput = document.getElementById('guest-visitor-name');
       if (visitorInput) visitorInput.value = visitorName;
 
       isDemoMode = true;
@@ -2656,7 +2660,20 @@
       }
     });
 
-    document.getElementById('guest-demo-btn').addEventListener('click', startDemoMode);
+    document.getElementById('guest-demo-btn').addEventListener('click', (e) => {
+      e.preventDefault();
+      startDemoMode();
+    });
+
+    const autofillBtn = document.getElementById('autofill-operator-btn');
+    if (autofillBtn) {
+      autofillBtn.addEventListener('click', () => {
+        document.getElementById('email').value = 'ester.reactor01@gmail.com';
+        document.getElementById('password').value = 'ReactorAdmin2026!';
+        document.getElementById('telegram-id').value = '8205817584';
+        showToast('Kredensial operator terisi otomatis. Klik tombol hijau untuk masuk!', 'info');
+      });
+    }
     document.getElementById('exit-demo-btn').addEventListener('click', logout);
     document.getElementById('demo-fastforward-btn').addEventListener('click', () => {
       if (!isDemoMode) return;

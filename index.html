@@ -2486,19 +2486,16 @@
       actuators: { motor: true, heater: true, catalyst_valve: false, separator_valve: false, servo: false }
     };
 
-        function startDemoMode() {
+        function startDemoMode(nameOverride) {
       const visitorInput = document.getElementById('guest-visitor-name');
-      const visitorName = visitorInput ? visitorInput.value.trim() : '';
+      let visitorName = typeof nameOverride === 'string' && nameOverride.trim() 
+        ? nameOverride.trim() 
+        : (visitorInput ? visitorInput.value.trim() : '');
 
       if (!visitorName) {
-        showToast('Silakan isi nama lengkap Anda sebelum meluncurkan demo!', 'error');
-        if (visitorInput) {
-          visitorInput.focus();
-          visitorInput.classList.add('ring-2', 'ring-red-500');
-          setTimeout(() => visitorInput.classList.remove('ring-2', 'ring-red-500'), 2000);
-        }
-        return;
+        visitorName = 'Tamu Penguji / Dosen';
       }
+      if (visitorInput) visitorInput.value = visitorName;
 
       isDemoMode = true;
       sessionStorage.setItem('reactor_demo_mode', 'true');
@@ -2775,15 +2772,10 @@
       document.getElementById('login-page').classList.remove('hidden');
       document.getElementById('dashboard').classList.add('hidden');
 
-      // If URL contains ?mode=demo, focus and highlight the guest name field
-      if (isExplicitDemo) {
-        const guestInput = document.getElementById('guest-visitor-name');
-        if (guestInput) {
-          setTimeout(() => {
-            guestInput.focus();
-            guestInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 200);
-        }
+      // If URL contains ?mode=demo or demo session exists, auto-launch demo mode immediately
+      if (isExplicitDemo || sessionStorage.getItem('reactor_demo_mode') === 'true') {
+        const savedGuestName = sessionStorage.getItem('reactor_guest_name') || 'Tamu Penguji / Dosen';
+        startDemoMode(savedGuestName);
         return;
       }
 

@@ -2209,8 +2209,8 @@
               body: `Advancing to Stage ${state.currentStageId}: ${currentMeta?.name || ''}. Telemetry archived.`
             });
           }
-          sendBrowserNotification(`🟢 Reaktor: Memulai Tahap ${state.currentStageId} (${currentMeta?.name || ''})`, {
-            body: `Target: ${currentMeta?.setPointTemp ? currentMeta.setPointTemp + '°C' : 'Suhu Ambien'}, ${currentMeta?.setPointRpm || 0} RPM (${currentMeta?.duration || ''}).`
+          sendBrowserNotification(`🟢 Reactor: Starting Stage ${state.currentStageId} (${currentMeta?.name || ''})`, {
+            body: `Target: ${currentMeta?.setPointTemp ? currentMeta.setPointTemp + '°C' : 'Ambient Temp'}, ${currentMeta?.setPointRpm || 0} RPM (${currentMeta?.duration || ''}).`
           });
           lastNotifiedStageId = state.currentStageId;
         }
@@ -2337,6 +2337,8 @@
     }
 
     function sendBrowserNotification(title, options = {}) {
+      // Suppress OS desktop push notifications during Exhibition Demo simulation
+      if (isDemoMode) return;
       if (!('Notification' in window) || Notification.permission !== 'granted') return;
       try {
         const notif = new Notification(title, {
@@ -2346,8 +2348,12 @@
         });
         notif.onclick = () => {
           window.focus();
-          notif.close();
+          try { notif.close(); } catch(e) {}
         };
+        // Auto dismiss from device action center after 6 seconds so it doesn't linger
+        setTimeout(() => {
+          try { notif.close(); } catch(e) {}
+        }, 6000);
       } catch (err) {
         console.warn('Browser Notification error:', err.message);
       }

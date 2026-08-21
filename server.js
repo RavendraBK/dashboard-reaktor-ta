@@ -37,7 +37,7 @@ function createUserClient(accessToken) {
 
 const stages = {
     1: { id: 1, name: 'Mixing', durationLabel: '2 jam', targetSeconds: 7200, temp: { target: 60, tolerance: 0.10, rampUpSeconds: 3000 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON (12V 280RPM) | Heater ON (60°C Water Bath) | Katup 1 Umpan Katalis' },
-    2: { id: 2, name: 'Reflux', durationLabel: '3 jam', targetSeconds: 10800, temp: { target: 100, tolerance: 0.10, rampUpSeconds: 3600 }, rpm: { target: 0, min: 0, max: 10 }, current: null, actuators: 'Heater ON (100°C Water Bath) | Motor OFF (0 RPM)' },
+    2: { id: 2, name: 'Reflux', durationLabel: '6 jam', targetSeconds: 21600, temp: { target: 100, tolerance: 0.10, rampUpSeconds: 3600 }, rpm: { target: 0, min: 0, max: 10 }, current: null, actuators: 'Heater ON (100°C Water Bath) | Motor OFF (0 RPM)' },
     3: { id: 3, name: 'Separation', durationLabel: '12 jam', targetSeconds: 43200, temp: null, rpm: null, current: null, actuators: 'Semua Aktuator OFF (Pemisahan Gravitasi & Air Cuci 10%)' },
     4: { id: 4, name: 'Oil Treatment', durationLabel: '2 jam', targetSeconds: 7200, temp: { target: 120, tolerance: 0.10, rampUpSeconds: 3600 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON (250 RPM) | Heater ON (120°C Water Bath) | Adsorben Bentonit 0.2g' },
     5: { id: 5, name: 'Filtration', durationLabel: 'Level ≥375 ml / 2 jam', targetSeconds: 7200, temp: null, rpm: null, current: null, actuators: 'Katup 2 Pengurasan Separator ke Corong Whatman' }

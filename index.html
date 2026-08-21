@@ -2507,8 +2507,14 @@
       // Instantly switch DOM view to dashboard
       const loginEl = document.getElementById('login-page');
       const dashEl = document.getElementById('dashboard');
-      if (loginEl) loginEl.classList.add('hidden');
-      if (dashEl) dashEl.classList.remove('hidden');
+      if (loginEl) {
+        loginEl.classList.add('hidden');
+        loginEl.style.display = 'none';
+      }
+      if (dashEl) {
+        dashEl.classList.remove('hidden');
+        dashEl.style.display = 'flex';
+      }
 
       const demoBanner = document.getElementById('demo-banner');
       if (demoBanner) demoBanner.classList.remove('hidden');

@@ -2778,6 +2778,7 @@
 
       currentLogs = [];
       demoSimState.stageId = 1;
+      demoSimState.stageTicks = 0;
       demoSimState.elapsedSeconds = 0;
       demoSimState.sampleCount = 0;
       demoSimState.runStatus = 'running';
@@ -2795,18 +2796,22 @@
       if (!isDemoMode || demoSimState.runStatus !== 'running') return;
 
       demoSimState.sampleCount += 1;
-      demoSimState.elapsedSeconds += 2;
-
-      if (demoSimState.sampleCount % 10 === 0) {
-        demoSimState.stageId = demoSimState.stageId >= 5 ? 1 : demoSimState.stageId + 1;
-      }
+      demoSimState.stageTicks += 1;
 
       const stageId = demoSimState.stageId;
-      const meta = stageMeta[stageId];
+      const meta = stageMeta[stageId] || stageMeta[1];
+      const targetSec = meta.targetSeconds || 7200;
+
+      // Calculate progress ratio (0.0 to 1.0) for this stage
+      const progressRatio = Math.min(1.0, demoSimState.stageTicks / demoSimState.maxTicksPerStage);
+      demoSimState.elapsedSeconds = Math.round(progressRatio * targetSec);
+
+      // Check if stage duration completes (reaches 100%)
+      const stageJustCompleted = demoSimState.stageTicks >= demoSimState.maxTicksPerStage;
 
       const isMotorOn = stageId === 1 || stageId === 4;
       const isHeaterOn = stageId === 1 || stageId === 2 || stageId === 4;
-      const isCatalyst = false;
+      const isCatalyst = stageId === 1 && progressRatio < 0.35;
       const isSeparator = stageId === 5;
       const isServo = isCatalyst || isSeparator;
 
@@ -2818,13 +2823,35 @@
         servo: isServo
       };
 
-      let targetTemp = isHeaterOn ? (meta.setPointTemp || 60) : 28.5;
-      let temp = Math.max(20, targetTemp + (Math.random() * 3 - 1.5));
+      // Realistic Dynamic Parameter Simulation matching the 0% -> 100% stage progression
+      let temp = 28.5;
+      if (stageId === 1) {
+        // Stage 1 Mixing: Temperature ramps up from 28C to 60C
+        temp = 28.0 + progressRatio * (60.0 - 28.0) + (Math.random() * 0.8 - 0.4);
+      } else if (stageId === 2) {
+        // Stage 2 Reflux: Temperature heats up to 100C
+        temp = 60.0 + progressRatio * (100.0 - 60.0) + (Math.random() * 0.8 - 0.4);
+      } else if (stageId === 3) {
+        // Stage 3 Separation: Cooldown to ambient
+        temp = 100.0 - progressRatio * (100.0 - 29.0) + (Math.random() * 0.6 - 0.3);
+      } else if (stageId === 4) {
+        // Stage 4 Oil Treatment: Heats to 120C with bentonite
+        temp = 29.0 + progressRatio * (120.0 - 29.0) + (Math.random() * 0.8 - 0.4);
+      } else if (stageId === 5) {
+        // Stage 5 Filtration: Ambient
+        temp = 28.0 + (Math.random() * 0.6 - 0.3);
+      }
+
       let rpm = isMotorOn ? Math.round(250 + (Math.random() * 6 - 3)) : 0;
       let current = isMotorOn ? Number((0.35 + (Math.random() * 0.04 - 0.02)).toFixed(2)) : 0.0;
-      let volume = stageId === 5 ? Math.min(500, 320 + (demoSimState.sampleCount % 10) * 18) : (500 + (Math.random() * 4 - 2));
+      
+      // Volume simulation: stable 375ml in stages 1-4, draining/filling to 375ml in stage 5
+      let volume = 375.0 + (Math.random() * 1.5 - 0.75);
+      if (stageId === 5) {
+        volume = 260.0 + progressRatio * (400.0 - 260.0);
+      }
 
-      const levelDetected = stageId === 5 && volume >= 375;
+      const levelDetected = stageId === 5 && volume >= 375.0;
 
       const demoPayload = {
         stageId: stageId,
@@ -2848,11 +2875,21 @@
         recipe: activeRecipe,
         updatedAt: new Date().toISOString()
       });
+
+      // Transition to next stage when current stage finishes 100%
+      if (stageJustCompleted) {
+        demoSimState.stageTicks = 0;
+        const nextStageId = stageId >= 5 ? 1 : stageId + 1;
+        demoSimState.stageId = nextStageId;
+        const nextMeta = stageMeta[nextStageId];
+        showToast(`✅ Stage ${stageId} (${meta.name}) 100% completed! Advancing to Stage ${nextStageId}: ${nextMeta?.name}...`, 'success');
+      }
     }
 
     function handleDemoControl(action, extras = {}) {
       if (action === 'start' || action === 'restart') {
         demoSimState.stageId = extras.start_stage || 1;
+        demoSimState.stageTicks = 0;
         demoSimState.elapsedSeconds = 0;
         demoSimState.sampleCount = 0;
         demoSimState.runStatus = 'running';
@@ -2950,10 +2987,11 @@
     safeOn('exit-demo-btn', 'click', logout);
     safeOn('demo-fastforward-btn', 'click', () => {
       if (!isDemoMode) return;
-      demoSimState.stageId = demoSimState.stageId >= 6 ? 1 : demoSimState.stageId + 1;
+      demoSimState.stageId = demoSimState.stageId >= 5 ? 1 : demoSimState.stageId + 1;
+      demoSimState.stageTicks = 0;
       demoSimState.sampleCount = 0;
       tickDemoSimulation();
-      showToast(`Fast-forwarded to Stage ${demoSimState.stageId}: ${stageMeta[demoSimState.stageId].name}`, 'info');
+      showToast(`Advanced to Stage ${demoSimState.stageId}: ${stageMeta[demoSimState.stageId]?.name}`, 'info');
     });
 
     safeOn('btn-download-specs-dashboard', 'click', downloadApparatusSpecsPdf);

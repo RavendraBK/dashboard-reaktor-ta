@@ -1124,7 +1124,25 @@
               <button id="download-pdf" class="rounded-xl bg-orange-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-orange-700"><i class="fa-solid fa-file-pdf mr-1"></i> Export PDF Report</button>
             </div>
           </div>
-          <div class="overflow-x-auto"><table class="min-w-full text-left text-xs"><thead class="border-b bg-slate-50 dark:bg-slate-800 text-[11px] uppercase text-slate-500 dark:text-slate-400"><tr><th class="p-2.5">Time</th><th class="p-2.5">Stage</th><th class="p-2.5">Temperature</th><th class="p-2.5">Speed</th><th class="p-2.5">Volume</th><th class="p-2.5">Current</th><th class="p-2.5">Level</th></tr></thead><tbody id="log-table"><tr><td class="p-3 text-slate-500" colspan="7">No telemetry data recorded yet.</td></tr></tbody></table></div>
+          <!-- SCROLLABLE TELEMETRY DATA LOGS TABLE (VERTICAL & HORIZONTAL SCROLLBARS WITH STICKY HEADER) -->
+          <div class="overflow-x-auto overflow-y-auto max-h-96 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-inner">
+            <table class="min-w-full text-left text-xs">
+              <thead class="sticky top-0 z-10 border-b border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-[11px] font-bold uppercase text-slate-600 dark:text-slate-300 shadow-sm backdrop-blur-md">
+                <tr>
+                  <th class="p-3">Time</th>
+                  <th class="p-3">Stage</th>
+                  <th class="p-3">Temperature</th>
+                  <th class="p-3">Speed</th>
+                  <th class="p-3">Volume</th>
+                  <th class="p-3">Current</th>
+                  <th class="p-3">Level Sensor</th>
+                </tr>
+              </thead>
+              <tbody id="log-table" class="divide-y divide-slate-100 dark:divide-slate-800">
+                <tr><td class="p-4 text-center text-slate-400" colspan="7">No telemetry data recorded yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 

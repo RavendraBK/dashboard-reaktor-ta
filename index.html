@@ -1206,7 +1206,7 @@
     const chartWindows = { temp: 100, rpm: 100, current: 100, vol: 100 };
 
     const stageMeta = {
-      1: { name: 'Mixing', label: '1. Mixing', icon: 'fa-blender', duration: '30 mins', targetSeconds: 1800, setPointTemp: 60, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 0.35, minCurrent: 0.0, maxCurrent: 1.8, actuators: 'Motor ON (12V 280RPM) | Heater ON (12V 2x40W) | Katup 1 Umpan Katalis 4%' },
+      1: { name: 'Mixing', label: '1. Mixing', icon: 'fa-blender', duration: '1 hour', targetSeconds: 3600, setPointTemp: 60, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 0.35, minCurrent: 0.0, maxCurrent: 1.8, actuators: 'Motor ON (12V 280RPM) | Heater ON (12V 2x40W) | Katup 1 Umpan Katalis 4%' },
       2: { name: 'Reflux', label: '2. Reflux', icon: 'fa-fire-burner', duration: '5 hours', targetSeconds: 18000, setPointTemp: 100, tolTemp: 0.10, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Heater ON (12V 2x40W) | Motor OFF (0 RPM)' },
       3: { name: 'Separation', label: '3. Separation', icon: 'fa-hourglass-half', duration: '12 hours', targetSeconds: 43200, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, actuators: 'Semua Aktuator OFF (Pemisahan Gravitasi & Air Cuci 10%)' },
       4: { name: 'Oil Treatment', label: '4. Oil Treatment', icon: 'fa-droplet', duration: '1 hour', targetSeconds: 3600, setPointTemp: 120, tolTemp: 0.10, setPointRpm: 250, tolRpm: 0.10, setCurrent: 0.35, minCurrent: 0.0, maxCurrent: 1.8, actuators: 'Motor ON (250 RPM) | Heater ON (120°C) | Adsorben Bentonit 0.2g' },
@@ -2305,7 +2305,7 @@
         startY: doc.lastAutoTable.finalY + 6,
         head: [['Stage #', 'Process Name', 'Target Temp & RPM', 'Target Duration', 'Active Actuators & SOP Actions']],
         body: [
-          ['1', 'Mixing', '60 °C (±10%) · 250 RPM', '30 Minutes', 'Motor ON, Heater ON (~50%). Katup 1 umpan katalis 4% H2SO4.'],
+          ['1', 'Mixing', '60 °C (±10%) · 250 RPM', '1 Hour', 'Motor ON, Heater ON (~50%). Katup 1 umpan katalis 4% H2SO4.'],
           ['2', 'Reflux', '100 °C (±10%) · 0 RPM', '5 Hours', 'Heater ON (~82%), Motor OFF. Kondensasi refluks.'],
           ['3', 'Separation', 'Ambient · 0 RPM', '12 Hours', 'Semua OFF. Air cuci 10%. Pemisahan gravitasi.'],
           ['4', 'Oil Treatment', '120 °C (±10%) · 250 RPM', '1 Hour', 'Motor ON, Heater 100%. Adsorben bentonit 0.2g.'],

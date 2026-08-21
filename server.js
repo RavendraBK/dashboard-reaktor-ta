@@ -36,7 +36,7 @@ function createUserClient(accessToken) {
 }
 
 const stages = {
-    1: { id: 1, name: 'Mixing', durationLabel: '30 menit', targetSeconds: 1800, temp: { target: 60, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON (12V 280RPM) | Heater ON (12V 2x40W) | Katup 1 Umpan Katalis' },
+    1: { id: 1, name: 'Mixing', durationLabel: '1 jam', targetSeconds: 3600, temp: { target: 60, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON (12V 280RPM) | Heater ON (12V 2x40W) | Katup 1 Umpan Katalis' },
     2: { id: 2, name: 'Reflux', durationLabel: '5 jam', targetSeconds: 18000, temp: { target: 100, tolerance: 0.10 }, rpm: { target: 0, min: 0, max: 10 }, current: null, actuators: 'Heater ON (12V 2x40W, Motor OFF)' },
     3: { id: 3, name: 'Separation', durationLabel: '12 jam', targetSeconds: 43200, temp: null, rpm: null, current: null, actuators: 'Semua Aktuator OFF (Pemisahan Gravitasi & Air Cuci 10%)' },
     4: { id: 4, name: 'Oil Treatment', durationLabel: '1 jam', targetSeconds: 3600, temp: { target: 120, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON | Heater ON | Adsorben Bentonit 0.2g' },

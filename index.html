@@ -2736,7 +2736,7 @@
     };
 
         function startDemoMode(nameOverride) {
-      let visitorName = 'Tamu Penguji / Dosen';
+      let visitorName = 'Guest / Visitor';
       if (typeof nameOverride === 'string' && nameOverride.trim()) {
         visitorName = nameOverride.trim();
       } else {
@@ -2785,7 +2785,7 @@
       if (demoInterval) clearInterval(demoInterval);
       demoInterval = setInterval(tickDemoSimulation, 2000);
       tickDemoSimulation();
-      showToast(`Selamat datang, ${visitorName}! Mode Demo Pameran aktif.`, 'success');
+      showToast(`Welcome, ${visitorName}! Exhibition Demo Mode is active.`, 'success');
 
       // Save visitor access to DB in background non-blocking
       try { logVisitorAccess(visitorName, false); } catch(e) {}
@@ -3064,7 +3064,7 @@
 
       // If URL contains ?mode=demo or demo session exists, auto-launch demo mode immediately
       if (isExplicitDemo || sessionStorage.getItem('reactor_demo_mode') === 'true') {
-        const savedGuestName = sessionStorage.getItem('reactor_guest_name') || 'Tamu Penguji / Dosen';
+        const savedGuestName = sessionStorage.getItem('reactor_guest_name') || 'Guest / Visitor';
         startDemoMode(savedGuestName);
         return;
       }

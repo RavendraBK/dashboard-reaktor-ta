@@ -93,7 +93,7 @@
         </button>
 
         <button id="autofill-operator-btn" type="button" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-slate-700">
-          <i class="fa-solid fa-key mr-1.5 text-amber-500"></i> ⚡ Isi Kredensial Operator Otomatis
+          <i class="fa-solid fa-key mr-1.5 text-amber-500"></i> ⚡ Autofill Operator Credentials
         </button>
       </form>
     </section>
@@ -136,7 +136,7 @@
           </button>
 
           <span id="mqtt-badge" class="hidden sm:inline-flex items-center rounded-full bg-slate-800/80 px-2.5 py-1 text-[11px] font-medium"><i class="fa-solid fa-circle mr-1.5 text-slate-400"></i> MQTT: Checking</span>
-          <span id="run-badge" class="inline-flex items-center gap-1.5 rounded-full bg-slate-800/90 border border-slate-700/80 px-2.5 py-1 text-[11px] font-bold text-slate-300 shadow-sm"><span id="run-dot" class="h-2 w-2 rounded-full bg-red-500"></span><span id="run-text">Mesin: Mati (Standby)</span></span>
+          <span id="run-badge" class="inline-flex items-center gap-1.5 rounded-full bg-slate-800/90 border border-slate-700/80 px-2.5 py-1 text-[11px] font-bold text-slate-300 shadow-sm"><span id="run-dot" class="h-2 w-2 rounded-full bg-red-500"></span><span id="run-text">Machine: Standby / Idle</span></span>
           <span id="user-display" class="hidden md:inline-block rounded-full bg-teal-950 dark:bg-slate-800 px-2.5 py-1 text-[11px] font-medium text-teal-200 dark:text-teal-300"></span>
           <button id="logout-button" class="rounded-xl bg-slate-800 px-2.5 py-1 text-[11px] font-semibold text-slate-200 transition hover:bg-slate-700 hover:text-white">
             <i class="fa-solid fa-right-from-bracket mr-1"></i> <span id="logout-text">Sign Out</span>
@@ -575,7 +575,7 @@
             </div>
 
             <div class="mt-3">
-              <button id="init-connect-batch-btn" type="button" class="w-full rounded-xl bg-indigo-600 py-2.5 text-xs font-bold text-white transition hover:bg-indigo-700 shadow-sm"><i class="fa-solid fa-link mr-1.5"></i> 1. Submit Batch & Tampilkan Status CONNECTED di LCD Alat</button>
+              <button id="init-connect-batch-btn" type="button" class="w-full rounded-xl bg-indigo-600 py-2.5 text-xs font-bold text-white transition hover:bg-indigo-700 shadow-sm"><i class="fa-solid fa-link mr-1.5"></i> 1. Submit Batch & Display CONNECT on LCD</button>
             </div>
 
             <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -977,9 +977,9 @@
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
-                  <tr><td class="p-3 font-semibold">1. Mixing (60°C · 250 RPM)</td><td class="p-3">Motor + Heater ~50% + Katup 1 Umpan</td><td class="p-3">~0.35A (4.2W)</td><td class="p-3">~3.33A (40.0W)</td><td class="p-3">0.70A (saat Katup 1 buka)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~44.2 W</td></tr>
+                  <tr><td class="p-3 font-semibold">1. Mixing (60°C · 250 RPM)</td><td class="p-3">Motor + Heater ~50% + Valve 1 Catalyst Feed</td><td class="p-3">~0.35A (4.2W)</td><td class="p-3">~3.33A (40.0W)</td><td class="p-3">0.70A (saat Katup 1 buka)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~44.2 W</td></tr>
                   <tr><td class="p-3 font-semibold">2. Reflux (100°C · 0 RPM)</td><td class="p-3">Heater ~82% Duty (Motor OFF)</td><td class="p-3">0.0A (0W)</td><td class="p-3">~5.50A (66.0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~66.0 W</td></tr>
-                  <tr><td class="p-3 font-semibold">3. Separation (12 hours)</td><td class="p-3">All Actuators OFF (Pencucian Air 10%)</td><td class="p-3">0.0A (0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">0.0 W</td></tr>
+                  <tr><td class="p-3 font-semibold">3. Separation (12 hours)</td><td class="p-3">All Actuators OFF (10% Water Wash Settling)</td><td class="p-3">0.0A (0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">0.0 W</td></tr>
                   <tr><td class="p-3 font-semibold">4. Oil Treatment (120°C · 250 RPM)</td><td class="p-3">Motor + Heater 100% Duty + Bentonit</td><td class="p-3">~0.35A (4.2W)</td><td class="p-3">~6.67A (80.0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~84.2 W</td></tr>
                   <tr><td class="p-3 font-semibold">5. Filtration (Corong Whatman)</td><td class="p-3">Katup 2 Separator Servo (Bukaan pendek)</td><td class="p-3">0.0A (0W)</td><td class="p-3">0.0A (0W)</td><td class="p-3 font-bold text-violet-600">0.70A (4.2W)</td><td class="p-3 font-bold text-slate-900 dark:text-white">~4.2 W</td></tr>
                 </tbody>
@@ -1078,33 +1078,33 @@
                 <div class="grid h-8 w-8 place-items-center rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-400">
                   <i class="fa-solid fa-clipboard-list text-sm"></i>
                 </div>
-                <h2 class="font-bold text-base text-slate-800 dark:text-white">Catatan Temuan & Observasi Batch (Operator Log Notes)</h2>
+                <h2 class="font-bold text-base text-slate-800 dark:text-white">Batch Observation Notes & Qualitative Findings</h2>
               </div>
               <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Tuliskan temuan, fenomena kimiawi, atau catatan penting selama tahapan sintesis. Catatan ini akan otomatis disertakan ke dalam dokumen laporan resmi <strong>PDF Export</strong>.
+                Record qualitative findings, chemical phenomena, or operational notes. These items will automatically compile into the official <strong>PDF Synthesis Report</strong>.
               </p>
             </div>
             <div class="flex items-center gap-2">
               <div class="flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200">
-                <span class="text-slate-400 text-[11px]">Kode Batch:</span>
+                <span class="text-slate-400 text-[11px]">Batch Code:</span>
                 <span id="notes-active-batch-badge" class="text-teal-600 dark:text-teal-400 font-bold">BATCH-01</span>
               </div>
               <button id="add-note-item-btn" type="button" class="inline-flex items-center gap-1.5 rounded-xl bg-teal-700 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-teal-800">
-                <i class="fa-solid fa-plus text-xs"></i> Tambah Temuan (+)
+                <i class="fa-solid fa-plus text-xs"></i> Add Observation (+)
               </button>
             </div>
           </div>
 
-          <!-- SCROLLABLE NOTES CONTAINER (LIST WITH VERTICAL SCROLLBAR) -->
+          <!-- SCROLLABLE NOTES CONTAINER (VERTICAL SCROLLBAR) -->
           <div id="notes-list-container" class="max-h-72 overflow-y-auto space-y-2.5 p-2 pr-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50">
             <!-- Dynamic note items rendered here -->
           </div>
 
           <!-- FOOTER ACTION -->
           <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 dark:border-slate-800 pt-3">
-            <span id="notes-status-msg" class="text-xs text-slate-500 italic">Klik tombol "Simpan Catatan Temuan" untuk menyimpan dan menyertakannya ke laporan PDF.</span>
+            <span id="notes-status-msg" class="text-xs text-slate-500 italic">Click "Save Observation Notes" to compile notes into the PDF Export report.</span>
             <button id="submit-batch-notes-btn" type="button" class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-95">
-              <i class="fa-solid fa-floppy-disk"></i> Simpan Catatan Temuan (Submit)
+              <i class="fa-solid fa-floppy-disk"></i> Save Observation Notes (Submit)
             </button>
           </div>
         </div>
@@ -1114,7 +1114,7 @@
           <div class="flex flex-wrap items-end justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
             <div>
               <h2 class="font-bold text-base text-slate-800 dark:text-white"><i class="fa-solid fa-table mr-2 text-teal-700 dark:text-teal-400"></i>Data Logs, Batch Selector & PDF Export</h2>
-              <p class="text-xs text-slate-500 dark:text-slate-400">Pilih riwayat batch atau batch yang sedang berjalan untuk melihat data telemetri.</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Select active or historical batch records to inspect telemetry data.</p>
             </div>
             <div class="flex flex-wrap gap-2">
               <select id="batch-select" class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold"><option value="">Active Batch</option></select>
@@ -1260,11 +1260,11 @@
     const chartWindows = { temp: 100, rpm: 100, current: 100, vol: 100 };
 
     const stageMeta = {
-      1: { name: 'Mixing', label: '1. Mixing', icon: 'fa-blender', duration: '2 hours', targetSeconds: 7200, setPointTemp: 60, tolTemp: 0.10, rampUpSeconds: 3000, setPointRpm: 250, tolRpm: 0.10, setCurrent: 0.35, minCurrent: 0.0, maxCurrent: 1.8, setPointVol: 375, minVol: 250, maxVol: 500, tolVol: 0.15, actuators: 'Motor ON (12V 280RPM) | Heater ON (60°C Water Bath) | Katup 1 Umpan Katalis 4%' },
+      1: { name: 'Mixing', label: '1. Mixing', icon: 'fa-blender', duration: '2 hours', targetSeconds: 7200, setPointTemp: 60, tolTemp: 0.10, rampUpSeconds: 3000, setPointRpm: 250, tolRpm: 0.10, setCurrent: 0.35, minCurrent: 0.0, maxCurrent: 1.8, setPointVol: 375, minVol: 250, maxVol: 500, tolVol: 0.15, actuators: 'Motor ON (12V 280RPM) | Heater ON (60°C Water Bath) | Valve 1 Catalyst Feed 4%' },
       2: { name: 'Reflux', label: '2. Reflux', icon: 'fa-fire-burner', duration: '6 hours', targetSeconds: 21600, setPointTemp: 100, tolTemp: 0.10, rampUpSeconds: 3600, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, setPointVol: 375, minVol: 250, maxVol: 500, tolVol: 0.15, actuators: 'Heater ON (100°C Water Bath) | Motor OFF (0 RPM)' },
-      3: { name: 'Separation', label: '3. Separation', icon: 'fa-hourglass-half', duration: '12 hours', targetSeconds: 43200, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, setPointVol: 375, minVol: 250, maxVol: 500, tolVol: 0.15, actuators: 'Semua Aktuator OFF (Pemisahan Gravitasi & Air Cuci 10%)' },
+      3: { name: 'Separation', label: '3. Separation', icon: 'fa-hourglass-half', duration: '12 hours', targetSeconds: 43200, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, setPointVol: 375, minVol: 250, maxVol: 500, tolVol: 0.15, actuators: 'All Actuators OFF (Gravity Settling & 10% Water Wash)' },
       4: { name: 'Oil Treatment', label: '4. Oil Treatment', icon: 'fa-droplet', duration: '2 hours', targetSeconds: 7200, setPointTemp: 120, tolTemp: 0.10, rampUpSeconds: 3600, setPointRpm: 250, tolRpm: 0.10, setCurrent: 0.35, minCurrent: 0.0, maxCurrent: 1.8, setPointVol: 375, minVol: 250, maxVol: 500, tolVol: 0.15, actuators: 'Motor ON (250 RPM) | Heater ON (120°C Water Bath) | Adsorben Bentonit 0.2g' },
-      5: { name: 'Filtration', label: '5. Filtration', icon: 'fa-filter', duration: 'Level ≥375 ml / 2h', targetSeconds: 7200, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, setPointVol: 375, minVol: 0, maxVol: 500, targetVol: 375, actuators: 'Katup 2 Pengurasan Separator ke Corong Whatman' }
+      5: { name: 'Filtration', label: '5. Filtration', icon: 'fa-filter', duration: 'Level ≥375 ml / 2h', targetSeconds: 7200, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, setPointVol: 375, minVol: 0, maxVol: 500, targetVol: 375, actuators: 'Valve 2 Separator Drain to Whatman Filter' }
     };
 
     let activeRecipe = {
@@ -1646,7 +1646,7 @@
         if (isOk) {
           status = `<span class="rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 text-[10px] font-bold">🟢 Within Limits (±10%)</span>`;
         } else if (isTemp && actual < min && elapsedSec <= (s.rampUpSeconds || 3000)) {
-          status = `<span class="rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-2 py-0.5 text-[10px] font-bold">🟡 Pemanasan Water Bath (Ramp-up)</span>`;
+          status = `<span class="rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-2 py-0.5 text-[10px] font-bold">🟡 Water Bath Thermal Ramp-up</span>`;
         } else {
           status = `<span class="rounded-full bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 px-2 py-0.5 text-[10px] font-bold">🔴 Out of Tolerance</span>`;
         }
@@ -1693,16 +1693,16 @@
         {
           name: '<i class="fa-solid fa-flask mr-1.5 text-emerald-500"></i>Liquid Volume (Load Cell)',
           setPoint: stageId === 5 ? 'Target ≥ 375 ml' : 'Nominal 375.0 ml',
-          tol: stageId === 5 ? 'Beaker max: 500.0 ml' : 'Batas Aman: 250.0 – 500.0 ml (±15%)',
+          tol: stageId === 5 ? 'Beaker max: 500.0 ml' : 'Safe Working Limit: 250.0 – 500.0 ml (±15%)',
           avg: count ? `${number(avg.vol)} ml` : '-',
           eval: count ? (
             stageId === 5
-              ? (avg.vol >= 375 ? '<span class="rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 text-[10px] font-bold">🟢 Target ≥375ml Tercapai</span>' : '<span class="rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-2 py-0.5 text-[10px] font-bold">🟡 Proses Filtrasi</span>')
+              ? (avg.vol >= 375 ? '<span class="rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 text-[10px] font-bold">🟢 Target ≥375ml Reached</span>' : '<span class="rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-2 py-0.5 text-[10px] font-bold">🟡 Filtration in Progress</span>')
               : (avg.vol > 500.0
-                  ? '<span class="rounded-full bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 px-2 py-0.5 text-[10px] font-bold">🔴 Bahaya Overflow (>500ml)</span>'
+                  ? '<span class="rounded-full bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 px-2 py-0.5 text-[10px] font-bold">🔴 Overflow Hazard (>500ml)</span>'
                   : (avg.vol < 250.0 && avg.vol > 5.0
-                      ? '<span class="rounded-full bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 px-2 py-0.5 text-[10px] font-bold">🔴 Drop/Bocor (<250ml)</span>'
-                      : '<span class="rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 text-[10px] font-bold">🟢 Stabil ~375 ml (250–500ml)</span>'))
+                      ? '<span class="rounded-full bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 px-2 py-0.5 text-[10px] font-bold">🔴 Leakage / Drop (<250ml)</span>'
+                      : '<span class="rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 text-[10px] font-bold">🟢 Stable ~375 ml (250–500ml)</span>'))
           ) : '-'
         }
       ];
@@ -2049,19 +2049,19 @@
       if (run === 'RUNNING') {
         badge.className = 'inline-flex items-center gap-1.5 rounded-full bg-emerald-950/80 border border-emerald-500/60 px-2.5 py-1 text-[11px] font-bold text-emerald-300 shadow-sm';
         if (dot) dot.className = 'h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.9)]';
-        if (txt) txt.textContent = 'Mesin: Menyala (Running)';
+        if (txt) txt.textContent = 'Machine: Running';
       } else if (run === 'EMERGENCY') {
         badge.className = 'inline-flex items-center gap-1.5 rounded-full bg-red-950 border border-red-500 px-2.5 py-1 text-[11px] font-bold text-red-200 shadow-sm animate-pulse';
         if (dot) dot.className = 'h-2 w-2 rounded-full bg-red-600 animate-ping';
-        if (txt) txt.textContent = 'Mesin: Emergency Stop';
+        if (txt) txt.textContent = 'Machine: Emergency Stop';
       } else if (run === 'PAUSED') {
         badge.className = 'inline-flex items-center gap-1.5 rounded-full bg-amber-950/80 border border-amber-500/60 px-2.5 py-1 text-[11px] font-bold text-amber-300 shadow-sm';
         if (dot) dot.className = 'h-2 w-2 rounded-full bg-amber-400 animate-pulse';
-        if (txt) txt.textContent = 'Mesin: Dijeda (Paused)';
+        if (txt) txt.textContent = 'Machine: Paused';
       } else {
         badge.className = 'inline-flex items-center gap-1.5 rounded-full bg-slate-800/90 border border-slate-700/80 px-2.5 py-1 text-[11px] font-bold text-slate-300 shadow-sm';
         if (dot) dot.className = 'h-2 w-2 rounded-full bg-red-500';
-        if (txt) txt.textContent = 'Mesin: Mati / Standby';
+        if (txt) txt.textContent = 'Machine: Standby / Idle';
       }
 
       const lockBanner = document.getElementById('lock-warning-banner');
@@ -2076,8 +2076,8 @@
           const currentMeta = stageMeta[state.currentStageId];
           if (lastNotifiedStageId !== null && lastNotifiedStageId > 0 && lastNotifiedStageId < state.currentStageId) {
             const prevMeta = stageMeta[lastNotifiedStageId];
-            sendBrowserNotification(`✅ Reaktor: Tahap ${lastNotifiedStageId} (${prevMeta?.name || ''}) Selesai`, {
-              body: `Melanjutkan ke Tahap ${state.currentStageId}: ${currentMeta?.name || ''}. Rincian di Telegram.`
+            sendBrowserNotification(`✅ Reactor: Stage ${lastNotifiedStageId} (${prevMeta?.name || ''}) Completed`, {
+              body: `Advancing to Stage ${state.currentStageId}: ${currentMeta?.name || ''}. Telemetry archived.`
             });
           }
           sendBrowserNotification(`🟢 Reaktor: Memulai Tahap ${state.currentStageId} (${currentMeta?.name || ''})`, {
@@ -2087,30 +2087,30 @@
         }
 
         if (state.currentStageId === 5 && data?.levelDetected && !batchCompleteNotified) {
-          sendBrowserNotification(`🎉 Reaktor: Proses Sintesis Selesai (Batch ${batchCode || '-'})`, {
-            body: 'Tahap 5 Filtrasi telah selesai. Laporan PDF lengkap & rekapan telah dikirim ke Telegram.'
+          sendBrowserNotification(`🎉 Reactor: Synthesis Completed (Batch ${batchCode || '-'})`, {
+            body: 'Stage 5 Filtration completed. Full PDF report and summary dispatched.'
           });
           batchCompleteNotified = true;
         }
 
         if (lastNotifiedRunStatus === 'PAUSED' || lastNotifiedRunStatus === 'EMERGENCY') {
-          sendBrowserNotification('▶️ Reaktor: Proses Dilanjutkan (Resumed)', {
-            body: 'Proses sintesis aktif kembali memonitor parameter.'
+          sendBrowserNotification('▶️ Reactor: Process Resumed', {
+            body: 'Synthesis process is now running and monitoring parameters.'
           });
         }
         lastNotifiedRunStatus = 'RUNNING';
       } else if (run === 'EMERGENCY') {
         if (lastNotifiedRunStatus !== 'EMERGENCY') {
-          sendBrowserNotification('🛑 EMERGENCY STOP DIAKTIFKAN!', {
-            body: 'Semua aktuator reaktor dimatikan darurat. Batch dihentikan. Rincian di Telegram.',
+          sendBrowserNotification('🛑 EMERGENCY STOP ACTIVATED!', {
+            body: 'All reactor actuators powered down immediately. Safety lockout engaged.',
             requireInteraction: true
           });
           lastNotifiedRunStatus = 'EMERGENCY';
         }
       } else if (run === 'PAUSED') {
         if (lastNotifiedRunStatus === 'RUNNING') {
-          sendBrowserNotification('⏸️ Reaktor: Proses Dijeda (Paused)', {
-            body: 'Sintesis sementara dijeda oleh operator.'
+          sendBrowserNotification('⏸️ Reactor: Process Paused', {
+            body: 'Synthesis paused temporarily by operator.'
           });
           lastNotifiedRunStatus = 'PAUSED';
         }
@@ -2189,7 +2189,7 @@
       }
       if (Notification.permission === 'granted') {
         showToast('Web Push Notification sudah aktif.', 'info');
-        sendBrowserNotification('🔔 Notifikasi Reaktor Aktif', {
+        sendBrowserNotification('🔔 Reactor Notifications Active', {
           body: 'Anda akan menerima notifikasi singkat saat proses mulai, selesai, atau terjadi anomali. Rincian lengkap tetap di Telegram.'
         });
         return;
@@ -2197,7 +2197,7 @@
       Notification.requestPermission().then(permission => {
         updateNotificationButtonUI();
         if (permission === 'granted') {
-          showToast('Web Push Notification berhasil diaktifkan!', 'success');
+          showToast('Web Push Notifications activated successfully!', 'success');
           sendBrowserNotification('🔔 Notifikasi Reaktor Aktif', {
             body: 'Anda akan menerima notifikasi singkat saat proses mulai, selesai, atau terjadi anomali.'
           });
@@ -2234,7 +2234,7 @@
       clearTimeout(showAnomaly.timer);
       showAnomaly.timer = setTimeout(() => banner.classList.add('hidden'), 12000);
       // Trigger Web Push Notification for Anomaly
-      sendBrowserNotification('🚨 ALERT: Anomali Reaktor Terdeteksi!', {
+      sendBrowserNotification('🚨 ALERT: Reactor Anomaly Detected!', {
         body: `${payload.stageName || 'Proses'}: ${summary}. Cek Telegram & Dashboard untuk rincian lengkap.`,
         requireInteraction: true,
         tag: 'reactor-anomaly'
@@ -2380,11 +2380,11 @@
         startY: doc.lastAutoTable.finalY + 6,
         head: [['Stage #', 'Process Name', 'Target Temp & RPM', 'Target Duration', 'Active Actuators & SOP Actions']],
         body: [
-          ['1', 'Mixing', '60 °C (±10%) · 250 RPM', '1 Hour', 'Motor ON, Heater ON (~50%). Katup 1 umpan katalis 4% H2SO4.'],
+          ['1', 'Mixing', '60 °C (±10%) · 250 RPM', '2 Hours', 'Motor ON, Heater ON. Valve 1 feed 4% H2SO4 catalyst.'],
           ['2', 'Reflux', '100 °C (±10%) · 0 RPM', '5 Hours', 'Heater ON (~82%), Motor OFF. Kondensasi refluks.'],
-          ['3', 'Separation', 'Ambient · 0 RPM', '12 Hours', 'Semua OFF. Air cuci 10%. Pemisahan gravitasi.'],
-          ['4', 'Oil Treatment', '120 °C (±10%) · 250 RPM', '1 Hour', 'Motor ON, Heater 100%. Adsorben bentonit 0.2g.'],
-          ['5', 'Filtration', 'Ambient · 0 RPM', 'Level ≥375 ml', 'Katup 2 Servo ON ke corong Whatman. Berhenti otomatis.']
+          ['3', 'Separation', 'Ambient · 0 RPM', '12 Hours', 'All OFF. 10% pure water wash. Gravity phase separation.'],
+          ['4', 'Oil Treatment', '120 °C (±10%) · 250 RPM', '2 Hours', 'Motor ON, Heater 100%. 0.2g bentonite adsorbent purification.'],
+          ['5', 'Filtration', 'Ambient · 0 RPM', 'Level ≥375 ml', 'Valve 2 Servo ON to Whatman filter. Auto shutoff on level ≥375ml.']
         ],
         theme: 'grid',
         headStyles: { fillColor: [30, 41, 59] },
@@ -2433,7 +2433,7 @@
       if (!batchNotesStore[key]) {
         // Default initial sample notes for demo/usability
         batchNotesStore[key] = [
-          { id: 'note_1', stage: 'Stage 1 - Mixing', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), text: 'Pencampuran reaktan awal dan katalis H2SO4 berlangsung homogen.' }
+          { id: 'note_1', stage: 'Stage 1 - Mixing', text: 'Initial homogeneous reagent blending with 4% H2SO4 catalyst.' }
         ];
       }
       return batchNotesStore[key];
@@ -2452,8 +2452,8 @@
         container.innerHTML = `
           <div id="notes-empty-state" class="text-center py-6 text-xs text-slate-400">
             <i class="fa-regular fa-note-sticky text-2xl mb-1 text-slate-300 dark:text-slate-600 block"></i>
-            Belum ada catatan temuan untuk batch <strong>${activeBatch}</strong>.<br>
-            Klik tombol <strong>"+ Tambah Temuan"</strong> di atas untuk menambahkan catatan baru.
+            No observation notes recorded for batch <strong>${activeBatch}</strong>.<br>
+            Click the <strong>"+ Add Observation"</strong> button above to record findings.
           </div>
         `;
         return;
@@ -2465,20 +2465,19 @@
             #${index + 1}
           </span>
           <div class="flex-1 space-y-1.5">
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-2">
               <select class="note-stage-select rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1 text-[11px] font-semibold text-slate-700 dark:text-slate-200">
-                <option value="Stage 1 - Mixing" ${item.stage === 'Stage 1 - Mixing' ? 'selected' : ''}>Stage 1 - Mixing (60°C)</option>
-                <option value="Stage 2 - Reflux" ${item.stage === 'Stage 2 - Reflux' ? 'selected' : ''}>Stage 2 - Reflux (100°C)</option>
-                <option value="Stage 3 - Separation" ${item.stage === 'Stage 3 - Separation' ? 'selected' : ''}>Stage 3 - Separation</option>
-                <option value="Stage 4 - Oil Treatment" ${item.stage === 'Stage 4 - Oil Treatment' ? 'selected' : ''}>Stage 4 - Oil Treatment (120°C)</option>
-                <option value="Stage 5 - Filtration" ${item.stage === 'Stage 5 - Filtration' ? 'selected' : ''}>Stage 5 - Filtration</option>
-                <option value="Umum / General" ${item.stage === 'Umum / General' ? 'selected' : ''}>Umum / General</option>
+                <option value="Stage 1 - Mixing" ${item.stage === 'Stage 1 - Mixing' ? 'selected' : ''}>Stage 1 - Mixing (60°C · 250 RPM)</option>
+                <option value="Stage 2 - Reflux" ${item.stage === 'Stage 2 - Reflux' ? 'selected' : ''}>Stage 2 - Reflux (100°C · 0 RPM)</option>
+                <option value="Stage 3 - Separation" ${item.stage === 'Stage 3 - Separation' ? 'selected' : ''}>Stage 3 - Separation (Gravity Settling)</option>
+                <option value="Stage 4 - Oil Treatment" ${item.stage === 'Stage 4 - Oil Treatment' ? 'selected' : ''}>Stage 4 - Oil Treatment (120°C · Bentonite)</option>
+                <option value="Stage 5 - Filtration" ${item.stage === 'Stage 5 - Filtration' ? 'selected' : ''}>Stage 5 - Filtration (Level ≥375ml)</option>
+                <option value="General / Other" ${item.stage === 'General / Other' ? 'selected' : ''}>General / Other Observations</option>
               </select>
-              <span class="text-[10px] text-slate-400"><i class="fa-regular fa-clock mr-1"></i>${item.time || new Date().toLocaleTimeString()}</span>
             </div>
-            <textarea class="note-text-input w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-950 p-2 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500" rows="2" placeholder="Tuliskan temuan pengujian... (misal: Suhu stabil 60°C, larutan bening kekuningan, katalis terdistribusi merata)">${text(item.text || '')}</textarea>
+            <textarea class="note-text-input w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-950 p-2 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500" rows="2" placeholder="Record qualitative observation... (e.g. Solution cleared to golden yellow, steady 60°C reached, no foaming)">${text(item.text || '')}</textarea>
           </div>
-          <button type="button" class="delete-note-btn shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 transition" title="Hapus catatan ini">
+          <button type="button" class="delete-note-btn shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 transition" title="Delete note">
             <i class="fa-solid fa-trash-can text-xs"></i>
           </button>
         </div>
@@ -2507,7 +2506,7 @@
           batchNotesStore[activeB] = (batchNotesStore[activeB] || []).filter(n => n.id !== id);
           saveBatchNotesToStorage();
           renderBatchNotesUI();
-          showToast('Catatan temuan dihapus.', 'info');
+          showToast('Observation note deleted.', 'info');
         });
       });
     }
@@ -2522,7 +2521,6 @@
       batchNotesStore[activeB].push({
         id: newId,
         stage: stageNameMap[currentStgId] || 'Stage 1 - Mixing',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         text: ''
       });
       renderBatchNotesUI();
@@ -2534,7 +2532,7 @@
         const newRow = container.querySelector(`[data-note-id="${newId}"] .note-text-input`);
         newRow?.focus();
       }
-      showToast('Poin temuan baru ditambahkan. Silakan ketik catatan Anda.', 'info');
+      showToast('New observation point added. Please type your notes.', 'info');
     }
 
     function saveBatchNotesToStorage() {
@@ -2552,12 +2550,12 @@
 
       const statusEl = document.getElementById('notes-status-msg');
       if (statusEl) {
-        statusEl.innerHTML = `<span class="text-emerald-600 dark:text-emerald-400 font-bold"><i class="fa-solid fa-check mr-1"></i>${notes.length} catatan temuan berhasil disimpan untuk batch ${activeB}!</span>`;
+        statusEl.innerHTML = `<span class="text-emerald-600 dark:text-emerald-400 font-bold"><i class="fa-solid fa-check mr-1"></i>${notes.length} observation notes saved successfully for batch ${activeB}!</span>`;
         setTimeout(() => {
-          if (statusEl) statusEl.textContent = 'Klik tombol "Simpan Catatan Temuan" untuk menyertakannya ke laporan PDF.';
+          if (statusEl) statusEl.textContent = 'Click "Save Observation Notes" to compile notes into the PDF Export report.';
         }, 5000);
       }
-      showToast(`✅ Sukses! ${notes.length} catatan temuan untuk batch "${activeB}" tersimpan & siap dicetak di PDF Export.`, 'success');
+      showToast(`✅ Success! ${notes.length} observation notes saved for batch "${activeB}" and ready for PDF export.`, 'success');
     }
 
     function downloadPdf() {
@@ -2640,22 +2638,20 @@
         const notesTableBody = customNotes.map((item, idx) => [
           `#${idx + 1}`,
           item.stage || 'General',
-          item.time || '-',
           item.text.trim()
         ]);
 
         doc.autoTable({
           startY: doc.lastAutoTable.finalY + 5,
-          head: [['No', 'Tahap / Stage', 'Waktu', 'Catatan Temuan & Observasi Khusus Operator (User Notes)']],
+          head: [['No', 'Process Stage', 'Operator Observation Notes & Qualitative Findings']],
           body: notesTableBody,
           theme: 'grid',
           headStyles: { fillColor: [15, 118, 110] },
           styles: { fontSize: 8, cellPadding: 2.5 },
           columnStyles: {
-            0: { cellWidth: 10, halign: 'center' },
-            1: { cellWidth: 38 },
-            2: { cellWidth: 22 },
-            3: { cellWidth: 'auto' }
+            0: { cellWidth: 12, halign: 'center' },
+            1: { cellWidth: 42 },
+            2: { cellWidth: 'auto' }
           }
         });
       }
@@ -2899,7 +2895,7 @@
     safeOn('init-connect-batch-btn', 'click', async () => {
       const batchCode = document.getElementById('batch-code-input').value.trim();
       if (!batchCode) {
-        showToast('Silakan isi Batch Code terlebih dahulu!', 'error');
+        showToast('Please enter a Batch Code first!', 'error');
         document.getElementById('batch-code-input').focus();
         return;
       }
@@ -2908,12 +2904,12 @@
 
       const btn = document.getElementById('init-connect-batch-btn');
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim ke Alat Reaktor...';
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Sending to Apparatus...';
 
       if (isDemoMode) {
-        showToast(`[Demo] Batch ${batchCode} terhubung! LCD alat: CONNECTED.`, 'success');
+        showToast(`[Demo] Batch ${batchCode} connected! Apparatus LCD: CONNECT.`, 'success');
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-link mr-1.5"></i> 1. Submit Batch & Tampilkan Status CONNECTED di LCD Alat';
+        btn.innerHTML = '<i class="fa-solid fa-link mr-1.5"></i> 1. Submit Batch & Display CONNECT on LCD';
         return;
       }
 
@@ -2928,12 +2924,12 @@
             recipe: activeRecipe
           })
         });
-        showToast(`✅ Sukses! Batch "${batchCode}" terhubung. Layar LCD alat menampilkan: CONNECT & SIAP!`, 'success');
+        showToast(`✅ Connected! Batch "${batchCode}" registered. LCD displays: CONNECT & READY!`, 'success');
       } catch (err) {
-        showToast('Gagal menghubungkan batch ke alat: ' + err.message, 'error');
+        showToast('Failed to connect batch to apparatus: ' + err.message, 'error');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-link mr-1.5"></i> 1. Submit Batch & Tampilkan Status CONNECTED di LCD Alat';
+        btn.innerHTML = '<i class="fa-solid fa-link mr-1.5"></i> 1. Submit Batch & Display CONNECT on LCD';
       }
     });
 
@@ -2948,7 +2944,7 @@
         document.getElementById('email').value = 'ester.reactor01@gmail.com';
         document.getElementById('password').value = 'esterifikasi 01';
         document.getElementById('telegram-id').value = '8205817584';
-        showToast('Kredensial operator terisi otomatis. Klik tombol hijau untuk masuk!', 'info');
+        showToast('Operator credentials autofilled. Click sign in to continue!', 'info');
       });
     }
     safeOn('exit-demo-btn', 'click', logout);

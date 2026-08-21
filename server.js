@@ -36,11 +36,11 @@ function createUserClient(accessToken) {
 }
 
 const stages = {
-    1: { id: 1, name: 'Mixing', durationLabel: '2 jam', targetSeconds: 7200, temp: { target: 60, tolerance: 0.10, rampUpSeconds: 3000 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON (12V 280RPM) | Heater ON (60°C Water Bath) | Katup 1 Umpan Katalis' },
-    2: { id: 2, name: 'Reflux', durationLabel: '6 jam', targetSeconds: 21600, temp: { target: 100, tolerance: 0.10, rampUpSeconds: 3600 }, rpm: { target: 0, min: 0, max: 10 }, current: null, actuators: 'Heater ON (100°C Water Bath) | Motor OFF (0 RPM)' },
-    3: { id: 3, name: 'Separation', durationLabel: '12 jam', targetSeconds: 43200, temp: null, rpm: null, current: null, actuators: 'Semua Aktuator OFF (Pemisahan Gravitasi & Air Cuci 10%)' },
-    4: { id: 4, name: 'Oil Treatment', durationLabel: '2 jam', targetSeconds: 7200, temp: { target: 120, tolerance: 0.10, rampUpSeconds: 3600 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON (250 RPM) | Heater ON (120°C Water Bath) | Adsorben Bentonit 0.2g' },
-    5: { id: 5, name: 'Filtration', durationLabel: 'Level ≥375 ml / 2 jam', targetSeconds: 7200, temp: null, rpm: null, current: null, actuators: 'Katup 2 Pengurasan Separator ke Corong Whatman' }
+    1: { id: 1, name: 'Mixing', durationLabel: '2 jam', targetSeconds: 7200, temp: { target: 60, tolerance: 0.10, rampUpSeconds: 3000 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, vol: { target: 375, min: 250, max: 500, tolerance: 0.15 }, actuators: 'Motor ON (12V 280RPM) | Heater ON (60°C Water Bath) | Katup 1 Umpan Katalis' },
+    2: { id: 2, name: 'Reflux', durationLabel: '6 jam', targetSeconds: 21600, temp: { target: 100, tolerance: 0.10, rampUpSeconds: 3600 }, rpm: { target: 0, min: 0, max: 10 }, current: null, vol: { target: 375, min: 250, max: 500, tolerance: 0.15 }, actuators: 'Heater ON (100°C Water Bath) | Motor OFF (0 RPM)' },
+    3: { id: 3, name: 'Separation', durationLabel: '12 jam', targetSeconds: 43200, temp: null, rpm: null, current: null, vol: { target: 375, min: 250, max: 500, tolerance: 0.15 }, actuators: 'Semua Aktuator OFF (Pemisahan Gravitasi & Air Cuci 10%)' },
+    4: { id: 4, name: 'Oil Treatment', durationLabel: '2 jam', targetSeconds: 7200, temp: { target: 120, tolerance: 0.10, rampUpSeconds: 3600 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, vol: { target: 375, min: 250, max: 500, tolerance: 0.15 }, actuators: 'Motor ON (250 RPM) | Heater ON (120°C Water Bath) | Adsorben Bentonit 0.2g' },
+    5: { id: 5, name: 'Filtration', durationLabel: 'Level ≥375 ml / 2 jam', targetSeconds: 7200, temp: null, rpm: null, current: null, vol: { target: 375, min: 0, max: 500, tolerance: 0.20 }, actuators: 'Katup 2 Pengurasan Separator ke Corong Whatman' }
 };
 
 const processState = {
@@ -229,19 +229,34 @@ function isTempAnomaly(temp, stageTemp, elapsedSeconds, lastResumedAt) {
     return false;
 }
 
+function isVolumeAnomaly(vol, stageVol, stageId) {
+    if (!stageVol || vol === null || vol === undefined) return false;
+    // 1. Batas atas kritis: Melebihi kapasitas labu didih 500 ml -> Anomali Bahaya Overflow
+    if (vol > 500.0) return true;
+
+    // 2. Batas bawah kritis untuk Tahap 1 s.d. 4 (Labu tertutup): Volume < 250 ml -> Anomali Kebocoran/Kekeringan
+    if (stageId >= 1 && stageId <= 4) {
+        if (vol < 250.0 && vol > 5.0) return true;
+    }
+    // 3. Untuk tahap 5 (Filtrasi): Penampung menerima cairan, batas atas 500 ml
+    return false;
+}
+
 function getAnomalies(data, stage) {
     const elapsedSec = data.elapsedSeconds || 0;
     const isTempBad = isTempAnomaly(data.temp, stage.temp, elapsedSec, processState.lastResumedAt);
+    const isVolBad  = isVolumeAnomaly(data.vol, stage.vol, stage.id);
 
     const candidates = [
         ['Suhu', data.temp, stage.temp, '°C', 1, isTempBad],
         ['Kecepatan', data.rpm, stage.rpm, 'RPM', 0, isOutsideRule(data.rpm, stage.rpm)],
-        ['Arus motor', data.current, stage.current, 'A', 2, isOutsideRule(data.current, stage.current)]
+        ['Arus motor', data.current, stage.current, 'A', 2, isOutsideRule(data.current, stage.current)],
+        ['Volume larutan', data.vol, stage.vol, 'ml', 1, isVolBad]
     ];
     return candidates.filter(([, , , , , isBad]) => isBad).map(([label, value, rule, unit, decimals]) => ({
         label,
         value: `${formatNumber(value, decimals)} ${unit}`,
-        setPoint: ruleText(rule, unit)
+        setPoint: rule ? `Target ${rule.target || 375} ${unit} (Batas ${rule.min || 250}–${rule.max || 500} ${unit})` : ruleText(rule, unit)
     }));
 }
 

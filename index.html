@@ -1158,9 +1158,20 @@
             <span id="modal-stage-num" class="grid h-7 w-7 place-items-center rounded-full bg-teal-100 dark:bg-teal-950 text-xs font-bold text-teal-800 dark:text-teal-300">1</span>
             <h3 id="modal-stage-title" class="text-lg font-bold text-slate-800 dark:text-white">Stage 1: Mixing</h3>
           </div>
-          <p id="modal-stage-desc" class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Target duration: 30 minutes · Motor & Heater ON</p>
+          <p id="modal-stage-desc" class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Target duration: 2 hours · Motor & Heater ON</p>
         </div>
         <button id="close-modal" class="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <!-- 1-SENTENCE PROCESS OBJECTIVE & PRINCIPLE CALLOUT -->
+      <div class="rounded-2xl bg-teal-50/80 dark:bg-teal-950/40 border border-teal-200/80 dark:border-teal-800/60 p-3 flex items-start gap-2.5 text-xs">
+        <span class="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-teal-600 text-white text-[10px] mt-0.5">
+          <i class="fa-solid fa-flask"></i>
+        </span>
+        <div>
+          <h4 class="text-[10px] font-bold uppercase tracking-wider text-teal-900 dark:text-teal-200">Process Principle & Chemical Function:</h4>
+          <p id="modal-stage-principle" class="mt-0.5 text-xs font-medium text-teal-800 dark:text-teal-300 leading-relaxed"></p>
+        </div>
       </div>
 
       <div class="my-4 grid grid-cols-3 gap-2 rounded-2xl bg-slate-50 dark:bg-slate-950 p-3 text-center text-xs">
@@ -1278,11 +1289,109 @@
     const chartWindows = { temp: 100, rpm: 100, current: 100, vol: 100 };
 
     const stageMeta = {
-      1: { name: 'Mixing', label: '1. Mixing', icon: 'fa-blender', duration: '2 hours', targetSeconds: 7200, setPointTemp: 60, tolTemp: 0.10, rampUpSeconds: 3000, setPointRpm: 250, tolRpm: 0.10, setCurrent: 0.35, minCurrent: 0.0, maxCurrent: 1.8, setPointVol: 375, minVol: 250, maxVol: 500, tolVol: 0.15, actuators: 'Motor ON (12V 280RPM) | Heater ON (60°C Water Bath) | Valve 1 Catalyst Feed 4%' },
-      2: { name: 'Reflux', label: '2. Reflux', icon: 'fa-fire-burner', duration: '6 hours', targetSeconds: 21600, setPointTemp: 100, tolTemp: 0.10, rampUpSeconds: 3600, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, setPointVol: 375, minVol: 250, maxVol: 500, tolVol: 0.15, actuators: 'Heater ON (100°C Water Bath) | Motor OFF (0 RPM)' },
-      3: { name: 'Separation', label: '3. Separation', icon: 'fa-hourglass-half', duration: '12 hours', targetSeconds: 43200, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, setPointVol: 375, minVol: 250, maxVol: 500, tolVol: 0.15, actuators: 'All Actuators OFF (Gravity Settling & 10% Water Wash)' },
-      4: { name: 'Oil Treatment', label: '4. Oil Treatment', icon: 'fa-droplet', duration: '2 hours', targetSeconds: 7200, setPointTemp: 120, tolTemp: 0.10, rampUpSeconds: 3600, setPointRpm: 250, tolRpm: 0.10, setCurrent: 0.35, minCurrent: 0.0, maxCurrent: 1.8, setPointVol: 375, minVol: 250, maxVol: 500, tolVol: 0.15, actuators: 'Motor ON (250 RPM) | Heater ON (120°C Water Bath) | Adsorben Bentonit 0.2g' },
-      5: { name: 'Filtration', label: '5. Filtration', icon: 'fa-filter', duration: 'Level ≥375 ml / 2h', targetSeconds: 7200, setPointTemp: null, tolTemp: 0, setPointRpm: 0, tolRpm: 0, setCurrent: 0, minCurrent: 0, maxCurrent: 0, setPointVol: 375, minVol: 0, maxVol: 500, targetVol: 375, actuators: 'Valve 2 Separator Drain to Whatman Filter' }
+      1: {
+        name: 'Mixing',
+        label: '1. Mixing',
+        icon: 'fa-blender',
+        duration: '2 hours',
+        targetSeconds: 7200,
+        setPointTemp: 60,
+        tolTemp: 0.10,
+        rampUpSeconds: 3000,
+        setPointRpm: 250,
+        tolRpm: 0.10,
+        setCurrent: 0.35,
+        minCurrent: 0.0,
+        maxCurrent: 1.8,
+        setPointVol: 375,
+        minVol: 250,
+        maxVol: 500,
+        tolVol: 0.15,
+        actuators: 'Motor ON (12V 280RPM) | Heater ON (60°C Water Bath) | Valve 1 Catalyst Feed 4%',
+        description: 'Homogenizes isopropanol alcohol and palmitic acid with 4% H2SO4 catalyst under 250 RPM mechanical stirring while gradually preheating the water bath to 60°C.'
+      },
+      2: {
+        name: 'Reflux',
+        label: '2. Reflux',
+        icon: 'fa-fire-burner',
+        duration: '6 hours',
+        targetSeconds: 21600,
+        setPointTemp: 100,
+        tolTemp: 0.10,
+        rampUpSeconds: 3600,
+        setPointRpm: 0,
+        tolRpm: 0,
+        setCurrent: 0,
+        minCurrent: 0,
+        maxCurrent: 0,
+        setPointVol: 375,
+        minVol: 250,
+        maxVol: 500,
+        tolVol: 0.15,
+        actuators: 'Heater ON (100°C Water Bath) | Motor OFF (0 RPM)',
+        description: 'Drives the synthesis esterification reaction at 100°C while continuously condensing volatile vapors back into the flask to prevent evaporation loss.'
+      },
+      3: {
+        name: 'Separation',
+        label: '3. Separation',
+        icon: 'fa-hourglass-half',
+        duration: '12 hours',
+        targetSeconds: 43200,
+        setPointTemp: null,
+        tolTemp: 0,
+        setPointRpm: 0,
+        tolRpm: 0,
+        setCurrent: 0,
+        minCurrent: 0,
+        maxCurrent: 0,
+        setPointVol: 375,
+        minVol: 250,
+        maxVol: 500,
+        tolVol: 0.15,
+        actuators: 'All Actuators OFF (Gravity Settling & 10% Water Wash)',
+        description: 'Allows unagitated gravitational settling with 10% pure wash water to separate the synthesized monoester layer from denser glycerol and residual catalyst by-products.'
+      },
+      4: {
+        name: 'Oil Treatment',
+        label: '4. Oil Treatment',
+        icon: 'fa-droplet',
+        duration: '2 hours',
+        targetSeconds: 7200,
+        setPointTemp: 120,
+        tolTemp: 0.10,
+        rampUpSeconds: 3600,
+        setPointRpm: 250,
+        tolRpm: 0.10,
+        setCurrent: 0.35,
+        minCurrent: 0.0,
+        maxCurrent: 1.8,
+        setPointVol: 375,
+        minVol: 250,
+        maxVol: 500,
+        tolVol: 0.15,
+        actuators: 'Motor ON (250 RPM) | Heater ON (120°C Water Bath) | Adsorbent Bentonite 0.2g',
+        description: 'Heats the crude ester to 120°C under 250 RPM stirring with bentonite adsorbent clay to evaporate residual moisture/alcohol and bleach impurities.'
+      },
+      5: {
+        name: 'Filtration',
+        label: '5. Filtration',
+        icon: 'fa-filter',
+        duration: 'Level ≥375 ml / 2h',
+        targetSeconds: 7200,
+        setPointTemp: null,
+        tolTemp: 0,
+        setPointRpm: 0,
+        tolRpm: 0,
+        setCurrent: 0,
+        minCurrent: 0,
+        maxCurrent: 0,
+        setPointVol: 375,
+        minVol: 0,
+        maxVol: 500,
+        targetVol: 375,
+        actuators: 'Valve 2 Separator Drain to Whatman Filter',
+        description: 'Discharges the purified monoester through a Whatman filter funnel into the collection receiver, automatically halting when level reaches ≥375 ml.'
+      }
     };
 
     let activeRecipe = {
@@ -1454,9 +1563,10 @@
               </div>
             </div>
             <h4 class="mt-2.5 font-bold text-xs">${s.label}</h4>
-            <p class="text-[10px] text-slate-500 mt-0.5">${s.duration}</p>
+            <p class="text-[10px] font-semibold text-teal-600 dark:text-teal-400 mt-0.5">${s.duration}</p>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed" title="${s.description}">${s.description}</p>
             <div class="mt-2 flex items-center justify-between border-t border-slate-200/60 dark:border-slate-800 pt-1.5 text-[10px] text-teal-700 dark:text-teal-400 font-semibold">
-              <span>View Analysis</span>
+              <span>View Analysis & Specs</span>
               <i class="fa-solid fa-chevron-right text-[9px]"></i>
             </div>
           </article>
@@ -1629,6 +1739,7 @@
       document.getElementById('modal-stage-num').textContent = stageId;
       document.getElementById('modal-stage-title').textContent = s.label;
       document.getElementById('modal-stage-desc').textContent = `Target duration: ${s.duration} · ${s.actuators}`;
+      document.getElementById('modal-stage-principle').textContent = s.description || '';
       document.getElementById('modal-sample-count').textContent = `${count} samples`;
 
       const statusBadge = document.getElementById('modal-status-badge');

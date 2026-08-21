@@ -1308,7 +1308,7 @@
         maxVol: 500,
         tolVol: 0.15,
         actuators: 'Motor ON (12V 280RPM) | Heater ON (60°C Water Bath) | Valve 1 Catalyst Feed 4%',
-        description: 'Homogenizes alcohol and carboxylic acid reactants with acid catalyst under 250 RPM mechanical stirring while gradually preheating the water bath to 60°C.'
+        description: 'Homogenizes alcohol and carboxylic acid reactants with acid catalyst under continuous mechanical stirring while gradually preheating the mixture to the target reaction temperature.'
       },
       2: {
         name: 'Reflux',
@@ -1329,7 +1329,7 @@
         maxVol: 500,
         tolVol: 0.15,
         actuators: 'Heater ON (100°C Water Bath) | Motor OFF (0 RPM)',
-        description: 'Drives the synthesis esterification reaction at 100°C while continuously condensing volatile vapors back into the flask to prevent evaporation loss.'
+        description: 'Drives the chemical esterification reaction under constant boiling while continuously condensing solvent vapors back into the flask to prevent evaporation loss.'
       },
       3: {
         name: 'Separation',
@@ -1349,7 +1349,7 @@
         maxVol: 500,
         tolVol: 0.15,
         actuators: 'All Actuators OFF (Gravity Settling & 10% Water Wash)',
-        description: 'Allows unagitated gravitational settling with 10% pure wash water to separate the synthesized monoester layer from denser glycerol and residual catalyst by-products.'
+        description: 'Allows unagitated gravitational phase settling with wash water to separate the synthesized monoester layer from denser glycerol and residual catalyst by-products.'
       },
       4: {
         name: 'Oil Treatment',
@@ -1370,7 +1370,7 @@
         maxVol: 500,
         tolVol: 0.15,
         actuators: 'Motor ON (250 RPM) | Heater ON (120°C Water Bath) | Adsorbent Bentonite 0.2g',
-        description: 'Heats the crude ester to 120°C under 250 RPM stirring with adsorbent clay to evaporate residual moisture/alcohol and bleach impurities.'
+        description: 'Heats the crude monoester under mechanical agitation with adsorbent clay to evaporate residual moisture and bleach color impurities.'
       },
       5: {
         name: 'Filtration',
@@ -1390,7 +1390,7 @@
         maxVol: 500,
         targetVol: 375,
         actuators: 'Valve 2 Separator Drain to Whatman Filter',
-        description: 'Discharges the purified monoester through a Whatman filter funnel into the collection receiver, automatically halting when level reaches ≥375 ml.'
+        description: 'Discharges the purified monoester through a filter funnel into the collection receiver until the final product volume is fully recovered.'
       }
     };
 

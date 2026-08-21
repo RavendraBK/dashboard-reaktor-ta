@@ -2728,6 +2728,8 @@
     const demoSimState = {
       runStatus: 'running',
       stageId: 1,
+      stageTicks: 0,
+      maxTicksPerStage: 6, // 6 seconds per stage (fast, dynamic, automatic demonstration)
       elapsedSeconds: 0,
       sampleCount: 0,
       batchId: 'DEMO-EXHIBITION-001',
@@ -2784,7 +2786,7 @@
       demoSimState.runStatus = 'running';
 
       if (demoInterval) clearInterval(demoInterval);
-      demoInterval = setInterval(tickDemoSimulation, 2000);
+      demoInterval = setInterval(tickDemoSimulation, 1000);
       tickDemoSimulation();
       showToast(`Welcome, ${visitorName}! Exhibition Demo Mode is active.`, 'success');
 
@@ -2796,18 +2798,19 @@
       if (!isDemoMode || demoSimState.runStatus !== 'running') return;
 
       demoSimState.sampleCount += 1;
-      demoSimState.stageTicks += 1;
+      demoSimState.stageTicks = (demoSimState.stageTicks || 0) + 1;
 
-      const stageId = demoSimState.stageId;
+      const stageId = demoSimState.stageId || 1;
       const meta = stageMeta[stageId] || stageMeta[1];
       const targetSec = meta.targetSeconds || 7200;
+      const maxTicks = demoSimState.maxTicksPerStage || 6;
 
       // Calculate progress ratio (0.0 to 1.0) for this stage
-      const progressRatio = Math.min(1.0, demoSimState.stageTicks / demoSimState.maxTicksPerStage);
+      const progressRatio = Math.min(1.0, demoSimState.stageTicks / maxTicks);
       demoSimState.elapsedSeconds = Math.round(progressRatio * targetSec);
 
       // Check if stage duration completes (reaches 100%)
-      const stageJustCompleted = demoSimState.stageTicks >= demoSimState.maxTicksPerStage;
+      const stageJustCompleted = demoSimState.stageTicks >= maxTicks;
 
       const isMotorOn = stageId === 1 || stageId === 4;
       const isHeaterOn = stageId === 1 || stageId === 2 || stageId === 4;
@@ -2882,7 +2885,7 @@
         const nextStageId = stageId >= 5 ? 1 : stageId + 1;
         demoSimState.stageId = nextStageId;
         const nextMeta = stageMeta[nextStageId];
-        showToast(`✅ Stage ${stageId} (${meta.name}) 100% completed! Advancing to Stage ${nextStageId}: ${nextMeta?.name}...`, 'success');
+        showToast(`✅ Stage ${stageId} (${meta.name}) completed (100%)! Advancing to Stage ${nextStageId}: ${nextMeta?.name}...`, 'success');
       }
     }
 

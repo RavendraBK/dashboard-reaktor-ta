@@ -2487,15 +2487,13 @@
     };
 
         function startDemoMode(nameOverride) {
-      let visitorName = '';
+      let visitorName = 'Tamu Penguji / Dosen';
       if (typeof nameOverride === 'string' && nameOverride.trim()) {
         visitorName = nameOverride.trim();
       } else {
         const visitorInput = document.getElementById('guest-visitor-name');
         if (visitorInput && visitorInput.value && visitorInput.value.trim()) {
           visitorName = visitorInput.value.trim();
-        } else {
-          visitorName = 'Tamu Penguji / Dosen';
         }
       }
       const visitorInput = document.getElementById('guest-visitor-name');
@@ -2506,12 +2504,15 @@
       sessionStorage.setItem('reactor_guest_name', visitorName);
       sessionStorage.setItem('reactor_guest_entered_at', new Date().toISOString());
 
-      // Save visitor access to DB in background
-      logVisitorAccess(visitorName, false);
+      // Instantly switch DOM view to dashboard
+      const loginEl = document.getElementById('login-page');
+      const dashEl = document.getElementById('dashboard');
+      if (loginEl) loginEl.classList.add('hidden');
+      if (dashEl) dashEl.classList.remove('hidden');
 
-      document.getElementById('login-page').classList.add('hidden');
-      document.getElementById('dashboard').classList.remove('hidden');
-      document.getElementById('demo-banner').classList.remove('hidden');
+      const demoBanner = document.getElementById('demo-banner');
+      if (demoBanner) demoBanner.classList.remove('hidden');
+
       document.getElementById('mode-badge').textContent = 'DEMO SIMULATION';
       document.getElementById('mode-badge').className = 'rounded-full bg-purple-600 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-white animate-pulse';
       document.getElementById('mqtt-badge').innerHTML = '<i class="fa-solid fa-bolt mr-1 text-purple-300"></i> Mock Telemetry: Active';
@@ -2530,6 +2531,9 @@
       demoInterval = setInterval(tickDemoSimulation, 2000);
       tickDemoSimulation();
       showToast(`Selamat datang, ${visitorName}! Mode Demo Pameran aktif.`, 'success');
+
+      // Save visitor access to DB in background non-blocking
+      try { logVisitorAccess(visitorName, false); } catch(e) {}
     }
 
     function tickDemoSimulation() {

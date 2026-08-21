@@ -36,10 +36,10 @@ function createUserClient(accessToken) {
 }
 
 const stages = {
-    1: { id: 1, name: 'Mixing', durationLabel: '1 jam', targetSeconds: 3600, temp: { target: 60, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON (12V 280RPM) | Heater ON (12V 2x40W) | Katup 1 Umpan Katalis' },
-    2: { id: 2, name: 'Reflux', durationLabel: '5 jam', targetSeconds: 18000, temp: { target: 100, tolerance: 0.10 }, rpm: { target: 0, min: 0, max: 10 }, current: null, actuators: 'Heater ON (12V 2x40W, Motor OFF)' },
+    1: { id: 1, name: 'Mixing', durationLabel: '2 jam', targetSeconds: 7200, temp: { target: 60, tolerance: 0.10, rampUpSeconds: 3000 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON (12V 280RPM) | Heater ON (60°C Water Bath) | Katup 1 Umpan Katalis' },
+    2: { id: 2, name: 'Reflux', durationLabel: '3 jam', targetSeconds: 10800, temp: { target: 100, tolerance: 0.10, rampUpSeconds: 3600 }, rpm: { target: 0, min: 0, max: 10 }, current: null, actuators: 'Heater ON (100°C Water Bath) | Motor OFF (0 RPM)' },
     3: { id: 3, name: 'Separation', durationLabel: '12 jam', targetSeconds: 43200, temp: null, rpm: null, current: null, actuators: 'Semua Aktuator OFF (Pemisahan Gravitasi & Air Cuci 10%)' },
-    4: { id: 4, name: 'Oil Treatment', durationLabel: '1 jam', targetSeconds: 3600, temp: { target: 120, tolerance: 0.10 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON | Heater ON | Adsorben Bentonit 0.2g' },
+    4: { id: 4, name: 'Oil Treatment', durationLabel: '2 jam', targetSeconds: 7200, temp: { target: 120, tolerance: 0.10, rampUpSeconds: 3600 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, actuators: 'Motor ON (250 RPM) | Heater ON (120°C Water Bath) | Adsorben Bentonit 0.2g' },
     5: { id: 5, name: 'Filtration', durationLabel: 'Level ≥375 ml / 2 jam', targetSeconds: 7200, temp: null, rpm: null, current: null, actuators: 'Katup 2 Pengurasan Separator ke Corong Whatman' }
 };
 
@@ -54,6 +54,7 @@ const processState = {
     runStatus: 'standby',
     anomalyCount: 0,
     stageAnomalyCount: 0,
+    lastResumedAt: null,
     lastAlertAt: new Map(),
     notificationChatIds: new Set(),
     latestData: null,
@@ -207,13 +208,37 @@ function isOutsideRule(value, rule) {
     return value < rule.target * (1 - rule.tolerance) || value > rule.target * (1 + rule.tolerance);
 }
 
+function isTempAnomaly(temp, stageTemp, elapsedSeconds, lastResumedAt) {
+    if (!stageTemp || temp === null) return false;
+    const maxSafe = stageTemp.target * (1 + (stageTemp.tolerance || 0.10));
+    // Suhu melebihi batas atas (Overshoot) selalu dianggap anomali keselamatan
+    if (temp > maxSafe) return true;
+
+    const minSafe = stageTemp.target * (1 - (stageTemp.tolerance || 0.10));
+    // Jika suhu di bawah target:
+    if (temp < minSafe) {
+        const rampGraceSeconds = stageTemp.rampUpSeconds || 3000; // 50 menit grace period kenaikan suhu water bath
+        // 1. Jika masih dalam masa pemanasan awal (0 s.d. 50 menit dari awal tahap), BUKAN anomali
+        if (elapsedSeconds <= rampGraceSeconds) return false;
+
+        // 2. Jika baru di-resume dari pause dalam 15 menit terakhir, BUKAN anomali (masa pemulihan suhu)
+        if (lastResumedAt && (Date.now() - lastResumedAt) <= 900000) return false;
+
+        return true;
+    }
+    return false;
+}
+
 function getAnomalies(data, stage) {
+    const elapsedSec = data.elapsedSeconds || 0;
+    const isTempBad = isTempAnomaly(data.temp, stage.temp, elapsedSec, processState.lastResumedAt);
+
     const candidates = [
-        ['Suhu', data.temp, stage.temp, '°C', 1],
-        ['Kecepatan', data.rpm, stage.rpm, 'RPM', 0],
-        ['Arus motor', data.current, stage.current, 'A', 2]
+        ['Suhu', data.temp, stage.temp, '°C', 1, isTempBad],
+        ['Kecepatan', data.rpm, stage.rpm, 'RPM', 0, isOutsideRule(data.rpm, stage.rpm)],
+        ['Arus motor', data.current, stage.current, 'A', 2, isOutsideRule(data.current, stage.current)]
     ];
-    return candidates.filter(([, value, rule]) => isOutsideRule(value, rule)).map(([label, value, rule, unit, decimals]) => ({
+    return candidates.filter(([, , , , , isBad]) => isBad).map(([label, value, rule, unit, decimals]) => ({
         label,
         value: `${formatNumber(value, decimals)} ${unit}`,
         setPoint: ruleText(rule, unit)

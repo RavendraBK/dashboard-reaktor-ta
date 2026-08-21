@@ -91,6 +91,10 @@
         <button id="login-button" class="w-full rounded-xl bg-teal-700 py-3 text-sm font-bold text-white shadow-md transition hover:bg-teal-800 disabled:opacity-60">
           Sign In to Live Production
         </button>
+
+        <button id="autofill-operator-btn" type="button" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-slate-700">
+          <i class="fa-solid fa-key mr-1.5 text-amber-500"></i> ⚡ Isi Kredensial Operator Otomatis
+        </button>
       </form>
     </section>
   </main>
@@ -570,8 +574,12 @@
               </div>
             </div>
 
-            <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              <button data-command="start" class="control-button rounded-xl bg-teal-700 py-2.5 text-xs font-bold text-white transition hover:bg-teal-800"><i class="fa-solid fa-play mr-1"></i> Start Process</button>
+            <div class="mt-3">
+              <button id="init-connect-batch-btn" type="button" class="w-full rounded-xl bg-indigo-600 py-2.5 text-xs font-bold text-white transition hover:bg-indigo-700 shadow-sm"><i class="fa-solid fa-link mr-1.5"></i> 1. Submit Batch & Tampilkan Status CONNECTED di LCD Alat</button>
+            </div>
+
+            <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <button data-command="start" class="control-button rounded-xl bg-teal-700 py-2.5 text-xs font-bold text-white transition hover:bg-teal-800"><i class="fa-solid fa-play mr-1"></i> 2. Start Process</button>
               <button data-command="pause" class="control-button rounded-xl bg-amber-500 py-2.5 text-xs font-bold text-slate-900 transition hover:bg-amber-600"><i class="fa-solid fa-pause mr-1"></i> Pause</button>
               <button data-command="resume" class="control-button rounded-xl bg-cyan-600 py-2.5 text-xs font-bold text-white transition hover:bg-cyan-700"><i class="fa-solid fa-play mr-1"></i> Resume</button>
               <button data-command="restart" class="control-button rounded-xl bg-slate-700 py-2.5 text-xs font-bold text-white transition hover:bg-slate-800"><i class="fa-solid fa-rotate-right mr-1"></i> Restart Batch</button>
@@ -1175,6 +1183,11 @@
       applyTheme(isDark ? 'light' : 'dark');
     });
 
+    function safeOn(id, event, handler) {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener(event, handler);
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     const isExplicitDemo = urlParams.has('demo') || urlParams.has('mode') && ['demo', 'sim', 'simulation', 'guest'].includes(urlParams.get('mode'));
     let isDemoMode = isExplicitDemo || sessionStorage.getItem('reactor_demo_mode') === 'true';
@@ -1306,10 +1319,11 @@
     }
 
     function updateCharts() {
-      if (!currentLogs.length) return;
+      if (!currentLogs || !currentLogs.length) return;
       const currentStage = currentState?.currentStageId || 1;
 
       for (const [key, chart] of Object.entries(charts)) {
+        if (!chart || typeof chart !== 'object' || !chart.data || !chart.data.datasets || !chart.data.datasets[0]) continue;
         const filter = chartFilters[key];
         const maxPoints = chartWindows[key];
 
@@ -1328,7 +1342,7 @@
           if (key === 'current') return Number(r.current);
           return Number(r.vol);
         });
-        chart.update('none');
+        try { chart.update('none'); } catch(e) {}
       }
     }
 
@@ -1458,32 +1472,36 @@
       setActuatorUI('separator', isSep);
       setActuatorUI('servo', isServo);
 
+      function setSvgClass(elId, cls) {
+        const el = document.getElementById(elId);
+        if (el) el.setAttribute('class', cls || '');
+      }
+
       const stirBar = document.getElementById('svg-stirbar');
-      if (isMotor && data.rpm > 10) {
-        stirBar.className.baseVal = data.rpm > 200 ? 'animate-stirbar-fast' : 'animate-stirbar';
-      } else {
-        stirBar.className.baseVal = '';
+      if (stirBar) {
+        setSvgClass('svg-stirbar', (isMotor && data.rpm > 10) ? (data.rpm > 200 ? 'animate-stirbar-fast' : 'animate-stirbar') : '');
       }
 
       const mantleGlow = document.getElementById('svg-mantle-glow');
-      if (isHeater) {
-        mantleGlow.className.baseVal = 'mantle-heating';
-        mantleGlow.setAttribute('opacity', '0.95');
-      } else {
-        mantleGlow.className.baseVal = '';
-        mantleGlow.setAttribute('opacity', '0');
+      if (mantleGlow) {
+        setSvgClass('svg-mantle-glow', isHeater ? 'mantle-heating' : '');
+        mantleGlow.setAttribute('opacity', isHeater ? '0.95' : '0');
       }
 
       const flaskLiquid = document.getElementById('svg-flask-liquid');
-      const isFlaskLiquidActive = (stageId === 1 || stageId === 2 || stageId === 4);
-      flaskLiquid.setAttribute('opacity', isFlaskLiquidActive ? '0.75' : '0.15');
+      if (flaskLiquid) {
+        const isFlaskLiquidActive = (stageId === 1 || stageId === 2 || stageId === 4);
+        flaskLiquid.setAttribute('opacity', isFlaskLiquidActive ? '0.75' : '0.15');
+      }
 
       const sepLiquid = document.getElementById('svg-sep-liquid');
-      sepLiquid.setAttribute('opacity', (stageId === 3) ? '0.8' : (stageId === 5 ? '0.2' : '0'));
+      if (sepLiquid) {
+        sepLiquid.setAttribute('opacity', (stageId === 3) ? '0.8' : (stageId === 5 ? '0.2' : '0'));
+      }
 
-      document.getElementById('svg-catalyst-drip').className.baseVal = (isCat || stageId === 1) ? '' : 'hidden';
-      document.getElementById('svg-condenser-vapor').className.baseVal = (stageId === 2 || isHeater) ? '' : 'hidden';
-      document.getElementById('svg-sep-drip').className.baseVal = (isSep || stageId === 5) ? '' : 'hidden';
+      setSvgClass('svg-catalyst-drip', (isCat || stageId === 1) ? '' : 'hidden');
+      setSvgClass('svg-condenser-vapor', (stageId === 2 || isHeater) ? '' : 'hidden');
+      setSvgClass('svg-sep-drip', (isSep || stageId === 5) ? '' : 'hidden');
 
       const isFiltration = stageId === 5;
       const beakerH = Math.min(32, Math.max(4, (Number(data.vol || 0) / 500) * 32));
@@ -1923,6 +1941,7 @@
       const sB = logsB.slice(-maxPts);
       const labels = Array.from({ length: Math.max(sA.length, sB.length) }, (_, i) => `Point ${i + 1}`);
 
+      if (!cmpCharts.temp || !cmpCharts.temp.data) return;
       cmpCharts.temp.data.labels = labels;
       cmpCharts.temp.data.datasets = [
         { label: 'Batch A Temp (°C)', data: sA.map(r => Number(r.temp)), borderColor: '#ef4444', backgroundColor: 'transparent', tension: 0.2 },
@@ -2670,7 +2689,7 @@
       }
     });
 
-    document.getElementById('guest-demo-btn').addEventListener('click', (e) => {
+    safeOn('guest-demo-btn', 'click', (e) => {
       e.preventDefault();
       startDemoMode();
     });
@@ -2684,8 +2703,8 @@
         showToast('Kredensial operator terisi otomatis. Klik tombol hijau untuk masuk!', 'info');
       });
     }
-    document.getElementById('exit-demo-btn').addEventListener('click', logout);
-    document.getElementById('demo-fastforward-btn').addEventListener('click', () => {
+    safeOn('exit-demo-btn', 'click', logout);
+    safeOn('demo-fastforward-btn', 'click', () => {
       if (!isDemoMode) return;
       demoSimState.stageId = demoSimState.stageId >= 6 ? 1 : demoSimState.stageId + 1;
       demoSimState.sampleCount = 0;
@@ -2693,10 +2712,10 @@
       showToast(`Fast-forwarded to Stage ${demoSimState.stageId}: ${stageMeta[demoSimState.stageId].name}`, 'info');
     });
 
-    document.getElementById('btn-download-specs-dashboard').addEventListener('click', downloadApparatusSpecsPdf);
-    document.getElementById('btn-download-specs-sidebar').addEventListener('click', downloadApparatusSpecsPdf);
+    safeOn('btn-download-specs-dashboard', 'click', downloadApparatusSpecsPdf);
+    safeOn('btn-download-specs-sidebar', 'click', downloadApparatusSpecsPdf);
 
-    document.getElementById('send-summary-telegram-btn').addEventListener('click', async () => {
+    safeOn('send-summary-telegram-btn', 'click', async () => {
       if (isDemoMode) {
         showToast('Telegram summary sent in simulation mode.', 'success');
         return;
@@ -2709,7 +2728,7 @@
       }
     });
 
-    document.getElementById('login-form').addEventListener('submit', async event => {
+    safeOn('login-form', 'submit', async event => {
       event.preventDefault();
       const button = document.getElementById('login-button');
       const errorNode = document.getElementById('login-error');
@@ -2751,21 +2770,21 @@
       }
     });
 
-    document.getElementById('logout-button').addEventListener('click', logout);
-    document.getElementById('hide-anomaly').addEventListener('click', () => document.getElementById('anomaly-banner').classList.add('hidden'));
+    safeOn('logout-button', 'click', logout);
+    safeOn('hide-anomaly', 'click', () => document.getElementById('anomaly-banner').classList.add('hidden'));
     document.querySelectorAll('.control-button').forEach(button => button.addEventListener('click', () => sendControl(button.dataset.command)));
-    document.getElementById('emergency-button').addEventListener('click', () => sendControl('emergency_stop'));
+    safeOn('emergency-button', 'click', () => sendControl('emergency_stop'));
     document.querySelectorAll('[data-actuator]').forEach(toggle => toggle.addEventListener('change', () => sendControl('set_actuator', { actuator: toggle.dataset.actuator, enabled: toggle.checked })));
     
-    document.getElementById('load-batch').addEventListener('click', async () => { try { await loadLogs(document.getElementById('batch-select').value); showToast('Batch telemetry loaded.', 'success'); } catch (error) { showToast(error.message, 'error'); } });
-    document.getElementById('delete-batch-btn').addEventListener('click', deleteSelectedBatch);
-    document.getElementById('batch-select').addEventListener('change', event => { if (event.target.value) document.getElementById('batch-code-input').value = event.target.value; });
-    document.getElementById('download-csv').addEventListener('click', downloadCsv);
-    document.getElementById('download-pdf').addEventListener('click', downloadPdf);
+    safeOn('load-batch', 'click', async () => { try { await loadLogs(document.getElementById('batch-select').value); showToast('Batch telemetry loaded.', 'success'); } catch (error) { showToast(error.message, 'error'); } });
+    safeOn('delete-batch-btn', 'click', deleteSelectedBatch);
+    safeOn('batch-select', 'change', event => { if (event.target.value) document.getElementById('batch-code-input').value = event.target.value; });
+    safeOn('download-csv', 'click', downloadCsv);
+    safeOn('download-pdf', 'click', downloadPdf);
 
-    document.getElementById('close-modal').addEventListener('click', closeStageModal);
-    document.getElementById('close-modal-btn').addEventListener('click', closeStageModal);
-    document.getElementById('stage-modal').addEventListener('click', event => { if (event.target === document.getElementById('stage-modal')) closeStageModal(); });
+    safeOn('close-modal', 'click', closeStageModal);
+    safeOn('close-modal-btn', 'click', closeStageModal);
+    safeOn('stage-modal', 'click', event => { if (event.target === document.getElementById('stage-modal')) closeStageModal(); });
 
     document.querySelectorAll('.chart-filter').forEach(select => {
       select.addEventListener('change', event => {

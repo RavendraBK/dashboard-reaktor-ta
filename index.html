@@ -1355,11 +1355,11 @@
         name: 'Oil Treatment',
         label: '4. Oil Treatment',
         icon: 'fa-droplet',
-        duration: '2 hours',
-        targetSeconds: 7200,
+        duration: '3 hours',
+        targetSeconds: 10800,
         setPointTemp: 120,
         tolTemp: 0.10,
-        rampUpSeconds: 3600,
+        rampUpSeconds: 7200, // 2 hours (120 min) ramp-up grace period
         setPointRpm: 250,
         tolRpm: 0.10,
         setCurrent: 0.35,
@@ -1753,6 +1753,9 @@
 
       if (activeStage === stageId && currentState?.latestData?.elapsedSeconds) {
         document.getElementById('modal-elapsed').textContent = formatElapsed(currentState.latestData.elapsedSeconds);
+      } else if (stageId === 3 && activeStage > 3) {
+        // Stage 3 Separation Completed (Recorded 12 hours)
+        document.getElementById('modal-elapsed').textContent = '12:00:00 (12 Hours)';
       } else {
         document.getElementById('modal-elapsed').textContent = count ? formatElapsed(count * 2) : '-';
       }
@@ -2518,7 +2521,7 @@
           ['1', 'Mixing', '60 °C (±10%) · 250 RPM', '2 Hours', 'Motor ON, Heater ON. Valve 1 feed 4% H2SO4 catalyst.'],
           ['2', 'Reflux', '100 °C (±10%) · 0 RPM', '5 Hours', 'Heater ON (~82%), Motor OFF. Kondensasi refluks.'],
           ['3', 'Separation', 'Ambient · 0 RPM', '12 Hours', 'All OFF. 10% pure water wash. Gravity phase separation.'],
-          ['4', 'Oil Treatment', '120 °C (±10%) · 250 RPM', '2 Hours', 'Motor ON, Heater 100%. 0.2g bentonite adsorbent purification.'],
+          ['4', 'Oil Treatment', '120 °C (±10%) · 250 RPM', '3 Hours', 'Motor ON, Heater 100%. 0.2g bentonite adsorbent purification.'],
           ['5', 'Filtration', 'Ambient · 0 RPM', 'Level ≥375 ml', 'Valve 2 Servo ON to Whatman filter. Auto shutoff on level ≥375ml.']
         ],
         theme: 'grid',

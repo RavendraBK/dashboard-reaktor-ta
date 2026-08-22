@@ -39,7 +39,7 @@ const stages = {
     1: { id: 1, name: 'Mixing', durationLabel: '2 jam', targetSeconds: 7200, temp: { target: 60, tolerance: 0.10, rampUpSeconds: 3000 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, vol: { target: 375, min: 250, max: 500, tolerance: 0.15 }, actuators: 'Motor ON (12V 280RPM) | Heater ON (60°C Water Bath) | Katup 1 Umpan Katalis' },
     2: { id: 2, name: 'Reflux', durationLabel: '6 jam', targetSeconds: 21600, temp: { target: 100, tolerance: 0.10, rampUpSeconds: 3600 }, rpm: { target: 0, min: 0, max: 10 }, current: null, vol: { target: 375, min: 250, max: 500, tolerance: 0.15 }, actuators: 'Heater ON (100°C Water Bath) | Motor OFF (0 RPM)' },
     3: { id: 3, name: 'Separation', durationLabel: '12 jam', targetSeconds: 43200, temp: null, rpm: null, current: null, vol: { target: 375, min: 250, max: 500, tolerance: 0.15 }, actuators: 'Semua Aktuator OFF (Pemisahan Gravitasi & Air Cuci 10%)' },
-    4: { id: 4, name: 'Oil Treatment', durationLabel: '2 jam', targetSeconds: 7200, temp: { target: 120, tolerance: 0.10, rampUpSeconds: 3600 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, vol: { target: 375, min: 250, max: 500, tolerance: 0.15 }, actuators: 'Motor ON (250 RPM) | Heater ON (120°C Water Bath) | Adsorben Bentonit 0.2g' },
+    4: { id: 4, name: 'Oil Treatment', durationLabel: '3 jam', targetSeconds: 10800, temp: { target: 120, tolerance: 0.10, rampUpSeconds: 7200 }, rpm: { target: 250, tolerance: 0.10 }, current: { target: 0.35, min: 0, max: 1.8 }, vol: { target: 375, min: 250, max: 500, tolerance: 0.15 }, actuators: 'Motor ON (250 RPM) | Heater ON (120°C Water Bath) | Adsorbent Bentonite 0.2g' },
     5: { id: 5, name: 'Filtration', durationLabel: 'Level ≥375 ml / 2 jam', targetSeconds: 7200, temp: null, rpm: null, current: null, vol: { target: 375, min: 0, max: 500, tolerance: 0.20 }, actuators: 'Katup 2 Pengurasan Separator ke Corong Whatman' }
 };
 
@@ -437,16 +437,27 @@ async function startStage(stageId) {
 async function completeCurrentStage() {
     const stage = stages[processState.currentStageId];
     if (!stage || !processState.stageStats || !processState.stageStartedAt) return;
+    // Khusus Tahap 3 (Separasi 12 Jam): Saat dilanjutkan ke tahap berikutnya setelah pause/alat mati,
+    // durasi aktual dicatat tuntas 12 Jam (43.200 detik)
+    const actualDurationSec = (processState.currentStageId === 3)
+        ? 43200
+        : Math.round((Date.now() - processState.stageStartedAt) / 1000);
+
     await notifyTelegram(buildStageCompleteMessage(
         stage,
         processState.stageStats,
-        (Date.now() - processState.stageStartedAt) / 1000
+        actualDurationSec
     ));
 }
 
 function toDatabaseRow(data, event = null) {
     const now = indonesiaParts();
     const recordedAt = new Date().toISOString();
+    // Jika data tahap 3 transisi ke tahap 4, pastikan elapsedSeconds tercatat 43200s
+    let elapsedSeconds = data.elapsedSeconds;
+    if (data.stageId === 3 && (event?.type === 'stage_complete' || event?.command === 'next_stage')) {
+        elapsedSeconds = 43200;
+    }
     const row = {
         stage: data.stageId,
         temp: data.temp,
@@ -461,6 +472,7 @@ function toDatabaseRow(data, event = null) {
         recorded_at: recordedAt,
         sensor_payload: {
             ...data.rawPayload,
+            elapsedSeconds: elapsedSeconds || data.elapsedSeconds,
             act: data.act,
             event,
             recipe: processState.recipe,

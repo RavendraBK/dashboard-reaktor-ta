@@ -1440,6 +1440,10 @@
 
         closeSidebar();
         if (view === 'comparison') loadBatchesForComparison();
+        if (view === 'logs') {
+          syncBatchCodeAcrossUI(getActiveBatchCode());
+          loadBatches();
+        }
       });
     });
 
@@ -2563,7 +2567,37 @@
     function getActiveBatchCode() {
       const inputVal = document.getElementById('batch-code-input')?.value?.trim();
       const selectVal = document.getElementById('batch-select')?.value?.trim();
-      return selectVal || inputVal || currentState?.batchCode || currentState?.batchId || 'BATCH-01';
+      const stateVal = currentState?.batchCode || currentState?.batchId;
+      // Prioritize active input value -> current state -> dropdown selection -> fallback
+      return inputVal || stateVal || (selectVal && selectVal !== '' ? selectVal : null) || 'BATCH-01';
+    }
+
+    function syncBatchCodeAcrossUI(code) {
+      const activeCode = code || getActiveBatchCode();
+      if (!activeCode) return;
+
+      const badge = document.getElementById('notes-active-batch-badge');
+      if (badge) badge.textContent = activeCode;
+
+      const label = document.getElementById('batch-label');
+      if (label) label.textContent = 'Batch: ' + activeCode;
+
+      if (currentState) {
+        currentState.batchCode = activeCode;
+        currentState.batchId = activeCode;
+      }
+
+      if (isDemoMode) {
+        demoSimState.batchCode = activeCode;
+        demoSimState.batchId = activeCode;
+      }
+
+      const select = document.getElementById('batch-select');
+      if (select && select.options && select.options.length > 0) {
+        select.options[0].textContent = `Active Batch (${activeCode})`;
+      }
+
+      renderBatchNotesUI();
     }
 
     function getNotesForBatch(batchCode) {
@@ -3061,9 +3095,8 @@
     safeOn('batch-select', 'change', () => {
       renderBatchNotesUI();
     });
-    safeOn('batch-code-input', 'input', () => {
-      const badge = document.getElementById('notes-active-batch-badge');
-      if (badge) badge.textContent = getActiveBatchCode();
+    safeOn('batch-code-input', 'input', (e) => {
+      syncBatchCodeAcrossUI(e.target.value.trim());
     });
 
     // Initialize Notes UI on load
@@ -3083,6 +3116,8 @@
       const btn = document.getElementById('init-connect-batch-btn');
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Sending to Apparatus...';
+
+      syncBatchCodeAcrossUI(batchCode);
 
       if (isDemoMode) {
         showToast(`[Demo] Batch ${batchCode} connected! Apparatus LCD: CONNECT.`, 'success');

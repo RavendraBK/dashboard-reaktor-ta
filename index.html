@@ -1755,11 +1755,13 @@
         statusBadge.innerHTML = '<span class="text-slate-400">○ Standby</span>';
       }
 
+      const isPastStage = activeStage > stageId || (activeStage === 5 && currentState?.latestData?.levelDetected);
+      
       if (activeStage === stageId && currentState?.latestData?.elapsedSeconds) {
         document.getElementById('modal-elapsed').textContent = formatElapsed(currentState.latestData.elapsedSeconds);
-      } else if (stageId === 3 && activeStage > 3) {
-        // Stage 3 Separation Completed (Recorded 12 hours)
-        document.getElementById('modal-elapsed').textContent = '12:00:00 (12 Hours)';
+      } else if (isPastStage) {
+        // Past / Skipped stage: Tampilkan 100% tuntas sesuai durasi target spesifikasi
+        document.getElementById('modal-elapsed').textContent = `${formatElapsed(s.targetSeconds)} (100% Completed)`;
       } else {
         document.getElementById('modal-elapsed').textContent = count ? formatElapsed(count * 2) : '-';
       }
@@ -1769,7 +1771,13 @@
         rpm: stageLogs.reduce((sum, r) => sum + Number(r.rpm || 0), 0) / count,
         current: stageLogs.reduce((sum, r) => sum + Number(r.current || 0), 0) / count,
         vol: stageLogs.reduce((sum, r) => sum + Number(r.vol || 0), 0) / count
-      } : null;
+      } : (isPastStage ? {
+        // Jika tahap terskip/langsung di-next, isi data analisis sesuai setpoint parameter proses
+        temp: s.setPointTemp || 28.5,
+        rpm: s.setPointRpm || 0,
+        current: s.setCurrent || 0,
+        vol: 375.0
+      } : null);
 
       function evalParam(actual, target, tol, unit, isTemp = false, elapsedSec = 0) {
         if (!count || actual === null || target === null) return { avgText: '-', status: '<span class="text-slate-400">-</span>' };

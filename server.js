@@ -208,6 +208,14 @@ function isOutsideRule(value, rule) {
     return value < rule.target * (1 - rule.tolerance) || value > rule.target * (1 + rule.tolerance);
 }
 
+function isRpmAnomaly(rpm, stageRpm, elapsedSeconds, lastResumedAt) {
+    if (!stageRpm || rpm === null || rpm === undefined || stageRpm.target === 0) return false;
+    // Tenggang waktu 30 detik pada saat awal mulai atau resume dari pause agar motor sempat soft-start mencapai 250 RPM
+    if (elapsedSeconds <= 30) return false;
+    if (lastResumedAt && (Date.now() - lastResumedAt) <= 30000) return false;
+    return isOutsideRule(rpm, stageRpm);
+}
+
 function isTempAnomaly(temp, stageTemp, elapsedSeconds, lastResumedAt) {
     if (!stageTemp || temp === null) return false;
     const maxSafe = stageTemp.target * (1 + (stageTemp.tolerance || 0.10));
@@ -217,8 +225,8 @@ function isTempAnomaly(temp, stageTemp, elapsedSeconds, lastResumedAt) {
     const minSafe = stageTemp.target * (1 - (stageTemp.tolerance || 0.10));
     // Jika suhu di bawah target:
     if (temp < minSafe) {
-        const rampGraceSeconds = stageTemp.rampUpSeconds || 3000; // 50 menit grace period kenaikan suhu water bath
-        // 1. Jika masih dalam masa pemanasan awal (0 s.d. 50 menit dari awal tahap), BUKAN anomali
+        const rampGraceSeconds = stageTemp.rampUpSeconds || 3000; // grace period kenaikan suhu water bath
+        // 1. Jika masih dalam masa pemanasan awal (0 s.d. rampGraceSeconds), BUKAN anomali
         if (elapsedSeconds <= rampGraceSeconds) return false;
 
         // 2. Jika baru di-resume dari pause dalam 15 menit terakhir, BUKAN anomali (masa pemulihan suhu)
@@ -242,21 +250,40 @@ function isVolumeAnomaly(vol, stageVol, stageId) {
     return false;
 }
 
+function formatRuleBounds(rule, unit) {
+    if (!rule) return '-';
+    if (rule.min !== undefined && rule.max !== undefined && rule.target !== undefined) {
+        return 'Target ' + rule.target + ' ' + unit + ' (Batas ' + rule.min + '–' + rule.max + ' ' + unit + ')';
+    }
+    if (rule.tolerance !== undefined && rule.target !== undefined) {
+        const minVal = rule.target * (1 - rule.tolerance);
+        const maxVal = rule.target * (1 + rule.tolerance);
+        const tolPct = Math.round(rule.tolerance * 100);
+        return 'Target ' + rule.target + ' ' + unit + ' (Batas ' + Math.round(minVal) + '–' + Math.round(maxVal) + ' ' + unit + ', ±' + tolPct + '%)';
+    }
+    if (rule.min !== undefined && rule.max !== undefined) {
+        return 'Batas ' + rule.min + '–' + rule.max + ' ' + unit;
+    }
+    return ruleText(rule, unit);
+}
+
 function getAnomalies(data, stage) {
     const elapsedSec = data.elapsedSeconds || 0;
     const isTempBad = isTempAnomaly(data.temp, stage.temp, elapsedSec, processState.lastResumedAt);
+    const isRpmBad  = isRpmAnomaly(data.rpm, stage.rpm, elapsedSec, processState.lastResumedAt);
     const isVolBad  = isVolumeAnomaly(data.vol, stage.vol, stage.id);
+    const isCurBad  = isOutsideRule(data.current, stage.current);
 
     const candidates = [
         ['Suhu', data.temp, stage.temp, '°C', 1, isTempBad],
-        ['Kecepatan', data.rpm, stage.rpm, 'RPM', 0, isOutsideRule(data.rpm, stage.rpm)],
-        ['Arus motor', data.current, stage.current, 'A', 2, isOutsideRule(data.current, stage.current)],
+        ['Kecepatan', data.rpm, stage.rpm, 'RPM', 0, isRpmBad],
+        ['Arus motor', data.current, stage.current, 'A', 2, isCurBad],
         ['Volume larutan', data.vol, stage.vol, 'ml', 1, isVolBad]
     ];
     return candidates.filter(([, , , , , isBad]) => isBad).map(([label, value, rule, unit, decimals]) => ({
         label,
-        value: `${formatNumber(value, decimals)} ${unit}`,
-        setPoint: rule ? `Target ${rule.target || 375} ${unit} (Batas ${rule.min || 250}–${rule.max || 500} ${unit})` : ruleText(rule, unit)
+        value: formatNumber(value, decimals) + ' ' + unit,
+        setPoint: formatRuleBounds(rule, unit)
     }));
 }
 

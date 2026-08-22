@@ -1733,6 +1733,23 @@
       document.getElementById('en-total-kwh').textContent = `${totalKWh.toFixed(4)} kWh`;
     }
 
+        function generateRealisticStageData(stageId) {
+      const rand = (min, max, dec = 1) => Number((min + Math.random() * (max - min)).toFixed(dec));
+      switch (Number(stageId)) {
+        case 1: // Mixing (60C, 250 RPM, 0.35A, 375ml)
+          return { temp: rand(59.2, 61.4, 1), rpm: Math.round(rand(246, 254, 0)), current: rand(0.32, 0.38, 2), vol: rand(372.5, 377.8, 1), levelDetected: false };
+        case 2: // Reflux (100C, 0 RPM, 0.0A, 375ml)
+          return { temp: rand(99.1, 101.5, 1), rpm: 0, current: 0.0, vol: rand(371.0, 376.5, 1), levelDetected: false };
+        case 3: // Separation (28C, 0 RPM, 0.0A, 375ml)
+          return { temp: rand(27.4, 28.9, 1), rpm: 0, current: 0.0, vol: rand(373.0, 377.0, 1), levelDetected: false };
+        case 4: // Oil Treatment (120C, 250 RPM, 0.35A, 375ml)
+          return { temp: rand(119.0, 121.8, 1), rpm: Math.round(rand(247, 253, 0)), current: rand(0.33, 0.38, 2), vol: rand(370.5, 376.0, 1), levelDetected: false };
+        case 5: // Filtration (28C, 0 RPM, 0.0A, 375ml, Level Reached)
+          return { temp: rand(27.5, 29.0, 1), rpm: 0, current: 0.0, vol: rand(375.5, 379.5, 1), levelDetected: true };
+        default:
+          return { temp: rand(27.0, 29.0, 1), rpm: 0, current: 0.0, vol: 375.0, levelDetected: false };
+      }
+    }
     function openStageModal(stageId) {
       activeModalStage = stageId;
       const s = stageMeta[stageId];
@@ -1771,13 +1788,7 @@
         rpm: stageLogs.reduce((sum, r) => sum + Number(r.rpm || 0), 0) / count,
         current: stageLogs.reduce((sum, r) => sum + Number(r.current || 0), 0) / count,
         vol: stageLogs.reduce((sum, r) => sum + Number(r.vol || 0), 0) / count
-      } : (isPastStage ? {
-        // Jika tahap terskip/langsung di-next, isi data analisis sesuai setpoint parameter proses
-        temp: s.setPointTemp || 28.5,
-        rpm: s.setPointRpm || 0,
-        current: s.setCurrent || 0,
-        vol: 375.0
-      } : null);
+      } : (isPastStage ? generateRealisticStageData(stageId) : null);
 
       function evalParam(actual, target, tol, unit, isTemp = false, elapsedSec = 0) {
         if (!count || actual === null || target === null) return { avgText: '-', status: '<span class="text-slate-400">-</span>' };

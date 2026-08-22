@@ -12,7 +12,7 @@ function cleanSupabaseUrl(url) {
 
 const config = {
     port: Number(process.env.PORT) || 3000,
-    mqttUrl: process.env.MQTT_URL || 'mqtt://broker.hivemq.com:1883',
+    mqttUrl: process.env.MQTT_URL || 'mqtt://broker.emqx.io:1883',
     sensorTopic: process.env.MQTT_SENSOR_TOPIC || 'ta/reaktor/data_sensor',
     controlTopic: process.env.MQTT_CONTROL_TOPIC || 'ta/reaktor/perintah',
     frontendOrigin: process.env.FRONTEND_ORIGIN || '*',

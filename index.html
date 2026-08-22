@@ -2290,6 +2290,11 @@
         document.getElementById('current-value').textContent = number(data.current, 2);
         document.getElementById('elapsed-value').textContent = formatElapsed(data.elapsedSeconds);
         document.getElementById('last-update').textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+        const mqttBadge = document.getElementById('mqtt-badge');
+        if (mqttBadge) {
+          mqttBadge.innerHTML = '<i class="fa-solid fa-circle mr-1 text-emerald-400 animate-pulse"></i> MQTT: Connected';
+          mqttBadge.className = 'hidden sm:inline-flex items-center rounded-full bg-emerald-950/80 border border-emerald-500/60 px-2.5 py-1 text-[11px] font-bold text-emerald-300 shadow-sm';
+        }
 
         document.querySelectorAll('[data-actuator]').forEach(toggle => {
           toggle.checked = Boolean(data.act?.[toggle.dataset.actuator]);
@@ -2883,8 +2888,18 @@
       session.events = new EventSource(`${API_BASE}/api/events?token=${encodeURIComponent(session.token)}`);
       session.events.addEventListener('state', event => applyState(JSON.parse(event.data)));
       session.events.addEventListener('anomaly', event => showAnomaly(JSON.parse(event.data)));
-      session.events.onerror = () => { document.getElementById('mqtt-badge').innerHTML = '<i class="fa-solid fa-circle mr-1 text-amber-400"></i> Realtime reconnecting'; };
-      document.getElementById('mqtt-badge').innerHTML = '<i class="fa-solid fa-circle mr-1 text-emerald-400"></i> Realtime connected';
+      session.events.onerror = () => {
+        const b = document.getElementById('mqtt-badge');
+        if (b) {
+          b.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1 text-amber-400"></i> Live Bridge: Reconnecting';
+          b.className = 'hidden sm:inline-flex items-center rounded-full bg-amber-950/80 border border-amber-500/60 px-2.5 py-1 text-[11px] font-bold text-amber-300 shadow-sm';
+        }
+      };
+      const b = document.getElementById('mqtt-badge');
+      if (b) {
+        b.innerHTML = '<i class="fa-solid fa-circle mr-1 text-emerald-400"></i> Live Bridge: Connected';
+        b.className = 'hidden sm:inline-flex items-center rounded-full bg-emerald-950/80 border border-emerald-500/60 px-2.5 py-1 text-[11px] font-bold text-emerald-300 shadow-sm';
+      }
     }
 
     async function logVisitorAccess(visitorName, isExit = false) {

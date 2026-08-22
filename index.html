@@ -2191,9 +2191,19 @@
       const data = state.latestData;
       if (state.recipe) activeRecipe = { ...activeRecipe, ...state.recipe };
 
-      const batchCode = state.batchCode || state.batchId;
-      document.getElementById('batch-label').textContent = `Batch: ${batchCode || '-'}`;
+      const batchCode = state.batchCode || state.batchId || '';
+      document.getElementById('batch-label').textContent = batchCode ? `Batch: ${batchCode}` : 'Batch: -';
       const nBadge = document.getElementById('notes-active-batch-badge'); if (nBadge && batchCode) nBadge.textContent = batchCode;
+      
+      const bInput = document.getElementById('batch-code-input');
+      if (bInput && !bInput.value && batchCode) {
+        bInput.value = batchCode;
+      }
+      const stgSelect = document.getElementById('start-stage-select');
+      if (stgSelect && state.currentStageId && (run === 'RUNNING' || run === 'PAUSED')) {
+        stgSelect.value = state.currentStageId;
+      }
+
       document.getElementById('stage-status').textContent = state.currentStageId ? `Stage ${state.currentStageId}/5 — ${state.currentStageName}` : 'Standby / Awaiting Batch Initialization';
 
       const run = String(state.runStatus || 'standby').toUpperCase();

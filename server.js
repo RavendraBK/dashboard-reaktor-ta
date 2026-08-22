@@ -623,8 +623,6 @@ async function requireUser(request, response, next) {
 }
 
 function publishControl(command) {
-    if (!client?.connected) throw new Error('MQTT belum terhubung; perintah tidak dikirim.');
-    
     let espCmd = {};
     const stageMap = { 1: 'mixing', 2: 'reflux', 3: 'separation', 4: 'oil_treatment', 5: 'filtration' };
     const bCode = command.batch_code || command.batch_id || processState.batchCode || 'BATCH-01';
@@ -663,8 +661,19 @@ function publishControl(command) {
         espCmd = { cmd: command.action, ...command };
     }
 
-    client.publish(config.controlTopic, JSON.stringify(espCmd), { qos: 1, retain: false });
-    console.log(`[MQTT] Control dikirim ke ESP32 (${config.controlTopic}):`, espCmd);
+    const payloadStr = JSON.stringify(espCmd);
+    let sentCount = 0;
+    mqttClients.forEach(c => {
+        if (c?.connected) {
+            c.publish(config.controlTopic, payloadStr, { qos: 1, retain: false });
+            sentCount++;
+        }
+    });
+
+    if (sentCount === 0 && !client?.connected) {
+        throw new Error('MQTT belum terhubung; perintah tidak dikirim.');
+    }
+    console.log(`[MQTT Bridge] Control dikirim ke ${sentCount} broker (${config.controlTopic}):`, espCmd);
 }
 
 function applyLocalControl(command) {

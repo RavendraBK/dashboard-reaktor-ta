@@ -2187,11 +2187,14 @@
 
     // Apply Live / Simulated State
     function applyState(state) {
+      if (!state) return;
       currentState = state;
       const data = state.latestData;
       if (state.recipe) activeRecipe = { ...activeRecipe, ...state.recipe };
 
-      const batchCode = state.batchCode || state.batchId || '';
+      const run = String(state.runStatus || (data?.running ? 'running' : 'standby')).toUpperCase();
+      const batchCode = state.batchCode || state.batchId || data?.batchCode || data?.batchId || '';
+
       document.getElementById('batch-label').textContent = batchCode ? `Batch: ${batchCode}` : 'Batch: -';
       const nBadge = document.getElementById('notes-active-batch-badge'); if (nBadge && batchCode) nBadge.textContent = batchCode;
       
@@ -2204,9 +2207,7 @@
         stgSelect.value = state.currentStageId;
       }
 
-      document.getElementById('stage-status').textContent = state.currentStageId ? `Stage ${state.currentStageId}/5 — ${state.currentStageName}` : 'Standby / Awaiting Batch Initialization';
-
-      const run = String(state.runStatus || 'standby').toUpperCase();
+      document.getElementById('stage-status').textContent = state.currentStageId ? `Stage ${state.currentStageId}/5 — ${state.currentStageName || stageMeta[state.currentStageId]?.name || ''}` : 'Standby / Awaiting Batch Initialization';
       const badge = document.getElementById('run-badge');
       const dot = document.getElementById('run-dot');
       const txt = document.getElementById('run-text');
